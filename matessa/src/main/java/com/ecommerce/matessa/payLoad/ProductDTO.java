@@ -44,5 +44,5 @@ public class ProductDTO {
     private List<ProductVariantDTO> variants = new ArrayList<>();
 
     // ✅ NEW: Support for Flavor Links (Lemon, Mint)
-    private List<com.ecommerce.matessa.dtos.ProductFlavorDTO> flavors = new ArrayList<>();
+    private List<ProductFlavorDTO> flavors = new ArrayList<>();
 }
