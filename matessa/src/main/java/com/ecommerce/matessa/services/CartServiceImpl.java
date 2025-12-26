@@ -35,12 +35,13 @@ public class CartServiceImpl implements CartService {
     private CartItemRepository cartItemRepository;
 
     @Autowired
-    private UserRepository userRepository; // Added to fetch User entity if needed
+    private UserRepository userRepository;
 
     @Autowired
     private ModelMapper modelMapper;
 
     @Override
+    @Transactional
     public CartDTO addProductToCart(Long productId, Integer quantity, String email, String sessionId) {
         // 1. Find or Create the Cart based on Identity
         Cart cart = getOrCreateCart(email, sessionId);
@@ -53,38 +54,64 @@ public class CartServiceImpl implements CartService {
         CartItem cartItem = cartItemRepository.findCartItemByProductIdAndCartId(cart.getCartId(), productId);
 
         if (cartItem != null) {
-            throw new ApisExceptionHandler("Product " + product.getProductName() + " already exists in the cart");
-        }
+            // ✅ CHANGE: Instead of throwing exception, UPDATE QUANTITY
+            // throw new ApisExceptionHandler("Product " + product.getProductName() + " already exists in the cart");
 
-        // 4. Stock Validations
-        if (product.getQuantity() == 0) {
-            throw new ApisExceptionHandler(product.getProductName() + " is not available");
-        }
-
-        if (product.getQuantity() < quantity) {
-            throw new ApisExceptionHandler("Please, make an order of the " + product.getProductName()
+            // Check Stock for total quantity
+            int newQuantity = cartItem.getQuantity() + quantity;
+            if (product.getQuantity() < newQuantity) {
+                 throw new ApisExceptionHandler("Please, make an order of the " + product.getProductName()
                     + " less than or equal to the quantity " + product.getQuantity() + ".");
+            }
+
+            cartItem.setQuantity(newQuantity);
+            // Update price in case product price changed (optional, but good practice)
+            cartItem.setProductPrice(product.getSpecialPrice());
+            cartItem.setDiscount(product.getDiscount());
+
+            cartItemRepository.save(cartItem);
+        } else {
+            // 4. Stock Validations
+            if (product.getQuantity() == 0) {
+                throw new ApisExceptionHandler(product.getProductName() + " is not available");
+            }
+
+            if (product.getQuantity() < quantity) {
+                throw new ApisExceptionHandler("Please, make an order of the " + product.getProductName()
+                        + " less than or equal to the quantity " + product.getQuantity() + ".");
+            }
+
+            // 5. Create new Cart Item
+            cartItem = new CartItem();
+            cartItem.setProduct(product);
+            cartItem.setCart(cart);
+            cartItem.setQuantity(quantity);
+            cartItem.setDiscount(product.getDiscount());
+            cartItem.setProductPrice(product.getSpecialPrice());
+
+            cartItemRepository.save(cartItem);
+
+            // IMPORTANT: Add to the cart's list so recalculation works immediately in this transaction
+            cart.getCartItems().add(cartItem);
         }
 
-        // 5. Create new Cart Item
-        CartItem newCartItem = new CartItem();
-        newCartItem.setProduct(product);
-        newCartItem.setCart(cart);
-        newCartItem.setQuantity(quantity);
-        newCartItem.setDiscount(product.getDiscount());
-        newCartItem.setProductPrice(product.getSpecialPrice());
-
-        cartItemRepository.save(newCartItem);
-
-        // 6. Update Product Stock (Temporary Hold) & Cart Total
-        // Note: Usually we don't deduct stock until Order is placed, but keeping your logic:
-        product.setQuantity(product.getQuantity());
-
-        cart.setTotalPrice(cart.getTotalPrice() + (product.getSpecialPrice() * quantity));
-        cartRepository.save(cart);
+        // 6. Recalculate Total (Instead of incremental update)
+        recalculateCartTotal(cart);
 
         // 7. Convert to DTO
         return mapToCartDTO(cart);
+    }
+
+    /**
+     * HELPER: Recalculates total price from scratch based on items.
+     */
+    private void recalculateCartTotal(Cart cart) {
+        double total = 0.0;
+        for (CartItem item : cart.getCartItems()) {
+            total += (item.getProductPrice() * item.getQuantity());
+        }
+        cart.setTotalPrice(total);
+        cartRepository.save(cart);
     }
 
     /**
@@ -137,25 +164,22 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public CartDTO getCart(String email, String sessionId, Long cartId) {
-        // Logic: Try to find cart by Email, if not, try Session
         Cart cart = null;
 
         if (email != null) {
-            // If searching by Email, usually we don't strictly need cartId if OneToOne
-            // But adhering to your specific repo method:
-            // Note: You might need to adjust repo method to handle nulls if necessary
             cart = cartRepository.findCartByEmailAndCartId(email, cartId);
         }
 
         if (cart == null && sessionId != null) {
-            // You need to add findBySessionIdAndCartId to Repository
-            // Or just findBySessionId(sessionId) since 1 session = 1 cart
             cart = cartRepository.findBySessionId(sessionId);
         }
 
         if (cart == null) {
             throw new ResourceExceptionHandler("Cart", "cartId", cartId);
         }
+
+        // Recalculate on fetch just to be safe? (Optional, but ensures consistency)
+        // recalculateCartTotal(cart);
 
         return mapToCartDTO(cart);
     }
@@ -174,9 +198,6 @@ public class CartServiceImpl implements CartService {
 
         if (product.getQuantity() == 0) {
             throw new ApisExceptionHandler(product.getProductName() + " is not available");
-        }
-        if (product.getQuantity() < quantity) { // Note: Check logic here if quantity is additive or absolute
-            // Assuming logic is correct based on previous code
         }
 
         // 3. Find Item
@@ -202,10 +223,19 @@ public class CartServiceImpl implements CartService {
             cartItem.setQuantity(newQuantity);
             cartItem.setDiscount(product.getDiscount());
 
-            cart.setTotalPrice(cart.getTotalPrice() + (cartItem.getProductPrice() * quantity));
+            // Check stock
+            if (product.getQuantity() < newQuantity) {
+                 throw new ApisExceptionHandler("Please, make an order of the " + product.getProductName()
+                    + " less than or equal to the quantity " + product.getQuantity() + ".");
+            }
+
+            // ✅ CHANGE: Recalculate Total (Instead of incremental)
+            // cart.setTotalPrice(cart.getTotalPrice() + (cartItem.getProductPrice() * quantity));
 
             cartRepository.save(cart);
             cartItemRepository.save(cartItem);
+
+            recalculateCartTotal(cart);
         }
 
         return mapToCartDTO(cart);
@@ -223,10 +253,13 @@ public class CartServiceImpl implements CartService {
             throw new ResourceExceptionHandler("Product", "productId", productId);
         }
 
-        cart.setTotalPrice(cart.getTotalPrice() -
-                (cartItem.getProductPrice() * cartItem.getQuantity()));
+        // ✅ CHANGE: Remove item from list and recalculate
+        // cart.setTotalPrice(cart.getTotalPrice() - (cartItem.getProductPrice() * cartItem.getQuantity()));
 
+        cart.getCartItems().remove(cartItem);
         cartItemRepository.deleteCartItemByProductIdAndCartId(cartId, productId);
+
+        recalculateCartTotal(cart);
 
         return "Product " + cartItem.getProduct().getProductName() + " removed from the cart !!!";
     }
@@ -245,15 +278,11 @@ public class CartServiceImpl implements CartService {
             throw new ApisExceptionHandler("Product " + product.getProductName() + " not available in the cart!!!");
         }
 
-        double cartPrice = cart.getTotalPrice()
-                - (cartItem.getProductPrice() * cartItem.getQuantity());
-
         cartItem.setProductPrice(product.getSpecialPrice());
-
-        cart.setTotalPrice(cartPrice
-                + (cartItem.getProductPrice() * cartItem.getQuantity()));
-
         cartItemRepository.save(cartItem);
+
+        // ✅ CHANGE: Recalculate Total
+        recalculateCartTotal(cart);
     }
 
     // Helper to avoid Code Duplication in mapping
@@ -273,68 +302,46 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public void mergeCarts(String email, String sessionId) {
-        // 1. Check if a Guest Cart even exists
         if (sessionId == null) return;
         Cart guestCart = cartRepository.findBySessionId(sessionId);
         if (guestCart == null) return;
 
-        // 2. Check if the User already has a Cart
         Cart userCart = cartRepository.findCartByEmail(email);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceExceptionHandler("User", "email", email));
 
         if (userCart == null) {
-            // SCENARIO A: User has no cart. Easy switch!
-            guestCart.setSessionId(null); // No longer a guest cart
-            guestCart.setUser(user);      // Now it belongs to the user
+            guestCart.setSessionId(null);
+            guestCart.setUser(user);
             cartRepository.save(guestCart);
         } else {
-            // SCENARIO B: User already has a cart. We must merge items.
-
             List<CartItem> guestItems = guestCart.getCartItems();
 
             for (CartItem guestItem : guestItems) {
                 Product product = guestItem.getProduct();
 
-                // Does User already have this product?
                 CartItem existingUserItem = cartItemRepository.findCartItemByProductIdAndCartId(userCart.getCartId(), product.getProductId());
 
                 if (existingUserItem != null) {
-                    // Update Quantity: User had 2, Guest had 3 -> Now User has 5
                     existingUserItem.setQuantity(existingUserItem.getQuantity() + guestItem.getQuantity());
-                    // Update Price based on new quantity
                     existingUserItem.setProductPrice(product.getSpecialPrice());
                 } else {
-                    // Move Item: User didn't have this. Create a new entry for User.
                     CartItem newItem = new CartItem();
                     newItem.setProduct(product);
-                    newItem.setCart(userCart); // Parent is now User Cart
+                    newItem.setCart(userCart);
                     newItem.setQuantity(guestItem.getQuantity());
                     newItem.setDiscount(product.getDiscount());
                     newItem.setProductPrice(product.getSpecialPrice());
-
                     cartItemRepository.save(newItem);
+                    userCart.getCartItems().add(newItem); // Add to list for recalculation
                 }
             }
 
-            // Recalculate Total Price for User Cart
-            double total = 0.0;
-            // We need to fetch fresh items to calculate total correctly
-            // But for simplicity, we can do a quick sum logic or save and fetch
-            // Let's assume we trigger a recalculate or do it manually here:
-            // (Ideally, create a helper method calculateCartTotal(Cart cart))
+            cartItemRepository.deleteAll(guestCart.getCartItems());
+            cartRepository.delete(guestCart);
 
-            // Cleanup: Delete the old Guest Cart
-            cartItemRepository.deleteAll(guestCart.getCartItems()); // Clear guest items
-            cartRepository.delete(guestCart); // Delete guest cart object
-
-            // Recalculate User Cart Total (Simple loop)
-            userCart = cartRepository.findById(userCart.getCartId()).get(); // Refresh
-            double newTotal = userCart.getCartItems().stream()
-                    .mapToDouble(item -> item.getProductPrice() * item.getQuantity())
-                    .sum();
-            userCart.setTotalPrice(newTotal);
-            cartRepository.save(userCart);
+            // ✅ CHANGE: Recalculate
+            recalculateCartTotal(userCart);
         }
     }
 }

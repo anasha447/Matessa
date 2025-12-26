@@ -56,8 +56,10 @@ public class OrderServiceImpl implements OrderService {
         order.setTotalAmount(cart.getTotalPrice());
         order.setAddress(address);
 
-        if (email != null) {
-            userRepository.findByEmail(email).ifPresent(order::setUser);
+        // ✅ CHANGE: Only set user if the cart has a user (Logged In)
+        // If guest (cart.getUser() == null), order.setUser is null.
+        if (cart.getUser() != null) {
+            order.setUser(cart.getUser());
         }
 
         // Save order first to generate ID
