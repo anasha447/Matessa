@@ -12,6 +12,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { logoutUser } from "../redux/slices/authSlice";
 import { clearCart } from "../redux/slices/cartSlice";
 
+
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -75,10 +76,10 @@ const Header = () => {
   }, []);
 
   const navLinks = [
-    { name: "Home", path: "/" },
     { name: "Shop", path: "/shop" },
     { name: "What is mate?!", path: "/what.is.mate" },
     { name: "Our Story", path: "/our_story" },
+    { name: "Contact Us", path: "/contact-us" },
   ];
 
   return (
@@ -150,6 +151,7 @@ const Header = () => {
                       <Link to="/admin/dashboard" className="block px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Dashboard</Link>
                       <Link to="/admin/products" className="block px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Products</Link>
                       <Link to="/admin/orders" className="block px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Orders</Link>
+                      <Link to="/admin/AdminInbox" className="block px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Inbox</Link>
                       <Link to="/admin/users" className="block px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Users</Link>
                       <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Logout</button>
                     </div>

@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, Trash2 } from "lucide-react";
 
@@ -23,18 +23,22 @@ const CartDrawer = ({ isOpen, onClose }) => {
   }, [isOpen, dispatch]);
 
   // 3. Handlers
-  const handleQtyChange = (productId, operation, currentQty) => {
+  const handleQtyChange = (productId, operation, currentQty, variantId) => {
     if (operation === 'decrease' && currentQty <= 1) {
+        // Logic to remove specific variant
+        const item = items.find(i => i.productId === productId && i.variantId === variantId);
         if (window.confirm("Remove this item?")) {
-            dispatch(removeCartItem({ cartId, productId }));
+            dispatch(removeCartItem({ cartId, productId, variant: item?.variant }));
         }
     } else {
-        dispatch(updateCartItem({ productId, operation }));
+        // ✅ Updated: Pass variantId to Redux
+        dispatch(updateCartItem({ productId, operation, variantId }));
     }
   };
 
-  const handleRemove = (productId) => {
-    dispatch(removeCartItem({ cartId, productId }));
+  const handleRemove = (productId, variant) => {
+    // ✅ Updated: Pass variant string to Redux
+    dispatch(removeCartItem({ cartId, productId, variant }));
   };
 
   const handleCheckout = () => {
@@ -100,16 +104,17 @@ const CartDrawer = ({ isOpen, onClose }) => {
                 </div>
               ) : (
                 <ul className="space-y-4">
-                  {items.map((item) => (
-                    <li key={item.productId} className="bg-white p-4 rounded-lg shadow-sm flex gap-4 border border-[#E6E0D2]">
+                  {items.map((item, idx) => (
+                    // Use index in key to ensure uniqueness if IDs duplicate
+                    <li key={`${item.productId}-${item.variantId || 'def'}-${idx}`} className="bg-white p-4 rounded-lg shadow-sm flex gap-4 border border-[#E6E0D2]">
                       
                       {/* Product Image */}
-                      <div className="w-20 h-20 flex-shrink-0 bg-gray-50 rounded-md overflow-hidden">
+                      <div className="w-20 h-20 flex-shrink-0 bg-gray-50 rounded-md overflow-hidden border border-gray-100">
                         <img
-                          // ✅ FIXED: Check 'images' array first, fallback to 'image'
                           src={getImageUrl(item.images?.[0] || item.image)}
                           alt={item.productName}
                           className="w-full h-full object-contain"
+                          onError={(e) => { e.target.src = "https://via.placeholder.com/80?text=No+Img"; }}
                         />
                       </div>
 
@@ -119,8 +124,20 @@ const CartDrawer = ({ isOpen, onClose }) => {
                           <h3 className="font-semibold text-[#2F3B28] line-clamp-1">
                             {item.productName}
                           </h3>
-                          <p className="text-sm text-[#F26323] font-bold mt-1">
-                             ₹ {item.specialPrice || item.price}
+
+                          {/* ✅ SHOW VARIANT BADGE */}
+                          <div className="flex flex-wrap gap-2 mt-1 mb-1">
+                              {item.variant && (
+                                  <span className="text-[10px] uppercase font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                                      {item.variant}
+                                  </span>
+                              )}
+                          </div>
+
+                          {/* ✅ SHOW CORRECT PRICE */}
+                          {/* item.specialPrice from backend cart item holds the variant price */}
+                          <p className="text-sm text-[#F26323] font-bold">
+                             ₹ {(item.specialPrice || item.price || 0).toFixed(2)}
                           </p>
                         </div>
 
@@ -128,7 +145,8 @@ const CartDrawer = ({ isOpen, onClose }) => {
                         <div className="flex items-center justify-between mt-2">
                           <div className="flex items-center border border-gray-300 rounded-md">
                             <button
-                              onClick={() => handleQtyChange(item.productId, 'decrease', item.quantity)}
+                              // ✅ Pass variantId
+                              onClick={() => handleQtyChange(item.productId, 'decrease', item.quantity, item.variantId)}
                               className="p-1 px-2 hover:bg-gray-100 text-[#2F3B28]"
                             >
                               <Minus size={14} />
@@ -137,7 +155,8 @@ const CartDrawer = ({ isOpen, onClose }) => {
                               {item.quantity}
                             </span>
                             <button
-                              onClick={() => handleQtyChange(item.productId, 'increase', item.quantity)}
+                              // ✅ Pass variantId
+                              onClick={() => handleQtyChange(item.productId, 'increase', item.quantity, item.variantId)}
                               className="p-1 px-2 hover:bg-gray-100 text-[#2F3B28]"
                             >
                               <Plus size={14} />
@@ -145,7 +164,8 @@ const CartDrawer = ({ isOpen, onClose }) => {
                           </div>
 
                           <button
-                            onClick={() => handleRemove(item.productId)}
+                            // ✅ Pass variant String
+                            onClick={() => handleRemove(item.productId, item.variant)}
                             className="text-red-400 hover:text-red-600 p-1"
                             title="Remove Item"
                           >

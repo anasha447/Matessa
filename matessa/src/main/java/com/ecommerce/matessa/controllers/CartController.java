@@ -29,39 +29,37 @@ public class CartController {
     private CartRepository cartRepository;
 
     @Autowired
-    private CookieUtil cookieUtil; // ✅ 1. Inject CookieUtil
+    private CookieUtil cookieUtil;
 
-    // Helper method to safely get email or null (for Guest logic)
+    // Helper: Safely get email or null (Guest logic)
     private String getLoggedInEmailOrNull() {
         try {
             return authUtil.loggedInEmail();
         } catch (Exception e) {
-            return null; // User is not logged in -> Treat as Guest
+            return null; // Not logged in -> Guest
         }
     }
 
+    // ✅ 1. ADD TO CART (Supports Optional Variant)
+    // If a product has no variant, frontend sends nothing, and 'variantId' becomes null.
+    // The Service handles null by using the default Product price.
     @PostMapping("/public/carts/products/{productId}/quantity/{quantity}")
-    public ResponseEntity<CartDTO> addProductToCart(@PathVariable Long productId,
-                                                    @PathVariable Integer quantity,
-                                                    HttpServletRequest request,   // ✅ Needed for reading cookies
-                                                    HttpServletResponse response) { // ✅ Needed for writing cookies
+    public ResponseEntity<CartDTO> addProductToCart(
+            @PathVariable Long productId,
+            @PathVariable Integer quantity,
+            @RequestParam(required = false) Long variantId, // Optional!
+            HttpServletRequest request,
+            HttpServletResponse response) {
 
         String email = getLoggedInEmailOrNull();
-        String sessionId = cookieUtil.getOrGenerateGuestId(request, response); // Get Cookie
+        String sessionId = cookieUtil.getOrGenerateGuestId(request, response);
 
-        // ✅ Pass all 4 arguments now
-        CartDTO cartDTO = cartService.addProductToCart(productId, quantity, email, sessionId);
+        CartDTO cartDTO = cartService.addProductToCart(productId, quantity, email, sessionId, variantId);
 
         return new ResponseEntity<>(cartDTO, HttpStatus.CREATED);
     }
 
-    @GetMapping("/admin/carts")
-    public ResponseEntity<List<CartDTO>> getCarts() {
-        // This is an Admin method, usually doesn't need guest logic unless you want to see ALL guest carts too
-        List<CartDTO> cartDTOs = cartService.getAllCarts();
-        return new ResponseEntity<>(cartDTOs, HttpStatus.FOUND);
-    }
-
+    // ✅ 2. GET CART (User or Guest)
     @GetMapping("/public/carts/users/cart")
     public ResponseEntity<CartDTO> getCartById(HttpServletRequest request, HttpServletResponse response) {
 
@@ -70,35 +68,31 @@ public class CartController {
 
         Cart cart = null;
 
-        // 1. Try finding by Email
+        // Try finding by Email first
         if (email != null) {
             cart = cartRepository.findCartByEmail(email);
         }
 
-        // 2. If not found, try finding by Session
+        // If not found, try finding by Session
         if (cart == null && sessionId != null) {
-            cart = cartRepository.findBySessionId(sessionId); // Ensure this method exists in Repository!
+            cart = cartRepository.findBySessionId(sessionId);
         }
 
-        // 3. Handle empty cart scenario
+        // If no cart exists yet, return 204 No Content
         if (cart == null) {
-            // Depending on frontend logic, you might want to return an empty DTO or Create one
-            // For now, let's allow the Service to handle the "Not Found" error or create one
-            // We pass 0L as ID if cart is null, service will handle creation logic if you prefer
-            // But based on your Service code, it expects a valid ID for 'getCart'.
-            // So we return "No Content" if cart doesn't exist yet.
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
 
-        // ✅ Pass arguments to service
         CartDTO cartDTO = cartService.getCart(email, sessionId, cart.getCartId());
 
         return new ResponseEntity<>(cartDTO, HttpStatus.OK);
     }
 
+    // ✅ 3. UPDATE QUANTITY
     @PutMapping("/public/cart/products/{productId}/quantity/{operation}")
     public ResponseEntity<CartDTO> updateCartProduct(@PathVariable Long productId,
                                                      @PathVariable String operation,
+                                                     @RequestParam(required = false) Long variantId,
                                                      HttpServletRequest request,
                                                      HttpServletResponse response) {
 
@@ -107,19 +101,41 @@ public class CartController {
 
         int qty = operation.equalsIgnoreCase("delete") ? -1 : 1;
 
-        // ✅ Pass all 4 arguments
-        CartDTO cartDTO = cartService.updateProductQuantityInCart(productId, qty, email, sessionId);
+        CartDTO cartDTO = cartService.updateProductQuantityInCart(productId, qty, email, sessionId, variantId);
 
         return new ResponseEntity<>(cartDTO, HttpStatus.OK);
     }
 
+    // ✅ 4. REMOVE ITEM (Supports Optional Variant)
+    // If you remove a product without a variant, 'variant' param is null.
+    // The Service knows to look for the "default" item.
     @DeleteMapping("/public/carts/{cartId}/product/{productId}")
-    public ResponseEntity<String> deleteProductFromCart(@PathVariable Long cartId,
-                                                        @PathVariable Long productId) {
+// ✅ Change return type from <String> to <CartDTO>
+    public ResponseEntity<CartDTO> deleteProductFromCart(@PathVariable Long cartId,
+                                                         @PathVariable Long productId,
+                                                         @RequestParam(required = false) String variant) {
 
-        // Delete functionality usually doesn't require session logic if we have the specific Cart ID
-        String status = cartService.deleteProductFromCart(cartId, productId);
+        // ✅ Capture the CartDTO object
+        CartDTO updatedCart = cartService.deleteProductFromCart(cartId, productId, variant);
 
-        return new ResponseEntity<>(status, HttpStatus.OK);
+        // ✅ Return the object so Frontend gets the new price
+        return new ResponseEntity<>(updatedCart, HttpStatus.OK);
+    }
+
+    // ✅ 5. ADMIN GET ALL
+    @GetMapping("/admin/carts")
+    public ResponseEntity<List<CartDTO>> getCarts() {
+        List<CartDTO> cartDTOs = cartService.getAllCarts();
+        return new ResponseEntity<>(cartDTOs, HttpStatus.FOUND);
+    }
+    @PostMapping("/public/carts/{cartId}/coupon/{code}")
+    public ResponseEntity<CartDTO> applyCoupon(@PathVariable Long cartId, @PathVariable String code) {
+        CartDTO cartDTO = cartService.applyCoupon(cartId, code);
+        return new ResponseEntity<>(cartDTO, HttpStatus.OK);
+    }
+    @DeleteMapping("/public/carts/{cartId}/coupon")
+    public ResponseEntity<CartDTO> removeCoupon(@PathVariable Long cartId) {
+        CartDTO cartDTO = cartService.removeCoupon(cartId);
+        return new ResponseEntity<>(cartDTO, HttpStatus.OK);
     }
 }

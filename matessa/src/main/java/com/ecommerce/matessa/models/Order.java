@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import lombok.ToString;
 
 import java.time.LocalDate;
@@ -36,7 +38,6 @@ public class Order {
     private Payment payment;
 
     private Double totalAmount;
-    private String orderStatus;
 
     @ManyToOne
     @JoinColumn(name = "address_id")
@@ -47,5 +48,6 @@ public class Order {
     @JoinColumn(name = "user_id")
     private User user;
 
-
+    @Enumerated(EnumType.STRING)
+    private OrderStatus orderStatus;
 }

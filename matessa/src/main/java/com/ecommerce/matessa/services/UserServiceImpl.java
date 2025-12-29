@@ -52,4 +52,20 @@ public class UserServiceImpl implements UserService {
         userRepository.delete(user);
         return "User with ID " + userId + " deleted successfully.";
     }
+
+    @Override
+    public UserDTO updateUser(Long userId, UserDTO userDTO) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceExceptionHandler("User", "userId", userId));
+
+        // Update basic fields
+        // Note: For Password update, usually we have a separate endpoint
+        if (userDTO.getUserName() != null) user.setUserName(userDTO.getUserName());
+        // Email update might require verification, skipping for now or allow it
+        if (userDTO.getEmail() != null) user.setEmail(userDTO.getEmail());
+
+        // Save
+        User updatedUser = userRepository.save(user);
+        return modelMapper.map(updatedUser, UserDTO.class);
+    }
 }

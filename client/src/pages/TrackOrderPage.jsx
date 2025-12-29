@@ -1,126 +1,174 @@
-import React, { useState } from "react";
-import axios from "axios";
-import { toast } from "react-toastify";
-import Spinner from "../components/Spinner";
-
-const API_URL = "http://localhost:5000/api";
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { trackOrder, clearTracking } from "../redux/slices/orderSlice";
+import { Link } from "react-router-dom";
+import { Search, Package, ArrowRight, AlertCircle, Calendar, CreditCard } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import Spinner from "../components/Spinner"; // Assuming you have this
 
 const TrackOrderPage = () => {
-  const [orderId, setOrderId] = useState("");
+  const dispatch = useDispatch();
   const [email, setEmail] = useState("");
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(false);
+  
+  // Get data from Redux
+  const { trackingResult, loading, error } = useSelector((state) => state.orders);
 
-  const submitHandler = async (e) => {
+  // Clear previous results when component unmounts
+  useEffect(() => {
+    return () => {
+      dispatch(clearTracking());
+    };
+  }, [dispatch]);
+
+  const handleTrack = (e) => {
     e.preventDefault();
-    setLoading(true);
-    setOrder(null);
-    try {
-      const config = {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      };
-      const { data } = await axios.post(
-        `${API_URL}/orders/track`,
-        { orderId, email },
-        config
-      );
-      setOrder(data);
-      toast.success("Order found!");
-    } catch (error) {
-      const message =
-        error.response && error.response.data.message
-          ? error.response.data.message
-          : "An error occurred.";
-      toast.error(message);
-    } finally {
-      setLoading(false);
+    if (!email.trim()) return;
+    dispatch(trackOrder(email));
+  };
+
+  // Helper for Status Colors
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "DELIVERED": return "bg-green-100 text-green-700 border-green-200";
+      case "SHIPPED": return "bg-blue-100 text-blue-700 border-blue-200";
+      case "CANCELLED": return "bg-red-100 text-red-700 border-red-200";
+      default: return "bg-yellow-100 text-yellow-700 border-yellow-200";
     }
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-white)] py-12">
-      <div className="container mx-auto px-4">
-        <div className="w-full max-w-lg mx-auto text-center">
-          <h1 className="text-4xl font-bold mb-8 text-[var(--color-darkgreen)] font-heading">
+    <div className="min-h-screen bg-gray-50 py-12 px-4 md:px-8">
+      <div className="max-w-2xl mx-auto">
+        
+        {/* Header Section */}
+        <div className="text-center mb-10">
+          <h1 className="text-3xl md:text-4xl font-bold text-[var(--color-darkgreen)] mb-3">
             Track Your Order
           </h1>
-          <form
-            onSubmit={submitHandler}
-            className="bg-white shadow-2xl rounded-2xl p-8"
-          >
-            <div className="mb-6">
-              <label
-                className="block text-[var(--color-darkgreen)] text-lg font-bold mb-2 font-heading"
-                htmlFor="orderId"
-              >
-                Order ID
-              </label>
-              <input
-                className="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700"
-                id="orderId"
-                type="text"
-                placeholder="Enter your order ID"
-                value={orderId}
-                onChange={(e) => setOrderId(e.target.value)}
-                required
-              />
-            </div>
-            <div className="mb-8">
-              <label
-                className="block text-[var(--color-darkgreen)] text-lg font-bold mb-2 font-heading"
-                htmlFor="email"
-              >
-                Email Address
-              </label>
-              <input
-                className="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700"
-                id="email"
-                type="email"
-                placeholder="Enter the email used for the order"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex items-center justify-center">
-              <button
-                className="bg-[var(--color-orange)] hover:opacity-90 text-white font-bold py-3 px-8 rounded-full text-lg"
-                type="submit"
-                disabled={loading}
-              >
-                {loading ? "Searching..." : "Track Order"}
-              </button>
-            </div>
+          <p className="text-gray-600">
+            Enter the email address used during checkout to see your order status.
+          </p>
+        </div>
+
+        {/* Search Input */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
+          <form onSubmit={handleTrack} className="relative flex items-center">
+            <Search className="absolute left-4 text-gray-400" size={20} />
+            <input
+              type="email"
+              placeholder="e.g. guest@example.com"
+              className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--color-green)] focus:outline-none transition-all"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="absolute right-2 bg-[var(--color-darkgreen)] text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-70"
+            >
+              {loading ? "Searching..." : "Track"}
+            </button>
           </form>
         </div>
 
-        {loading && <Spinner />}
-
-        {order && (
-          <div className="w-full max-w-2xl mx-auto bg-white shadow-2xl rounded-2xl p-8 mt-12">
-            <h2 className="text-3xl font-bold mb-6 text-[var(--color-darkgreen)] font-heading">
-              Order Details
-            </h2>
-            <div className="space-y-4">
-              <p>
-                <strong>Tracking ID:</strong> {order.trackingId}
-              </p>
-              <p>
-                <strong>Status:</strong>{" "}
-                <span className="font-bold text-blue-600">{order.status}</span>
-              </p>
-              <p>
-                <strong>Date:</strong>{" "}
-                {new Date(order.createdAt).toLocaleDateString()}
-              </p>
-              <p>
-                <strong>Total:</strong> ₹{order.totalPrice.toFixed(2)}
-              </p>
+        {/* CONTENT AREA */}
+        <div className="space-y-4">
+          
+          {/* 1. Loading State */}
+          {loading && (
+            <div className="flex justify-center py-10">
+              <Spinner />
             </div>
-          </div>
-        )}
+          )}
+
+          {/* 2. Error / No Orders Found State */}
+          {!loading && error && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-50 border border-red-100 rounded-xl p-6 text-center"
+            >
+              <div className="inline-flex bg-red-100 p-3 rounded-full text-red-500 mb-3">
+                <AlertCircle size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-red-800 mb-1">No Orders Found</h3>
+              <p className="text-red-600 text-sm">
+                We couldn't find any orders associated with <strong>{email}</strong>.
+              </p>
+            </motion.div>
+          )}
+
+          {/* 3. Success State (List of Orders) */}
+          {!loading && trackingResult && trackingResult.orderDetails?.length > 0 && (
+            <AnimatePresence>
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }}
+                className="space-y-4"
+              >
+                <div className="flex justify-between items-center px-2">
+                    <h3 className="font-bold text-gray-700">
+                        Found {trackingResult.totalOrdersFound} Order(s)
+                    </h3>
+                </div>
+
+                {trackingResult.orderDetails.map((order, index) => (
+                  <motion.div
+                    key={order.orderId}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+                      
+                      {/* Left: Order Info */}
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="font-mono text-lg font-bold text-gray-800">#{order.orderId}</span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(order.orderStatus)}`}>
+                            {order.orderStatus}
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <Calendar size={14} />
+                            {new Date(order.orderDate).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <CreditCard size={14} />
+                            {order.payment?.paymentMode || "COD"}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Amount & Action */}
+                      <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto mt-2 md:mt-0 border-t md:border-t-0 pt-4 md:pt-0">
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">Total Amount</p>
+                          <p className="text-xl font-bold text-[var(--color-orange)]">
+                            ₹{order.totalAmount.toFixed(2)}
+                          </p>
+                        </div>
+                        
+                        <Link 
+                          to={`/order-confirmation/${order.orderId}`}
+                          className="flex items-center gap-2 text-[var(--color-darkgreen)] font-semibold hover:underline"
+                        >
+                          View Details <ArrowRight size={16} />
+                        </Link>
+                      </div>
+
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </AnimatePresence>
+          )}
+        </div>
+
       </div>
     </div>
   );

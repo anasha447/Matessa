@@ -42,7 +42,7 @@ public class AddressController {
     }
 
 
-    @GetMapping("/admin/users/addresses")
+    @GetMapping("/users/addresses")
     public ResponseEntity<List<AddressDTO>> getUserAddresses(){
         User user = authUtil.loggedInUser();
         List<AddressDTO> addressList = addressService.getUserAddresses(user);

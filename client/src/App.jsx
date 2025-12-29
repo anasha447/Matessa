@@ -24,7 +24,6 @@ import OrderPage from "./pages/OrderPage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import TrackOrderPage from "./pages/TrackOrderPage";
-
 // Admin Pages
 import UserListPage from "./pages/admin/UserListPage";
 import UserEditPage from "./pages/admin/UserEditPage";
@@ -35,13 +34,16 @@ import ProductEditPage from "./pages/admin/ProductEditPage";
 import ProductCreatePage from "./pages/admin/ProductCreatePage";
 import Dashboard from "./components/admin/Dashboard";
 import CategoryManagementPage from "./pages/CategoryManagementPage";
-
+import ContactPage from "./pages/ContactUsPage";
+import AdminInbox from "./pages/admin/AdminInbox";
+import SubscriberList from "./pages/admin/SubscriberList";
 
 // Components
 import GuestPopup from "./components/guestpopup";
 import Header from "./components/header";
 import AppFooter from "./components/footer";
 import AdminRoute from "./components/AdminRoute"; // ✅ Import the new wrapper
+import AdminCoupons from "./pages/admin/AdminCoupons";
 
 const App = () => {
   const dispatch = useDispatch();
@@ -80,6 +82,7 @@ const App = () => {
           <Route path="/track-order" element={<TrackOrderPage />} />
           <Route path="/product/:id" element={<SingleProductPage />} />
           <Route path="/checkoutpage" element={<CheckoutPage />} />
+          <Route path="/contact-us" element={<ContactPage />} />
           
           {/* Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
@@ -89,7 +92,7 @@ const App = () => {
           {/* User Routes (You might want a separate <PrivateRoute> for these) */}
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/order/:id" element={<OrderPage />} />
-          <Route path="/order-confirmation/:id" element={<OrderConfirmationPage />} />
+          <Route path="/order-confirmation/:orderId" element={<OrderConfirmationPage />} />
           <Route path="/myorders" element={<OrderHistoryPage />} />
           
           {/* --- ADMIN ROUTES (PROTECTED) --- */}
@@ -108,6 +111,9 @@ const App = () => {
             <Route path="/admin/product/create" element={<ProductCreatePage />} />
             <Route path="/admin/product/:id/edit" element={<ProductEditPage />} />
             <Route path="/admin/categories" element={<CategoryManagementPage />} />
+            <Route path="/admin/AdminInbox" element={<AdminInbox />} />
+            <Route path="/admin/subscribers" element={<SubscriberList />} />
+            <Route path="/admin/coupons" element={<AdminCoupons />} />
           </Route>
 
         </Routes>

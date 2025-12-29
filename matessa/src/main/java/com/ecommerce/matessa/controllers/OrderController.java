@@ -15,9 +15,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/public")
+@RequestMapping("/api")
 public class OrderController {
 
     @Autowired
@@ -30,7 +31,7 @@ public class OrderController {
     private CookieUtil cookieUtil;
 
     // NOTE: The URL variable is 'paymentMode' (COD or ONLINE)
-    @PostMapping("/order/users/payments/{paymentMode}")
+    @PostMapping("/public/order/users/payments/{paymentMode}")
     public ResponseEntity<OrderDTO> orderProducts(@PathVariable String paymentMode,
                                                   @RequestBody OrderRequestDTO orderRequestDTO,
                                                   HttpServletRequest request,
@@ -63,7 +64,7 @@ public class OrderController {
         return new ResponseEntity<>(order, HttpStatus.CREATED);
     }
 
-    @GetMapping("/orders/{orderId}")
+    @GetMapping("/public/orders/{orderId}")
     public ResponseEntity<OrderDTO> getOrderById(@PathVariable Long orderId) {
         OrderDTO orderDTO = orderService.getOrder(orderId);
         return new ResponseEntity<>(orderDTO, HttpStatus.OK);
@@ -74,8 +75,18 @@ public class OrderController {
         List<OrderDTO> orders = orderService.getAllOrders();
         return new ResponseEntity<>(orders, HttpStatus.OK);
     }
+    @PutMapping("/admin/orders/{orderId}/status")
+    public ResponseEntity<OrderDTO> updateOrderStatus(@PathVariable Long orderId,
+                                                      @RequestBody Map<String, String> statusMap) {
+        String status = statusMap.get("status");
+        if(status == null) throw new ApisExceptionHandler("Status is required");
 
-    @GetMapping("/orders/track")
+        OrderDTO orderDTO = orderService.updateOrderUser(orderId, status); // Ensure your Service has this method!
+        return new ResponseEntity<>(orderDTO, HttpStatus.OK);
+    }
+
+
+    @GetMapping("/public/orders/track")
     public ResponseEntity<OrderTrackResponse> trackOrdersByEmail(@RequestParam String email) {
         if (email == null || email.trim().isEmpty()) {
             throw new ApisExceptionHandler("Email is required for tracking.");

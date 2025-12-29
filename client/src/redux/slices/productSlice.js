@@ -99,11 +99,14 @@ export const uploadProductImage = createAsyncThunk(
   async ({ productId, file }, { rejectWithValue }) => {
     try {
       const formData = new FormData();
-      formData.append("image", file); // Must match @RequestParam("image")
+      formData.append("image", file); // Must match Backend @RequestParam("image")
 
-      // ✅ FIX: Use POST. Do NOT set Content-Type header manually.
-      // Matches @PostMapping("/admin/products/{productId}/image")
-      const response = await api.post(`/admin/products/${productId}/image`, formData);
+      // ✅ FIX: Explicitly set the header to multipart/form-data
+      const response = await api.post(`/admin/products/${productId}/image`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
       
       return response.data; 
     } catch (error) {

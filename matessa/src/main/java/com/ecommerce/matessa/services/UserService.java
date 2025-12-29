@@ -8,4 +8,5 @@ public interface UserService {
     UserDTO getUserById(Long userId);
     String deleteUser(Long userId);
     // ... update methods ...
+    UserDTO updateUser(Long userId, UserDTO userDTO);
 }

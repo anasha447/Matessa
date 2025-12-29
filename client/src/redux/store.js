@@ -10,7 +10,8 @@ import productImageReducer from './slices/productImageSlice';
 import categoryReducer from './slices/categorySlice';
 import userReducer from './slices/userSlice';
 import adminReducer from './slices/adminSlice'; 
-
+import contactReducer from './slices/contactSlice';
+import couponReducer from './slices/CouponSlice';
 
 
 export const store = configureStore({
@@ -25,6 +26,8 @@ export const store = configureStore({
     productImages: productImageReducer,
     users: userReducer,
     categories: categoryReducer,
+    contact: contactReducer,
     admin: adminReducer,
+    coupons: couponReducer,
   },
 });

@@ -21,20 +21,41 @@ export const fetchCart = createAsyncThunk(
     }
 );
 
-// 2. Add Item (Updated for Variants & Flavors)
+export const removeCoupon = createAsyncThunk(
+    'cart/removeCoupon',
+    async (cartId, { rejectWithValue }) => {
+        try {
+            const response = await api.delete(`/public/carts/${cartId}/coupon`);
+            return response.data; // Returns updated CartDTO with NO discount
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Failed to remove coupon");
+        }
+    }
+);
+
+export const applyCoupon = createAsyncThunk(
+    'cart/applyCoupon',
+    async ({ cartId, code }, { rejectWithValue }) => {
+        try {
+            const response = await api.post(`/public/carts/${cartId}/coupon/${code}`);
+            return response.data; // Returns updated CartDTO
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Invalid Coupon");
+        }
+    }
+);
+
+// 2. Add Item
 export const addToCart = createAsyncThunk(
     'cart/addToCart',
-    // Now accepts 'variant' and 'flavor' in the arguments
-    async ({ productId, quantity, variant, flavor }, { rejectWithValue }) => {
+    // ✅ Updated: Now expects 'variantId' (Long) instead of just name
+    async ({ productId, quantity, variantId }, { rejectWithValue }) => {
         try {
-            // ✅ We pass variant/flavor in the BODY (second argument of api.post)
-            // URL: /api/public/carts/products/{id}/quantity/{qty}
+            // Backend expects: POST /.../quantity/{qty}?variantId={id}
+            const variantParam = variantId ? `?variantId=${variantId}` : "";
+            
             const response = await api.post(
-                `/public/carts/products/${productId}/quantity/${quantity}`, 
-                { 
-                    variant: variant || null, // e.g., "100g"
-                    flavor: flavor || null    // e.g., "Lemon"
-                }
+                `/public/carts/products/${productId}/quantity/${quantity}${variantParam}`
             );
             return response.data; // Returns updated CartDTO
         } catch (error) {
@@ -46,11 +67,17 @@ export const addToCart = createAsyncThunk(
 // 3. Update Quantity (Increase/Decrease)
 export const updateCartItem = createAsyncThunk(
     'cart/updateItem',
-    async ({ productId, operation }, { rejectWithValue }) => {
+    // ✅ Updated: Now accepts 'variantId'
+    async ({ productId, operation, variantId }, { rejectWithValue }) => {
         try {
             const opString = operation === 'increase' ? 'increase' : 'delete'; 
             
-            const response = await api.put(`/public/cart/products/${productId}/quantity/${opString}`);
+            // Backend expects: PUT /.../quantity/{op}?variantId={id}
+            const variantParam = variantId ? `?variantId=${variantId}` : "";
+
+            const response = await api.put(
+                `/public/cart/products/${productId}/quantity/${opString}${variantParam}`
+            );
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message);
@@ -61,10 +88,16 @@ export const updateCartItem = createAsyncThunk(
 // 4. Remove Item
 export const removeCartItem = createAsyncThunk(
     'cart/removeItem',
-    async ({ cartId, productId }, { rejectWithValue }) => {
+    async ({ cartId, productId, variant }, { rejectWithValue }) => {
         try {
-            await api.delete(`/public/carts/${cartId}/product/${productId}`);
-            return productId; 
+            const variantParam = variant ? `?variant=${encodeURIComponent(variant)}` : "";
+
+            // 1. Call Backend
+            const response = await api.delete(`/public/carts/${cartId}/product/${productId}${variantParam}`);
+            
+            // ✅ FIX: Return the Backend Response (CartDTO)
+            // This object contains the NEW totalPrice calculated by the server.
+            return response.data; 
         } catch (error) {
             return rejectWithValue(error.response?.data?.message);
         }
@@ -106,7 +139,6 @@ const cartSlice = createSlice({
             })
             .addCase(fetchCart.rejected, (state, action) => {
                 state.loading = false;
-                // 404/Error usually means empty cart or guest
                 state.items = [];
             })
 
@@ -129,12 +161,31 @@ const cartSlice = createSlice({
                 state.totalPrice = action.payload.totalPrice;
             })
 
-            // --- REMOVE ITEM ---
-            .addCase(removeCartItem.fulfilled, (state, action) => {
-                // Optimistically remove from UI
-                state.items = state.items.filter(item => item.productId !== action.payload);
-                // Note: Total price might be inaccurate until next fetch/action if not returned by backend
-            });
+            .addCase(applyCoupon.fulfilled, (state, action) => {
+        state.cartId = action.payload.cartId;
+        state.items = action.payload.products;
+        state.totalPrice = action.payload.totalPrice;
+        // You might need to add a 'discount' field to your state if you want to show it
+        state.discount = action.payload.discount; 
+         })
+         .addCase(removeCartItem.fulfilled, (state, action) => {
+    // ❌ OLD WAY: (Manual filtering - Keeps old price)
+    // state.items = state.items.filter(item => item.productId !== action.payload.productId);
+
+    // ✅ NEW WAY: (Full Sync - Updates Price & Items)
+    // The backend did the math, we just display the result.
+    state.items = action.payload.products; 
+    state.totalPrice = action.payload.totalPrice; // <--- The Fix
+    state.discount = action.payload.discount || 0;
+    state.couponCode = action.payload.couponCode;
+})
+
+            .addCase(removeCoupon.fulfilled, (state, action) => {
+        state.cartId = action.payload.cartId;
+        state.items = action.payload.products;
+        state.totalPrice = action.payload.totalPrice;
+        state.discount = 0; // Reset discount
+         });
     },
 });
 

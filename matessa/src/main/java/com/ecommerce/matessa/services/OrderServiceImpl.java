@@ -56,15 +56,15 @@ public class OrderServiceImpl implements OrderService {
         order.setTotalAmount(cart.getTotalPrice());
         order.setAddress(address);
 
-        if (email != null) {
-            userRepository.findByEmail(email).ifPresent(order::setUser);
+        // Only set user if the cart has a user (Logged In)
+        if (cart.getUser() != null) {
+            order.setUser(cart.getUser());
         }
 
         // Save order first to generate ID
         Order savedOrder = orderRepository.save(order);
 
         // --- 4. HANDLE PAYMENT LOGIC (COD vs ONLINE) ---
-        //
         Payment payment = new Payment();
 
         // Convert String from DTO to Enum
@@ -81,11 +81,13 @@ public class OrderServiceImpl implements OrderService {
         if (mode == PaymentMode.COD) {
             // --- SCENARIO A: Cash On Delivery ---
             payment.setPgName("Cash");
-            payment.setPgPaymentId(null); // No ID generated yet
+            payment.setPgPaymentId(null);
             payment.setPgStatus(PaymentStatus.PENDING);
             payment.setPgResponseMessage("Pending Cash Collection");
 
-            savedOrder.setOrderStatus("Order Placed (COD)"); // Specific Status
+            // ✅ FIX: Use the standard Enum. Do NOT use "Order Placed (COD)".
+            // The payment mode 'COD' is already stored in the Payment object.
+            savedOrder.setOrderStatus(OrderStatus.PLACED);
         } else {
             // --- SCENARIO B: Online Payment ---
             if (orderRequest.getPgPaymentId() == null || orderRequest.getPgPaymentId().isEmpty()) {
@@ -93,10 +95,11 @@ public class OrderServiceImpl implements OrderService {
             }
             payment.setPgName(orderRequest.getPgName());
             payment.setPgPaymentId(orderRequest.getPgPaymentId());
-            payment.setPgStatus(PaymentStatus.SUCCESS); // Assuming frontend sent success
+            payment.setPgStatus(PaymentStatus.SUCCESS);
             payment.setPgResponseMessage(orderRequest.getPgResponseMessage());
 
-            savedOrder.setOrderStatus("Order Confirmed"); // Confirmed immediately
+            // Confirmed immediately
+            savedOrder.setOrderStatus(OrderStatus.PLACED);
         }
 
         // Save Payment
@@ -127,19 +130,29 @@ public class OrderServiceImpl implements OrderService {
             productRepository.save(product);
         });
 
-        // --- 7. CLEANUP CART (Safe Unlink Method) ---
-        List<CartItem> itemsToDelete = new ArrayList<>(cart.getCartItems());
-        cart.getCartItems().clear();
-        for (CartItem item : itemsToDelete) {
-            item.setCart(null);
-        }
-        cartItemRepository.deleteAll(itemsToDelete);
-
+        // --- 7. CLEANUP CART ---
         if (cart.getUser() != null) {
-            User user = cart.getUser();
-            user.setCart(null);
-            userRepository.save(user);
+            // SCENARIO A: LOGGED-IN USER
+            // 1. Cut the strings (Clear memory)
+            // Because of 'orphanRemoval = true', Hibernate sees the list is empty
+            // and automatically deletes the rows from the DB.
+            cart.getCartItems().clear();
+
+            // 2. Reset price
+            cart.setTotalPrice(0.0);
+
+            // 3. Save
+            cartRepository.save(cart);
+
         } else {
+            // SCENARIO B: GUEST
+            // 1. Cut the strings (Clear memory)
+            // We must do this to stop Hibernate from panicking about attached children.
+            cart.getCartItems().clear();
+
+            // 2. Delete the Cart
+            // Because of 'CascadeType.REMOVE', Hibernate automatically finds
+            // the related items in the DB and deletes them too.
             cartRepository.delete(cart);
         }
 
@@ -220,5 +233,26 @@ public class OrderServiceImpl implements OrderService {
                     return dto;
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public OrderDTO updateOrderUser(Long orderId, String status) {
+        // 1. Find Order
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceExceptionHandler("Order", "orderId", orderId));
+
+        // 2. Update Status (Handle Enum conversion carefully)
+        try {
+            OrderStatus newStatus = OrderStatus.valueOf(status.toUpperCase());
+            order.setOrderStatus(newStatus);
+        } catch (IllegalArgumentException e) {
+            throw new ApisExceptionHandler("Invalid Status: " + status);
+        }
+
+        // 3. SAVE and capture the UPDATED object
+        Order updatedOrder = orderRepository.save(order);
+
+        // 4. Map the UPDATED object to DTO
+        return modelMapper.map(updatedOrder, OrderDTO.class);
     }
 }
