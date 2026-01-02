@@ -30,17 +30,13 @@ const ShopPage = () => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  // 4. Filter Logic (Sorting Removed)
+  // 4. Filter Logic
   const processedProducts = useMemo(() => {
     let result = [...products];
 
-    // ✅ ROBUST CATEGORY FILTERING
     if (selectedCategoryId !== "All") {
       result = result.filter((p) => {
-        // Handle both nested object (p.category.categoryId) and flat field (p.categoryId)
         const productCatId = p.category?.categoryId || p.categoryId; 
-        
-        // Convert both to String to safely compare "1" vs 1
         return String(productCatId) === String(selectedCategoryId);
       });
     }
@@ -66,31 +62,30 @@ const ShopPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <ShopBanner />
 
-      <div className="container mx-auto px-4 py-8 flex flex-col md:flex-row gap-8">
+      <div className="container mx-auto px-4 py-12 flex flex-col md:flex-row gap-12">
         
         {/* --- LEFT SIDEBAR (Categories) --- */}
-        <aside className={`md:w-1/4 ${showMobileFilter ? 'block' : 'hidden'} md:block`}>
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 sticky top-24">
-            <div className="flex items-center gap-2 mb-6 text-[var(--color-darkgreen)]">
+        <aside className={`md:w-1/4 ${showMobileFilter ? 'block' : 'hidden'} md:block transition-all duration-300`}>
+          <div className="bg-gray-50 p-8 rounded-[2rem] sticky top-24">
+            <div className="flex items-center gap-3 mb-8 text-[var(--color-darkgreen)]">
               <SlidersHorizontal size={20} />
               <h3 className="text-xl font-bold font-heading">Filters</h3>
             </div>
 
-            <div className="mb-6">
-              {/* ✅ Renamed to Categories */}
-              <h4 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">Categories</h4>
-              <ul className="space-y-2">
+            <div>
+              <h4 className="font-bold text-sm uppercase tracking-wider text-gray-400 mb-4">Categories</h4>
+              <ul className="space-y-3">
                 {/* "All" Option */}
                 <li>
                   <button
                     onClick={() => setSelectedCategoryId("All")}
-                    className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
+                    className={`w-full text-left px-4 py-3 rounded-xl transition-all font-medium text-sm ${
                       selectedCategoryId === "All"
-                        ? "bg-[var(--color-green)] text-white font-medium shadow-sm"
-                        : "text-gray-600 hover:bg-gray-100"
+                        ? "bg-[var(--color-darkgreen)] text-white shadow-md"
+                        : "text-gray-600 hover:bg-white hover:shadow-sm"
                     }`}
                   >
                     All Products
@@ -102,10 +97,10 @@ const ShopPage = () => {
                   <li key={cat.categoryId}>
                     <button
                       onClick={() => setSelectedCategoryId(cat.categoryId)}
-                      className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
+                      className={`w-full text-left px-4 py-3 rounded-xl transition-all font-medium text-sm ${
                         String(selectedCategoryId) === String(cat.categoryId)
-                          ? "bg-[var(--color-green)] text-white font-medium shadow-sm"
-                          : "text-gray-600 hover:bg-gray-100"
+                          ? "bg-[var(--color-darkgreen)] text-white shadow-md"
+                          : "text-gray-600 hover:bg-white hover:shadow-sm"
                       }`}
                     >
                       {cat.categoryName}
@@ -121,78 +116,96 @@ const ShopPage = () => {
         <div className="md:w-3/4">
           
           {/* Top Bar */}
-          <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-            <p className="text-gray-500">
-              Showing <span className="font-bold text-gray-800">{processedProducts.length}</span> results
+          <div className="flex flex-wrap justify-between items-center mb-10 gap-4">
+            <p className="text-gray-500 font-medium">
+              Showing <span className="font-bold text-[var(--color-darkgreen)]">{processedProducts.length}</span> results
             </p>
 
-            <div className="flex gap-4">
-              <button 
-                className="md:hidden flex items-center gap-2 px-4 py-2 bg-white border rounded-md shadow-sm text-gray-700"
+            <button 
+                className="md:hidden flex items-center gap-2 px-5 py-2 bg-[var(--color-darkgreen)] text-white rounded-full shadow-md text-sm font-bold"
                 onClick={() => setShowMobileFilter(!showMobileFilter)}
-              >
+            >
                 <Filter size={16} /> Filter Categories
-              </button>
-              
-              {/* Removed Sort Dropdown */}
-            </div>
+            </button>
           </div>
 
           {/* Product Grid */}
           {processedProducts.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-lg shadow-sm border border-dashed border-gray-300">
-              <p className="text-xl text-gray-400 mb-2">No products found in this category.</p>
+            <div className="text-center py-24 bg-gray-50 rounded-[2rem] border border-dashed border-gray-200">
+              <p className="text-xl text-gray-400 mb-4">No products found here.</p>
               <button 
                 onClick={() => setSelectedCategoryId("All")}
-                className="mt-2 text-[var(--color-orange)] font-semibold hover:underline"
+                className="text-[var(--color-orange)] font-bold hover:underline text-lg"
               >
-                View All Products
+                Clear Filters
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
               {processedProducts.map((product) => (
                 <div
                   key={product.productId}
-                  className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300 group cursor-pointer flex flex-col"
+                  className="group cursor-pointer flex flex-col items-center"
                   onClick={() => navigate(`/product/${product.productId}`)}
                 >
-                  {/* Image */}
-                  <div className="relative overflow-hidden aspect-[1/1.1] bg-gray-50 p-4">
+                  
+                  {/* 1. IMAGE CONTAINER (Border is here) */}
+                  <div className="
+                     relative w-full aspect-[1/1.1] bg-gray-50 rounded-[2rem] overflow-hidden 
+                     border border-gray-400 transition-all duration-500 h-[175px] md:h-[340px]
+                     group-hover:border-[var(--color-orange)] group-hover:shadow-xl
+                  ">
                     <img
                       src={getImageUrl(product.image || product.images?.[0])}
                       alt={product.productName}
-                      className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
+                      className="w-full h-full object-contain p-0 mix-blend-multiply transition-transform duration-700 group-hover:scale-110"
                     />
-                  </div>
 
-                  {/* Details */}
-                  <div className="p-5 flex flex-col flex-grow items-center text-center">
-                    <span className="text-xs text-gray-400 uppercase tracking-wide mb-1">
-                      {product.category?.categoryName || "Matessa"}
-                    </span>
-                    <h3 className="text-lg font-heading font-bold text-[var(--color-darkgreen)] mb-2 line-clamp-1">
-                      {product.productName}
-                    </h3>
-                    
-                    <div className="flex items-center gap-2 mb-4">
-                      {product.specialPrice && product.specialPrice < product.price ? (
-                        <>
-                          <span className="text-gray-400 line-through text-sm">₹{product.price}</span>
-                          <span className="text-[var(--color-orange)] font-bold text-lg">₹{product.specialPrice}</span>
-                        </>
-                      ) : (
-                        <span className="text-[var(--color-green)] font-bold text-lg">₹{product.price}</span>
-                      )}
-                    </div>
-
+                    {/* Quick Add Button (Appears on Hover) */}
                     <button
                       onClick={(e) => handleAddToCart(e, product)}
-                      className="mt-auto w-full bg-[var(--color-lightgreen)] text-white py-2 rounded-full font-semibold hover:bg-[var(--color-darkgreen)] transition-colors shadow-sm active:scale-95"
+                      className="
+                        absolute bottom-4 left-1/2 -translate-x-1/2 translate-y-12 
+                        bg-[var(--color-darkgreen)] text-white px-6 py-2.5 rounded-full 
+                        font-bold text-sm shadow-md opacity-0 
+                        group-hover:translate-y-0 group-hover:opacity-100 
+                        transition-all duration-300 hover:bg-[var(--color-orange)]
+                        hidden md:block whitespace-nowrap
+                      "
                     >
                       Add to Cart
                     </button>
+                    
+                    {/* Mobile Only Cart Icon (Always visible on mobile) */}
+                    <button
+                         onClick={(e) => handleAddToCart(e, product)}
+                         className="md:hidden absolute bottom-3 right-3 bg-[var(--color-darkgreen)] text-white p-2 rounded-full shadow-md"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                    </button>
                   </div>
+
+                  {/* 2. PRODUCT INFO (Elegant & Minimal) */}
+                  <div className="mt-4 text-center px-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">
+                        {product.category?.categoryName || "Matessa"}
+                    </span>
+                    <h3 className="text-lg font-heading font-bold text-gray-800 group-hover:text-[var(--color-darkgreen)] transition-colors line-clamp-1">
+                      {product.productName}
+                    </h3>
+                    
+                    <div className="mt-0 flex items-center justify-center gap-2">
+                      {product.specialPrice && product.specialPrice < product.price ? (
+                        <>
+                           <span className="text-gray-400 text-sm line-through font-body">₹{product.price}</span>
+                           <span className="text-[var(--color-orange)] font-bold text-lg font-body">₹{product.specialPrice}</span>
+                        </>
+                      ) : (
+                        <span className="text-gray-800 font-bold text-lg font-body">₹{product.price}</span>
+                      )}
+                    </div>
+                  </div>
+
                 </div>
               ))}
             </div>

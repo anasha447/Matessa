@@ -4,7 +4,7 @@ import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 import { scaleLinear } from "d3-scale";
 import LocalMap from "../data/countries-110m.json";
 
-/* Data */
+/* Data (Kept same as your code) */
 const countryData = {
   ARG: { value: 199, story: "Mate is the national drink of Argentina." },
   BRA: { value: 120, story: "Brazil enjoys chimarrão." },
@@ -21,10 +21,10 @@ const countryData = {
   COL: { value: 60, story: "Colombia has a small but growing mate market." },
   LBN: { value: 100, story: "Lebanon has a unique blend of mate with local herbs." },
   GBR: { value: 25, story: "In the UK, mate is niche but growing among herbal tea enthusiasts." },
-  IND: { value: 15, story: "India is discovering Yerba Mate as a healthy alternative to tea and coffee.", color: "#F26323" },
+  IND: { value: 15, story: "India is discovering Yerba Mate as a healthy with the magic of spices as alternative to tea and coffee.", color: "#F26323" },
 };
 
-/* Numeric ID → ISO Alpha-3 mapping */
+/* Mappings (Kept same) */
 const idToISO = {
   "032": "ARG", "068": "BOL", "076": "BRA", "152": "CHL", "600": "PRY",
   "760": "SYR", "858": "URY", "840": "USA", "724": "ESP", "380": "ITA",
@@ -32,14 +32,12 @@ const idToISO = {
   "826": "GBR"
 };
 
-/* ISO Alpha-3 → Alpha-2 mapping for flags */
 const iso3To2 = {
   ARG: "ar", BRA: "br", URY: "uy", PRY: "py", SYR: "sy", BOL: "bo",
   CHL: "cl", USA: "us", ESP: "es", ITA: "it", DEU: "de", ARE: "ae",
   COL: "co", LBN: "lb", IND: "in", GBR: "gb"
 };
 
-/* Color scale */
 const colorScale = scaleLinear()
   .domain([0, 200])
   .range(["#7A9D3E", "#2F3B28"]);
@@ -56,35 +54,44 @@ function getTooltipPosition(x, y, maxW = 300, maxH = 200, offset = 15) {
 
 export default function LocalConsumptionMap() {
   const [tooltip, setTooltip] = useState(null);
-  
-  // --- Combined State for Scale AND Center ---
+  const [isMobile, setIsMobile] = useState(false); // 1. Track Mobile State
+
   const [viewConfig, setViewConfig] = useState({
     scale: 200,
-    center: [0, 0] // [Longitude, Latitude]
+    center: [0, 0]
   });
 
+  // 2. Handle Resize for Config AND isMobile check
   useEffect(() => {
     const handleResize = () => {
-      // === MOBILE SETTINGS (< 768px) ===
-      if (window.innerWidth < 768) {
-        setViewConfig({
-          scale: 180,       // Zoomed in slightly for mobile
-          center: [0, -5]  // Pushes the map up slightly
-        });
-      } 
-      // === PC/DESKTOP SETTINGS (> 768px) ===
-      else {
-        setViewConfig({
-          scale: 120,      // Zoomed out to see full world
-          center: [0, -20] // Pushes the map up
-        });
+      const mobileCheck = window.innerWidth < 768;
+      setIsMobile(mobileCheck);
+
+      if (mobileCheck) {
+        setViewConfig({ scale: 180, center: [0, -5] });
+      } else {
+        setViewConfig({ scale: 120, center: [0, -20] });
       }
     };
 
-    handleResize();
+    handleResize(); // Init on mount
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // 3. Global Click Listener (Closes tooltip when clicking background)
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      if (tooltip) setTooltip(null);
+    };
+
+    // Attach listener only if tooltip exists (optimization)
+    if (tooltip) {
+      window.addEventListener("click", handleGlobalClick);
+    }
+
+    return () => window.removeEventListener("click", handleGlobalClick);
+  }, [tooltip]);
 
   const getCountryColor = (isoOrId) => {
     const iso = idToISO[isoOrId] || isoOrId;
@@ -107,6 +114,13 @@ export default function LocalConsumptionMap() {
       x: evt.clientX,
       y: evt.clientY,
     });
+  };
+
+  // 4. Mobile Specific Click Handler
+  const handleMobileClick = (evt, geo) => {
+    // STOP PROPAGATION: This prevents the 'window' click listener from running immediately
+    evt.stopPropagation();
+    handleInteraction(evt, geo);
   };
 
   const handleMove = (evt) => {
@@ -137,9 +151,7 @@ export default function LocalConsumptionMap() {
       })()}
 
       <ComposableMap
-        // --- USE THE DYNAMIC CONFIG OBJECT ---
         projectionConfig={viewConfig}
-        
         style={{ width: "100%", height: "100%" }}
         className="w-full h-[400px] md:h-[600px] transition-all duration-500 ease-in-out"
       >
@@ -153,10 +165,24 @@ export default function LocalConsumptionMap() {
                 <Geography
                   key={geo.rsmKey}
                   geography={geo}
-                  onMouseEnter={(e) => handleInteraction(e, geo)}
-                  onMouseMove={handleMove}
-                  onMouseLeave={handleLeave}
-                  onClick={(e) => handleInteraction(e, geo)}
+                  
+                  // 5. Conditional Event Handlers
+                  // PC Only: Hover Logic
+                  onMouseEnter={(e) => {
+                    if (!isMobile) handleInteraction(e, geo);
+                  }}
+                  onMouseMove={(e) => {
+                    if (!isMobile) handleMove(e);
+                  }}
+                  onMouseLeave={() => {
+                    if (!isMobile) handleLeave();
+                  }}
+
+                  // Mobile Only: Click Logic
+                  onClick={(e) => {
+                    if (isMobile) handleMobileClick(e, geo);
+                  }}
+
                   style={{
                     default: { fill: color, stroke: "#FFF", strokeWidth: 0.5, outline: "none", transition: "all 0.3s ease" },
                     hover: { fill: "#EADBA2", stroke: "#FFF", strokeWidth: 1, outline: "none", cursor: "pointer" },

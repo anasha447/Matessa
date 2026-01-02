@@ -4,6 +4,10 @@ import { toast } from "react-toastify";
 import { useDispatch, useSelector } from "react-redux";
 import { FaCloudUploadAlt, FaSave, FaArrowLeft, FaPlus, FaTrash, FaTag } from "react-icons/fa";
 
+// ✅ 1. Import React Quill
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
+
 // Actions
 import { 
   fetchProductDetails, 
@@ -48,26 +52,21 @@ const ProductEditPage = () => {
   // 2. Populate Form Data
   useEffect(() => {
     if (selectedProduct) {
-      // Basic Fields
       setFormData({
         productName: selectedProduct.productName || "",
         price: selectedProduct.price || 0,
         discount: selectedProduct.discount || 0,
         quantity: selectedProduct.quantity || 0,
-        description: selectedProduct.description || "",
+        description: selectedProduct.description || "", // Loads existing HTML description
         specialPrice: selectedProduct.specialPrice || 0
       });
 
-      // ✅ Category Check
-      // Handle both nested object (category.categoryId) or direct id (categoryId)
       const catId = selectedProduct.category?.categoryId || selectedProduct.categoryId;
       setCurrentCategoryId(catId);
 
-      // ✅ Populate Arrays (Only if they exist)
       setVariants(selectedProduct.variants || []);
       setFlavors(selectedProduct.flavors || []);
 
-      // Image Preview
       if (!imageFile && selectedProduct.image) {
          setImagePreview(`http://localhost:8080/api/public/images/${selectedProduct.image}`);
       }
@@ -76,6 +75,11 @@ const ProductEditPage = () => {
 
   // --- HANDLERS ---
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  // ✅ 2. Special Handler for Quill
+  const handleDescriptionChange = (value) => {
+    setFormData({ ...formData, description: value });
+  };
 
   // Variants Handlers
   const addVariant = () => setVariants([...variants, { name: "", price: "", stock: "" }]);
@@ -133,7 +137,6 @@ const ProductEditPage = () => {
         quantity: parseInt(formData.quantity),
         specialPrice: parseFloat(formData.specialPrice) || 0,
         
-        // Include complex arrays only if relevant (though sending empty arrays is usually safe)
         variants: variants.map(v => ({
             ...v, price: parseFloat(v.price), stock: parseInt(v.stock)
         })),
@@ -152,10 +155,18 @@ const ProductEditPage = () => {
     }
   };
 
+  // ✅ 3. Configure Quill Toolbar
+  const quillModules = {
+    toolbar: [
+      ['bold', 'italic', 'underline'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['clean']
+    ]
+  };
+
   if (productLoading && !selectedProduct) return <div className="text-center py-20 font-bold text-gray-500">Loading Product...</div>;
 
-  // ✅ CHECK: Is this the specific category?
-  const isSpecialCategory = currentCategoryId === 1; // Change '1' if your ID is different
+  const isSpecialCategory = currentCategoryId === 1; 
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -234,17 +245,24 @@ const ProductEditPage = () => {
                         </div>
                     </div>
 
-                    <div>
-                        <label className="label">Description</label>
-                        <textarea name="description" rows="4" className="input-field" value={formData.description} onChange={handleChange} required />
+                    {/* ✅ 4. Replaced Textarea with ReactQuill */}
+                    <div className="mb-4">
+                        <label className="label font-body">Description</label>
+                        <ReactQuill 
+                            theme="snow"
+                            value={formData.description}
+                            onChange={handleDescriptionChange}
+                            modules={quillModules}
+                            className="bg-white rounded-lg h-48 mb-12 font-body" // Added margin-bottom for toolbar space
+                        />
                     </div>
                 </div>
 
-                {/* ✅ 2. DYNAMIC SECTIONS (Only for Category 1) */}
+                {/* 2. DYNAMIC SECTIONS */}
                 {isSpecialCategory && (
                    <>
                       {/* Weight Variants */}
-                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 animate-fade-in">
+                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 animate-fade-in mt-8"> {/* Added top margin to clear Quill */}
                           <div className="flex justify-between items-center mb-4 border-b pb-2">
                               <h3 className="text-lg font-bold text-gray-800">Weight Variations</h3>
                               <button type="button" onClick={addVariant} className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-lg hover:bg-blue-100 flex items-center gap-1 font-bold">
@@ -299,14 +317,29 @@ const ProductEditPage = () => {
 
         </div>
       </div>
-      <style>{`
-        .label { display: block; font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem; }
+     <style >{`
+        /* Form Label Styles */
+        .label { display: block; font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.3rem; }
         .sub-label { display: block; font-size: 0.75rem; font-weight: 600; color: #6B7280; margin-bottom: 0.25rem; }
+        
+        /* Input Styles */
         .input-field { width: 100%; padding: 0.75rem 1rem; border: 1px solid #D1D5DB; border-radius: 0.5rem; outline: none; transition: all 0.2s; }
         .mini-input { width: 100%; padding: 0.5rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem; outline: none; }
         .input-field:focus, .mini-input:focus { border-color: var(--color-green); box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1); }
+        
+        /* Animation */
         .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Quill Editor Overrides */
+        .ql-container { min-height: 120px; font-size: 1rem; }
+        .ql-editor { min-height: 120px; }
+
+        /* ✅ SPACING FIX */
+        .ql-editor p {
+            margin-bottom: 0.5em; /* Gap between paragraphs */
+            line-height: 1.2;     /* Space between lines */
+        }
       `}</style>
     </div>
   );

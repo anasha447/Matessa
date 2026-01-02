@@ -6,6 +6,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { createProduct, uploadProductImage } from "../../redux/slices/productSlice"; 
 import { FaCloudUploadAlt, FaExclamationCircle, FaTag, FaPlus, FaTrash, FaLink } from "react-icons/fa";
 
+// ✅ 1. Import React Quill and its CSS
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
+
 const ProductCreatePage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -16,23 +20,21 @@ const ProductCreatePage = () => {
   const [formData, setFormData] = useState({
     productName: "", 
     price: "", 
-    discount: "", // Optional
-    description: "", 
+    discount: "", 
+    description: "", // Now stores HTML string from Quill
     quantity: "", 
-    specialPrice: "" // Optional
+    specialPrice: "" 
   });
 
-  // ✅ New State for Arrays
-  const [variants, setVariants] = useState([]); // Stores { name: "100g", price: 400, stock: 50 }
-  const [flavors, setFlavors] = useState([]);   // Stores { flavorName: "Masala", targetProductId: 1, colorCode: "#000000" }
-
+  const [variants, setVariants] = useState([]); 
+  const [flavors, setFlavors] = useState([]);   
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [categoryId, setCategoryId] = useState("");
   const [categories, setCategories] = useState([]);
   const [loadingCats, setLoadingCats] = useState(true);
 
-  // 1. Fetch Categories
+  // Fetch Categories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -50,6 +52,11 @@ const ProductCreatePage = () => {
   }, []);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  // ✅ 2. Special Handler for Quill (it returns value directly, not an event)
+  const handleDescriptionChange = (value) => {
+    setFormData({ ...formData, description: value });
+  };
 
   // --- VARIANT HANDLERS ---
   const addVariant = () => {
@@ -93,24 +100,22 @@ const ProductCreatePage = () => {
   const submitHandler = async (e) => {
     e.preventDefault();
     if (!categoryId) return toast.error("Please select a category");
+    // Basic validation for description
+    if (!formData.description || formData.description.replace(/<[^>]*>/g, '').trim().length < 10) {
+        return toast.error("Description must be at least 10 characters long");
+    }
 
-    // ✅ FIX: Safe Number Conversion
-    // If field is empty "", use 0 instead of NaN
     const finalPayload = {
         ...formData,
         price: formData.price ? parseFloat(formData.price) : 0.0,
         discount: formData.discount ? parseFloat(formData.discount) : 0.0,
         quantity: formData.quantity ? parseInt(formData.quantity) : 0,
-        specialPrice: formData.specialPrice ? parseFloat(formData.specialPrice) : 0.0, // Handle optional field
-
-        // Map variants safely
+        specialPrice: formData.specialPrice ? parseFloat(formData.specialPrice) : 0.0,
         variants: variants.map(v => ({
-            name: v.name || "Default", // Ensure name isn't empty
+            name: v.name || "Default",
             price: v.price ? parseFloat(v.price) : 0.0,
             stock: v.stock ? parseInt(v.stock) : 0
         })),
-
-        // Map flavors safely
         flavors: flavors.map(f => ({
             flavorName: f.flavorName || "Flavor",
             targetProductId: f.targetProductId ? parseInt(f.targetProductId) : 0,
@@ -118,13 +123,9 @@ const ProductCreatePage = () => {
         }))
     };
 
-    console.log("🚀 Sending Payload:", JSON.stringify(finalPayload, null, 2)); // Debug Log
-
     try {
-      // Step 1: Create Product
       const newProduct = await dispatch(createProduct({ categoryId, productData: finalPayload })).unwrap();
       
-      // Step 2: Upload Image (if exists)
       if (imageFile && newProduct?.productId) {
          try {
              await dispatch(uploadProductImage({ productId: newProduct.productId, file: imageFile })).unwrap();
@@ -136,18 +137,23 @@ const ProductCreatePage = () => {
       toast.success("Product created successfully!");
       navigate("/admin/products");
     } catch (error) {
-      // ✅ BETTER ERROR LOGGING
-      console.error("❌ API Error Detail:", error);
-      
-      // Extract the specific message from backend if available
       const errMsg = error?.response?.data?.message || error?.message || "Failed to create product";
       toast.error(errMsg);
     }
   };
 
+  // ✅ 3. Configure Quill Toolbar Options
+  const quillModules = {
+    toolbar: [
+      ['bold', 'italic', 'underline'],        // toggled buttons
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['clean']                               // remove formatting button
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6">
-      <div className="max-w-6xl mx-auto"> {/* Widened container for better layout */}
+      <div className="max-w-6xl mx-auto"> 
         
         {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
@@ -174,11 +180,20 @@ const ProductCreatePage = () => {
                             <label className="label">Product Name</label>
                             <input name="productName" type="text" className="input-field" placeholder="e.g. Lemon Ginger Mate" onChange={handleChange} required />
                         </div>
-                        <div>
+                        
+                        {/* ✅ 4. Replaced Textarea with ReactQuill */}
+                        <div className="mb-4">
                             <label className="label">Description</label>
-                            <textarea name="description" rows="3" className="input-field" placeholder="Product details..." onChange={handleChange} required ></textarea>
+                            <ReactQuill 
+                                theme="snow"
+                                value={formData.description}
+                                onChange={handleDescriptionChange}
+                                modules={quillModules}
+                                className="bg-white rounded-lg h-48 mb-12" // mb-12 adds space for the toolbar
+                            />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+
+                        <div className="grid grid-cols-2 gap-4 mt-8"> {/* Added top margin to clear Quill */}
                             <div>
                                 <label className="label">Base Price (₹)</label>
                                 <input name="price" type="number" className="input-field" placeholder="400.00" onChange={handleChange} required />
@@ -197,7 +212,7 @@ const ProductCreatePage = () => {
                     </div>
                 </div>
 
-                {/* 2. ✅ VARIATIONS SECTION (Internal) */}
+                {/* 2. VARIATIONS SECTION (Internal) */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <div className="flex justify-between items-center mb-4 border-b pb-2">
                         <h3 className="text-lg font-bold text-gray-800">Weight Variations <span className="text-xs font-normal text-gray-500">(Optional)</span></h3>
@@ -231,7 +246,7 @@ const ProductCreatePage = () => {
                     )}
                 </div>
 
-                {/* 3. ✅ FLAVORS SECTION (External Links) */}
+                {/* 3. FLAVORS SECTION (External Links) */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <div className="flex justify-between items-center mb-4 border-b pb-2">
                         <h3 className="text-lg font-bold text-gray-800">Flavor Links <span className="text-xs font-normal text-gray-500">(Optional)</span></h3>
@@ -299,7 +314,6 @@ const ProductCreatePage = () => {
                              <input name="specialPrice" type="number" className="input-field" placeholder="Override calculated price" onChange={handleChange} />
                         </div>
                         
-                        {/* Live Price Preview */}
                         <div className="p-4 bg-green-50 rounded-lg border border-green-200 mt-4">
                             <p className="text-xs text-green-800 font-bold uppercase">Estimated Final Price</p>
                             <p className="text-2xl font-bold text-green-700 mt-1">
@@ -325,6 +339,9 @@ const ProductCreatePage = () => {
         .label { display: block; font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem; }
         .input-field { width: 100%; padding: 0.75rem 1rem; border: 1px solid #E5E7EB; border-radius: 0.5rem; outline: none; transition: all 0.2s; }
         .input-field:focus { border-color: var(--color-green); box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1); }
+        /* Quill override for better visibility */
+        .ql-container { min-height: 120px; font-size: 1rem; }
+        .ql-editor { min-height: 120px; }
       `}</style>
     </div>
   );

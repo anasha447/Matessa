@@ -177,6 +177,11 @@ public class CartServiceImpl implements CartService {
         // 2. Remove from memory list so recalculation works immediately
         cart.getCartItems().remove(cartItem);
 
+
+        if (cart.getCartItems().isEmpty()) {
+            cart.setCouponCode(null);
+            cart.setDiscountCoupon(0.0);
+        }
         // 3. Recalculate Totals (Updates the price in DB)
         recalculateCartTotal(cart);
 
@@ -298,30 +303,18 @@ public class CartServiceImpl implements CartService {
     // This is the SINGLE math engine for the whole service.
     // It handles Variants, Base Price Ratios, and Coupons all in one go.
     private void recalculateCartTotal(Cart cart) {
-        // 1. Calculate Subtotal (Item Price * Quantity)
+        // 1. Calculate Subtotal (Simple Sum: Price * Quantity)
         double subtotal = cart.getCartItems().stream()
                 .mapToDouble(item -> {
-                    // A. Variant Price (e.g. 200.00) stored on the Item
-                    double variantPrice = item.getProductPrice();
-
-                    // B. Base Product Prices
-                    double basePrice = item.getProduct().getPrice();
-                    double baseSpecial = item.getProduct().getSpecialPrice();
-
-                    double finalItemPrice = variantPrice;
-
-                    // C. Discount Ratio Logic:
-                    // If the Base Product is on sale (e.g. 20% off), apply that same % to the Variant
-                    if (baseSpecial > 0 && basePrice > 0) {
-                        double discountRatio = baseSpecial / basePrice;
-                        finalItemPrice = variantPrice * discountRatio;
-                    }
-
-                    return finalItemPrice * item.getQuantity();
+                    // ✅ FIX: Use the raw price directly.
+                    // We removed the complex "Base Product vs Special Price" ratio logic.
+                    // Now, if the item says 200, the total is 200 * Qty.
+                    return item.getProductPrice() * item.getQuantity();
                 })
                 .sum();
 
-        // 2. Calculate Coupon Discount on the Subtotal
+        // 2. Calculate Coupon Discount
+        // (This remains valid as it is an explicit discount the user applies)
         double discountAmount = 0.0;
         if (cart.getCouponCode() != null && !cart.getCouponCode().isEmpty()) {
             Coupon coupon = couponRepository.findByCode(cart.getCouponCode()).orElse(null);
@@ -329,15 +322,17 @@ public class CartServiceImpl implements CartService {
             if (coupon != null && coupon.isActive()) {
                 discountAmount = subtotal * (coupon.getDiscountPercentage() / 100.0);
             } else {
-                cart.setCouponCode(null); // Remove invalid
+                cart.setCouponCode(null); // Remove invalid coupon if it expired
             }
         }
 
-        // 3. Update Cart
+        // 3. Update Cart with Final Values
         cart.setDiscountCoupon(discountAmount);
+
         double finalTotal = subtotal - discountAmount;
         cart.setTotalPrice(finalTotal > 0 ? finalTotal : 0.0);
 
+        // Save changes to Database
         cartRepository.save(cart);
     }
 

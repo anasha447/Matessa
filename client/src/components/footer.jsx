@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { FaXTwitter } from "react-icons/fa6";
 import logo from "../assets/full.logo.png"; 
 import {
   FaFacebookF,
@@ -54,7 +55,7 @@ const AppFooter = () => {
               <FaInstagram size={18} />
             </a>
             <a href="#" className="text-[#fefae0] hover:text-[var(--color-orange)] transition-transform hover:-translate-y-1 p-1">
-              <FaTwitter size={18} />
+             <FaXTwitter size={18} />
             </a>
             <a href="#" className="text-[#fefae0] hover:text-[var(--color-orange)] transition-transform hover:-translate-y-1 p-1">
               <FaYoutube size={18} />
@@ -68,12 +69,28 @@ const AppFooter = () => {
           
           {/* 1. Brand Section (Always Visible) */}
           {/* ✅ CHANGED: Added 'items-center text-center' for mobile, reset with 'md:items-start md:text-left' for desktop */}
-          <div className="flex flex-col items-center text-center md:items-start md:text-left space-y-4 md:col-span-1">
-            <img src={logo} alt="Matessa Logo" className="w-36 md:w-40" />
-            <p className="text-sm leading-relaxed text-gray-200">
-              Premium Yerba Mate blends crafted with passion and nature’s finest leaves. Energize your life naturally.
-            </p>
-          </div>
+          <div className="flex flex-col items-center text-center md:items-start md:text-left space-y-4 md:col-span-1 relative">
+    
+    {/* 1. Invisible Image: Keeps the width/height correct in the layout */}
+    <img src={logo} alt="Matessa Logo" className="w-36 md:w-40 opacity-0 pointer-events-none" />
+
+    {/* 2. Color Overlay Layer: This sits on top and takes the shape of the logo */}
+    <div 
+        // ✅ CHANGE 'bg-green-600' to any color class you want (e.g. bg-[var(--color-orange)])
+        className="absolute inset-0 w-full h-full bg-[var(--color-yellow)]"
+        style={{
+            maskImage: `url(${logo})`,
+            WebkitMaskImage: `url(${logo})`, // Safari support
+            maskSize: 'contain',
+            WebkitMaskSize: 'contain',
+            maskRepeat: 'no-repeat',
+            WebkitMaskRepeat: 'no-repeat',
+            maskPosition: 'center',
+            WebkitMaskPosition: 'center'
+        }}
+    />
+
+</div>
 
           {/* 2. Quick Links (Accordion on Mobile) */}
           <FooterSection title="Quick Links">
@@ -88,9 +105,7 @@ const AppFooter = () => {
           {/* 3. Customer Service (Accordion on Mobile) */}
           <FooterSection title="Customer Service">
             <ul className="space-y-3 text-sm text-gray-300">
-              <li><a href="/faq" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">FAQs</a></li>
-              <li><a href="/shipping" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">Shipping Policy</a></li>
-              <li><a href="/returns" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">Returns & Refunds</a></li>
+              <li><a href="/privacy-policy" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">privacy&Policy</a></li>
               <li><a href="/track-order" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">Track Order</a></li>
             </ul>
           </FooterSection>
@@ -121,14 +136,12 @@ const AppFooter = () => {
 
       {/* --- Bottom Bar --- */}
       <div className="border-t border-[var(--color-green)]/30 bg-black/10">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-400">
+        <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col md:flex-row justify-center items-center gap-4 text-xs text-gray-400">
           <p>© {new Date().getFullYear()} Matessa. All rights reserved.</p>
-          <div className="flex gap-4">
-            <a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
-            <a href="/terms" className="hover:text-white transition-colors">Terms of Service</a>
-          </div>
+          
         </div>
       </div>
+
     </footer>
   );
 };

@@ -7,12 +7,13 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-@Table(name = "cart_items")
+@Table(name = "cart_items", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"cart_id", "product_id", "variant"})
+})
 public class CartItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

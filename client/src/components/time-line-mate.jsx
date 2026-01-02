@@ -2,7 +2,7 @@ import React, { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 
 const timelineData = [
-  { year: "1600s", title: "Indigenous Roots", event: "Consumed by the Guaraní people for energy and sustenance." },
+  { year: "1600s", title: " The Beginnings", event: "Consumed by the Guaraní people for energy and sustenance." },
   { year: "1700s", title: "The Adoption", event: "Spanish colonists adopt Mate, spreading it across South America." },
   { year: "1800s", title: "National Icon", event: "Becomes the national drink of Argentina, Uruguay, and Paraguay." },
   { year: "1900s", title: "Expansion", event: "Mate culture crosses borders into Chile, Brazil, and the Middle East." },
@@ -75,12 +75,9 @@ export default function MateTimeline() {
       style={{ backgroundColor: '#F9F7F3' }}
     >
       <div className="text-center mb-20 px-6">
-        <h2 className="text-sm font-bold tracking-[0.2em] text-[#F26323] uppercase mb-3">
-          Our Heritage
-        </h2>
         {/* RENAMED SECTION */}
         <h2 className="text-4xl md:text-5xl font-heading font-bold text-[#2F3B28]">
-          A Timeless Ritual
+          Mate History
         </h2>
       </div>
 

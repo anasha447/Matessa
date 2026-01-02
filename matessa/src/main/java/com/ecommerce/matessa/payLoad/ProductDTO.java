@@ -23,7 +23,7 @@ public class ProductDTO {
     private String productName;
 
     @NotBlank
-    @Size(min = 10, max = 100)
+    @Size(min = 10, max = 2000)
     private String description;
 
     private List<String> images = new ArrayList<>();
@@ -44,4 +44,7 @@ public class ProductDTO {
     private Long variantId;
     private List<ProductVariantDTO> variants = new ArrayList<>();
     private List<ProductFlavorDTO> flavors = new ArrayList<>();
+
+    public void setImage(Object image) {
+    }
 }

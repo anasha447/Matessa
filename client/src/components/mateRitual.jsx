@@ -1,183 +1,220 @@
-// src/components/MateRitual.jsx
-import React, { useRef, useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState } from "react";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
-// --- IMPORT VIDEOS ---
-import video1 from "../assets/videos/5.mp4"; // Heat Water
-import video2 from "../assets/videos/6.mp4"; // Add Leaves
-import video3 from "../assets/videos/7.mp4"; // Pour Water
-import video4 from "../assets/videos/4.mp4"; // Sip
+// --- 1. LOCAL VIDEO IMPORTS ---
+// Change these paths to match your actual file structure
+import step1Video from "../assets/videos/step1.mp4";
+import step2Video from "../assets/videos/step2.mp4";
+import step3Video from "../assets/videos/step3.mp4";
+import step4Video from "../assets/videos/step4.mp4";
+import step5Video from "../assets/videos/step5.mp4";
+import step6Video from "../assets/videos/step6.mp4";
 
+// --- DATA ---
 const STEPS = [
   {
     id: 1,
-    title: "Heat the Water",
-    desc: "Heat water to 70-80°C. Never boiling, or you will burn the tea leaves and ruin the flavor.",
-    video: video1,
+    title: "Fill the Gourd",
+    description: "Fill the gourd (Cup) ½ of the way with yerba mate .",
+    video: step1Video, 
   },
   {
     id: 2,
-    title: "The Mountain",
-    desc: "Fill 3/4 of the gourd. Tilt it 45° to create a 'montañita' (little mountain) of dry herb on one side.",
-    video: video2,
+    title: "Shake & Tilt",
+    description: "Cover the mouth of the gourd (or jar) with your hand, turn it over and shake it to even out the consistency of the yerba mate.",
+    video: step2Video,
   },
   {
     id: 3,
-    title: "Pour & Infuse",
-    desc: "Pour warm water into the hollow part. Let it absorb, then insert the bombilla firmly.",
-    video: video3,
+    title: "Insert Bombilla",
+    description: "The loose leaf yerba mate inside should remain at a 45° angle so you have space for the bombilla and water.",
+    video: step3Video,
   },
   {
     id: 4,
-    title: "The Ritual Sip",
-    desc: "Don't stir the bombilla! Sip slowly. Share the gourd, returning it to the brewer after you finish.",
-    video: video4,
+    title: "pour cool water",
+    description: "Gently pour room temperature water on the yerba mate leaves to prevent them from burning once you add hot water.",
+    video: step4Video,
+  },
+  {
+    id: 5,
+    title: "Add Hot Water",
+    description: "Pour hot water (not boiling, approx 70-80°C) into the Cup.",
+    video: step5Video,
+  },
+  {
+    id: 6,
+    title: "Enjoy & Share",
+    description: "Sip until you finish the gourd, fill it up with water again, pass to a friend, and come to life.",
+    video: step6Video,
   },
 ];
 
-const MateRitual = () => {
-  const [activeStep, setActiveStep] = useState(0);
-  
-  // Calculate Progress (0 to 1)
-  const totalSteps = STEPS.length;
-  const progress = (activeStep + 1) / totalSteps;
+const HowToPrepare = () => {
+  // --- MOBILE SLIDER STATE ---
+  const [activeSlide, setActiveSlide] = useState(0);
+  const totalSlides = STEPS.length;
 
-  // SVG Configuration
-  const radius = 48; 
-  const circumference = 2 * Math.PI * radius; 
-  
-  useEffect(() => {
-    const handleScroll = () => {
-      const stepElements = document.querySelectorAll(".ritual-step");
-      const offset = window.innerHeight * 0.5;
+  const nextSlide = () => {
+    setActiveSlide((prev) => (prev === totalSlides - 1 ? 0 : prev + 1));
+  };
 
-      stepElements.forEach((el, index) => {
-        const rect = el.getBoundingClientRect();
-        if (rect.top < offset && rect.bottom > offset) {
-          setActiveStep(index);
-        }
-      });
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const prevSlide = () => {
+    setActiveSlide((prev) => (prev === 0 ? totalSlides - 1 : prev - 1));
+  };
 
   return (
-    <section className="relative bg-[#F9F7F3]">
-      
-      {/* HEADER */}
-      <div className="pt-40 pb-0 md:pb-10 text-center px-6">
-       
-        <h2 className="text-4xl md:text-4xl font-heading font-bold text-[#2F3B28]">
-        Preparation Steps        </h2>
-      </div>
-
-      <div className="flex flex-col md:flex-row max-w-7xl mx-auto">
+    <section className="py-16 px-4 md:px-8 bg-[#FDFBF7] text-[#2C3E50] font-body">
+      <div className="max-w-[1400px] mx-auto">
         
-        {/* --- 1. STICKY VIDEO --- */}
-        <div className="w-full md:w-1/2 h-[33vh] md:h-screen sticky top-[20vh] md:top-0 z-20 flex items-center justify-center pointer-events-none">
-           
-           {/* MOBILE MASK: This creates the "Disappear" effect */}
-           {/* It sits BEHIND the video but IN FRONT of the scrolling text. */}
-           {/* It is solid page color at top, fading to transparent at bottom. */}
-           <div className="md:hidden absolute top-[-50vh] bottom-[-100px] left-0 right-0 z-[-1] bg-gradient-to-b from-[#F9F7F3] from-70% to-transparent" />
-
-           {/* Circular Container */}
-           <div className="relative w-60 h-60 md:w-96 md:h-96">
-              
-              {/* SVG RING ANIMATION */}
-              <svg 
-                className="absolute inset-[-10px] w-[calc(100%+20px)] h-[calc(100%+20px)] rotate-[-90deg]" 
-                viewBox="0 0 100 100"
-              >
-                 {/* 1. Base Grey Ring */}
-                 <circle
-                    cx="50"
-                    cy="50"
-                    r={radius}
-                    fill="none"
-                    stroke="#e5e7eb" 
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                 />
-
-                 {/* 2. Moving Green Ring */}
-                 <motion.circle
-                    cx="50"
-                    cy="50"
-                    r={radius}
-                    fill="none"
-                    stroke="#16a34a" 
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    strokeDasharray={circumference}
-                    animate={{ 
-                        strokeDashoffset: circumference - (progress * circumference) 
-                    }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="drop-shadow-lg"
-                 />
-              </svg>
-
-              {/* The Video Mask */}
-              <div className="absolute inset-0 rounded-full overflow-hidden border-4 border-white shadow-2xl bg-white">
-                <AnimatePresence mode="wait">
-                  <motion.video
-                    key={STEPS[activeStep].id}
-                    src={STEPS[activeStep].video}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.5 }}
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    className="w-full h-full object-cover"
-                  />
-                </AnimatePresence>
-              </div>
-
-              {/* Step Counter Badge - Simplified (Step 01, Step 02) */}
-              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-white px-5 py-2 rounded-full shadow-lg border border-gray-100 text-green-700">
-                 <span className="font-heading font-bold text-lg whitespace-nowrap">
-                    Step 0{activeStep + 1}
-                 </span>
-              </div>
-
-           </div>
+        {/* --- HEADER --- */}
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-5xl font-heading font-extrabold text-[var(--color-darkgreen)] mb-4 uppercase tracking-tight">
+            How To Prepare Yerba Mate
+          </h2>
+          <p className="text-gray-600 text-lg md:text-xl font-medium max-w-2xl mx-auto">
+            For a traditional yerba mate experience, follow the steps below.
+          </p>
         </div>
 
+        {/* --- MAIN CONTENT LAYOUT --- */}
+        {/* Mobile: Videos First (order-1), Needs Second (order-2) */}
+        {/* Desktop (xl): Needs First (order-1), Videos Second (order-2) */}
+        <div className="flex flex-col xl:flex-row gap-12 items-start">
+          
+          {/* --- LEFT COLUMN: INGREDIENTS --- */}
+          {/* Mobile: Order 2 (Bottom) | Desktop: Order 1 (Left/Sticky) */}
+          <div className="w-full xl:w-1/4 order-2 xl:order-1 xl:sticky xl:top-24 bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+            <h3 className="text-xl font-bold font-heading mb-6 border-b border-gray-100 pb-4 tracking-wider">
+              WHAT YOU'LL NEED
+            </h3>
+            <ul className="space-y-6">
+              <li className="flex flex-col">
+                <span className="font-bold text-gray-800 text-lg">Yerba Madre</span>
+                <span className="text-sm text-gray-500">Loose Leaf Tea</span>
+              </li>
+              <li className="flex flex-col">
+                <span className="font-bold text-gray-800 text-lg">Gourd</span>
+                <span className="text-sm text-gray-500">Or mason jar, ceramic cup</span>
+              </li>
+              <li className="flex flex-col">
+                <span className="font-bold text-gray-800 text-lg">Cool Water</span>
+                <span className="text-sm text-gray-500">Room temperature</span>
+              </li>
+              <li className="flex flex-col">
+                <span className="font-bold text-gray-800 text-lg">Hot Water</span>
+                <span className="text-sm text-gray-500">Approx 70-80°C (Not boiling)</span>
+              </li>
+              <li className="flex flex-col">
+                <span className="font-bold text-gray-800 text-lg">Bombilla</span>
+                <span className="text-sm text-gray-500">Traditional Filter Straw</span>
+              </li>
+            </ul>
+          </div>
 
-        {/* --- 2. SCROLLING TEXT --- */}
-        {/* z-10 puts it BEHIND the sticky container's mask (z-20) */}
-        <div className="w-full md:w-1/2 relative z-10">
-          <div className="hidden md:block h-[25vh]" />
+          {/* --- RIGHT SIDE: VIDEO DISPLAY --- */}
+          {/* Mobile: Order 1 (Top) | Desktop: Order 2 (Right) */}
+          <div className="w-full xl:w-3/4 order-1 xl:order-2">
+            
+            {/* === DESKTOP VIEW (Grid) === */}
+            <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-6">
+              {STEPS.map((step) => (
+                <div key={step.id} className="group">
+                  <div className="relative overflow-hidden rounded-[2rem] shadow-md border border-gray-200 aspect-square mb-4">
+                    <video 
+                      src={step.video} 
+                      autoPlay 
+                      muted 
+                      loop 
+                      playsInline
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                    />
+                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                      Step {step.id}
+                    </div>
+                  </div>
+                  <div className="px-2">
+                    <h4 className="font-bold text-lg text-gray-900 mb-1">{step.title}</h4>
+                    <p className="text-sm text-gray-500 leading-relaxed">{step.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-          {STEPS.map((step, index) => (
-            <div 
-              key={step.id} 
-              className={`ritual-step min-h-[70vh] md:min-h-[80vh] flex flex-col justify-center px-8 md:px-24 transition-all duration-500`}
-            >
-              <div 
-                className={`transition-opacity duration-500 ${activeStep === index ? "opacity-100" : "opacity-30 blur-[2px]"}`}
-              >
-                {/* Green Accent Line */}
-                <div className="w-12 h-1 mb-6 rounded-full bg-green-600" />
-                
-                <h3 className="text-2xl font-body font-bold mb-4 text-[#2F3B28]">
-                  {step.title}
-                </h3>
-                
-                <p className="text-xl font-body font-semibold text-gray-600 leading-relaxed">
-                  {step.desc}
+            {/* === MOBILE VIEW (Slider) === */}
+            <div className="block md:hidden relative">
+              
+              {/* Slider Track */}
+              <div className="relative overflow-hidden py-2">
+                <div 
+                  className="flex transition-transform duration-500 ease-out"
+                  style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+                >
+                  {STEPS.map((step) => (
+                    <div key={step.id} className="min-w-full px-2 box-border">
+                      <div className="bg-white p-2 rounded-[2.5rem] shadow-sm border border-gray-100">
+                         {/* Video Container */}
+                         <div className="relative rounded-[2rem] overflow-hidden aspect-square w-full bg-gray-100">
+                            <video 
+                              src={step.video} 
+                              autoPlay 
+                              muted 
+                              loop 
+                              playsInline
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-bold shadow-sm">
+                              Step {step.id}
+                            </div>
+                         </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dynamic Description (Changes with slide) */}
+              <div className="text-center mt-6 px-4 min-h-[120px] transition-opacity duration-300">
+                <h4 className="text-2xl font-heading font-bold text-[var(--color-darkgreen)] mb-2">
+                  {STEPS[activeSlide].title}
+                </h4>
+                <p className="text-gray-600 text-lg leading-relaxed">
+                  {STEPS[activeSlide].description}
                 </p>
               </div>
+
+              {/* Navigation Controls */}
+              <div className="flex justify-center items-center gap-8 mt-2 mb-8">
+                <button 
+                  onClick={prevSlide}
+                  className="bg-white border border-gray-200 p-4 rounded-full shadow-sm active:scale-95 transition-all text-gray-700 hover:text-[var(--color-orange)]"
+                >
+                  <FaChevronLeft size={20} />
+                </button>
+
+                {/* Dots */}
+                <div className="flex gap-2">
+                  {STEPS.map((_, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        activeSlide === idx ? "w-8 bg-[var(--color-orange)]" : "w-2 bg-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                <button 
+                  onClick={nextSlide}
+                  className="bg-white border border-gray-200 p-4 rounded-full shadow-sm active:scale-95 transition-all text-gray-700 hover:text-[var(--color-orange)]"
+                >
+                  <FaChevronRight size={20} />
+                </button>
+              </div>
+
             </div>
-          ))}
-          
-          <div className="h-[20vh]" />
+
+          </div>
         </div>
 
       </div>
@@ -185,4 +222,4 @@ const MateRitual = () => {
   );
 };
 
-export default MateRitual;
+export default HowToPrepare;

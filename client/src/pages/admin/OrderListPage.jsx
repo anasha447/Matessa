@@ -109,14 +109,15 @@ const OrderManagementPage = () => {
       // 2. Dispatch Action
       await dispatch(updateOrderStatus({ orderId, status: safeStatus })).unwrap();
       
-      // 3. Close Modal & Refresh
+      // 3. Close Modal & Refresh (Wait for update to finish before closing)
       setIsModalOpen(false);
-      dispatch(fetchAllOrders()); // Fetch fresh data to be 100% sure
       
-      // Optional: Show success toast here
+      // Optional: Re-fetch to ensure sync (Slice usually handles this optimistically)
+      // dispatch(fetchAllOrders()); 
+      
     } catch (err) {
       console.error("Update Failed:", err);
-      alert(`Failed: ${err}`);
+      // alert(`Failed: ${err}`); // Optional alert
     } finally {
       setLocalUpdateLoading(false);
     }
@@ -204,7 +205,6 @@ const OrderManagementPage = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    {/* ✅ UPDATED HEADERS: Added "Items Ordered" */}
                     {["Order ID", "Items Ordered", "Customer", "Date", "Total", "Payment", "Status", "Actions"].map((head) => (
                       <th key={head} className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                         {head}
@@ -221,7 +221,7 @@ const OrderManagementPage = () => {
                           #{order.orderId}
                         </td>
 
-                        {/* ✅ NEW COLUMN: Items Ordered */}
+                        {/* Items Ordered Column */}
                         <td className="px-6 py-4">
                           <div className="flex flex-col gap-1">
                             {order.orderItems && order.orderItems.length > 0 ? (
@@ -264,9 +264,9 @@ const OrderManagementPage = () => {
                         </td>
                         
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
-                          {/* View Button */}
+                          {/* ✅ View Button (Updated Link) */}
                           <Link 
-                            to={`/order/${order.orderId}`} 
+                            to={`/admin/order/${order.orderId}`} 
                             className="text-gray-400 hover:text-blue-600 p-2 rounded-full hover:bg-blue-100 transition-all"
                             title="View Details"
                           >

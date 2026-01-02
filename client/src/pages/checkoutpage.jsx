@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import axios from "axios"; 
+import api from "../apis/axiosConfig"; 
 import { 
   FaLock, FaTruck, FaShieldAlt, FaCreditCard, 
   FaMoneyBillWave, FaTag, FaTimesCircle, FaCheckCircle 
@@ -16,6 +17,22 @@ import { clearCart, applyCoupon, removeCoupon } from "../redux/slices/cartSlice"
 import { getImageUrl } from "../utils/imageUrl"; 
 
 const API_URL = "http://localhost:8080/api";
+
+// ✅ COMPONENT OUTSIDE to prevent typing focus loss
+const InputField = ({ label, name, type = "text", colSpan = "col-span-1", value, onChange }) => (
+    <div className={colSpan}>
+      <label className="block text-xs font-bold text-gray-500 uppercase mb-1 tracking-wide">{label}</label>
+      <input
+        type={type}
+        name={name}
+        value={value} 
+        onChange={onChange} 
+        className="w-full rounded-lg border-gray-200 bg-gray-50 border px-4 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-[var(--color-green)] focus:border-transparent transition-all outline-none"
+        placeholder={`Enter your ${label.toLowerCase()}`}
+        required
+      />
+    </div>
+);
 
 const CheckoutPage = () => {
   const dispatch = useDispatch();
@@ -38,18 +55,14 @@ const CheckoutPage = () => {
     country: "India",
   });
 
-  // --------------------------------------------------------
-  // 1. FRESH ENTRY LOGIC (Reset Coupon on Mount)
-  // --------------------------------------------------------
+  // 1. Reset Coupon on Mount
   useEffect(() => {
     if (cartId) {
        dispatch(removeCoupon(cartId));
     }
   }, [cartId, dispatch]);
 
-  // --------------------------------------------------------
-  // 2. PRE-FILL FORM
-  // --------------------------------------------------------
+  // 2. Pre-fill Form (Only if User Logged In)
   useEffect(() => {
     if (userInfo) {
       setFormData((prev) => ({
@@ -68,16 +81,10 @@ const CheckoutPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // --------------------------------------------------------
-  // 3. CALCULATION & COUPON LOGIC
-  // --------------------------------------------------------
-  
-  // Reverse-calculate subtotal for display
+  // 3. Calculation Logic
   const finalTotal = totalPrice || 0;
   const discountAmount = discount || 0;
   const subtotal = finalTotal + discountAmount; 
-  
-  // ✅ Calculate Discount Ratio to apply per-item visual logic
   const discountRatio = subtotal > 0 ? discountAmount / subtotal : 0;
 
   // Apply Coupon
@@ -107,10 +114,7 @@ const CheckoutPage = () => {
     }
   };
 
-  // --------------------------------------------------------
-  // 4. PAYMENT & SUBMISSION LOGIC
-  // --------------------------------------------------------
-  
+  // 4. Payment Logic
   const handleRazorpayPayment = async () => {
     try {
         setLocalLoading(true);
@@ -179,44 +183,84 @@ const CheckoutPage = () => {
 
     try {
         setLocalLoading(true);
+
+        // 2. Dispatch Action
         const result = await dispatch(placeOrder({ paymentMode: mode, orderRequest })).unwrap();
+        
+        // 🔍 DEBUG: See what the backend actually sent
+        console.log("Order Placed Successfully:", result);
+
+        // 3. ✅ SAFE ID EXTRACTION (The Fix)
+        // Checks 'orderId' directly, or inside 'data', or checks 'orderCode'
+        const targetId = result.orderId || result.data?.orderId || result.orderCode;
+
+        if (!targetId) {
+            throw new Error("Order was placed, but the Order ID is missing from the response.");
+        }
+
+        // 4. Success & Navigate
         dispatch(clearCart());
         toast.success("Order placed successfully!");
-        navigate(`/order-confirmation/${result.orderId}`);
+        
+        // Navigate using the safely extracted ID
+        navigate(`/order-confirmation/${targetId}`);
+
     } catch (error) {
-        toast.error(error || "Failed to place order");
+        console.error("Order Failure:", error);
+        toast.error(error.message || "Failed to place order");
     } finally {
         setLocalLoading(false);
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // 1. Validation
     if (items.length === 0) {
-      toast.error("Your cart is empty.");
-      return;
+        toast.error("Your cart is empty.");
+        return;
     }
-    if (paymentMethod === "ONLINE") {
-      handleRazorpayPayment();
-    } else {
-      saveOrderToBackend("COD");
+
+    if (
+        !formData.name || 
+        !formData.email || 
+        !formData.phone || 
+        !formData.street || 
+        !formData.city || 
+        !formData.state || 
+        !formData.pincode 
+    ) {
+        toast.error("Please fill in all delivery details.");
+        return;
+    }
+
+    if (formData.pincode.length < 5 || formData.pincode.length > 15) {
+        toast.error("Pincode must be between 5 and 15 characters.");
+        return;
+    }
+
+    try {
+        setLocalLoading(true);
+
+        // ❌ DELETED: The "Guest Sync" block.
+        // We do NOT need to add items again. The backend already has them.
+
+        // 2. Proceed directly to Payment
+        if (paymentMethod === "ONLINE") {
+            handleRazorpayPayment();
+        } else {
+            // Pass the "COD" mode
+            saveOrderToBackend("COD");
+        }
+
+    } catch (err) {
+        setLocalLoading(false);
+        console.error("Order Prep Failed:", err);
+        const errMsg = err.response?.data?.message || "Failed to place order.";
+        toast.error(errMsg);
     }
   };
-
-  const InputField = ({ label, name, type = "text", colSpan = "col-span-1" }) => (
-    <div className={colSpan}>
-      <label className="block text-xs font-bold text-gray-500 uppercase mb-1 tracking-wide">{label}</label>
-      <input
-        type={type}
-        name={name}
-        value={formData[name]}
-        onChange={handleInputChange}
-        className="w-full rounded-lg border-gray-200 bg-gray-50 border px-4 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-[var(--color-green)] focus:border-transparent transition-all outline-none"
-        placeholder={`Enter your ${label.toLowerCase()}`}
-        required
-      />
-    </div>
-  );
 
   return (
     <div className="min-h-screen py-10 px-4 md:px-8 bg-[#F8F9FA] font-body">
@@ -244,13 +288,14 @@ const CheckoutPage = () => {
                 </h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Full Name" name="name" />
-                <InputField label="Email Address" name="email" type="email" />
-                <InputField label="Phone Number" name="phone" type="tel" colSpan="md:col-span-2" />
-                <InputField label="Street Address" name="street" colSpan="md:col-span-2" />
-                <InputField label="State" name="state" />
-                <InputField label="City" name="city" />
-                <InputField label="Pincode" name="pincode" />
+                <InputField label="Full Name" name="name" value={formData.name} onChange={handleInputChange} />
+                <InputField label="Email Address" name="email" type="email" value={formData.email} onChange={handleInputChange} />
+                <InputField label="Phone Number" name="phone" type="tel" colSpan="md:col-span-2" value={formData.phone} onChange={handleInputChange} />
+                <InputField label="Street Address" name="street" colSpan="md:col-span-2" value={formData.street} onChange={handleInputChange} />
+                <InputField label="State" name="state" value={formData.state} onChange={handleInputChange} />
+                <InputField label="City" name="city" value={formData.city} onChange={handleInputChange} />
+                <InputField label="Pincode" name="pincode" value={formData.pincode} onChange={handleInputChange} />
+                
                 <div className="col-span-1">
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1 tracking-wide">Country</label>
                     <input type="text" value="India" readOnly className="w-full rounded-lg border-gray-200 bg-gray-100 px-4 py-3 text-sm text-gray-500 cursor-not-allowed" />
@@ -304,11 +349,8 @@ const CheckoutPage = () => {
               {/* Product List */}
               <div className="max-h-[300px] overflow-y-auto pr-2 space-y-4 mb-6 custom-scrollbar">
                 {items.map((item, index) => {
-                    // ✅ Calculate Item Price Logic
                     const itemPrice = item.specialPrice || item.price || 0;
                     const itemTotal = itemPrice * item.quantity;
-                    
-                    // ✅ Calculate Discounted Item Price (If Coupon Applied)
                     const itemDiscounted = itemTotal - (itemTotal * discountRatio);
 
                     return (
@@ -329,14 +371,12 @@ const CheckoutPage = () => {
                                     <p className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Qty: {item.quantity}</p>
                                     
                                     <div className="text-right">
-                                        {/* ✅ LOGIC: Show Old/New Price if Coupon Applied */}
                                         {appliedCode ? (
                                             <>
                                                 <span className="text-xs text-gray-400 line-through block">₹{itemTotal.toFixed(2)}</span>
                                                 <span className="text-sm font-bold text-[var(--color-green)]">₹{itemDiscounted.toFixed(2)}</span>
                                             </>
                                         ) : (
-                                            // Normal State (No Coupon)
                                             item.specialPrice > 0 ? (
                                                 <>
                                                     <span className="text-xs text-gray-400 line-through block">₹{(item.price * item.quantity).toFixed(2)}</span>
@@ -354,12 +394,11 @@ const CheckoutPage = () => {
                 })}
               </div>
 
-              {/* ✅ COUPON FIELD */}
+              {/* COUPON FIELD */}
               <div className="mb-6 pt-4 border-t border-dashed border-gray-200">
                 <label className="text-xs font-bold text-gray-500 uppercase mb-3 block tracking-wider">Discount Code</label>
                 
                 {appliedCode ? (
-                    // STATE: Active Coupon
                     <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex justify-between items-center animate-fade-in shadow-sm">
                         <div className="flex items-center gap-3">
                            <div className="bg-green-100 p-2 rounded-full text-green-600">
@@ -372,17 +411,12 @@ const CheckoutPage = () => {
                         </div>
                         <div className="flex items-center gap-3">
                            <span className="text-green-700 text-sm font-bold">- ₹{discountAmount.toFixed(2)}</span>
-                           <button 
-                             onClick={handleRemoveCoupon}
-                             className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-full transition-all"
-                             title="Remove Coupon"
-                           >
+                           <button onClick={handleRemoveCoupon} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-full transition-all">
                              <FaTimesCircle size={18} />
                            </button>
                         </div>
                     </div>
                 ) : (
-                    // STATE: No Coupon
                     <div className="flex gap-2">
                         <div className="relative flex-1">
                             <FaTag className="absolute left-3 top-3 text-gray-400" size={12}/>
@@ -406,7 +440,7 @@ const CheckoutPage = () => {
                 )}
               </div>
 
-              {/* ✅ PRICE BREAKDOWN */}
+              {/* PRICE BREAKDOWN */}
               <div className="space-y-3 pt-4 border-t border-dashed border-gray-300">
                 <div className="flex justify-between text-gray-600 text-sm">
                   <span>Subtotal</span>
@@ -418,7 +452,6 @@ const CheckoutPage = () => {
                   <span className="text-green-600 font-bold text-xs flex items-center gap-1 bg-green-50 px-2 py-0.5 rounded-full"><FaTruck size={10}/> FREE</span>
                 </div>
 
-                {/* Discount Row */}
                 {discountAmount > 0 && (
                     <div className="flex justify-between text-green-600 font-bold text-sm animate-pulse-once">
                         <span>Total Savings</span>

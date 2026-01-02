@@ -24,6 +24,12 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long orderId;
 
+    @Column(unique = true) // Ensure no duplicates
+    private String orderCode;
+
+    public String getOrderCode() { return orderCode; }
+    public void setOrderCode(String orderCode) { this.orderCode = orderCode; }
+
     @Email
     @Column(nullable = false)
     private String email; // Stores email for BOTH Guests and Users
@@ -45,7 +51,7 @@ public class Order {
 
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id",nullable = true )
     private User user;
 
     @Enumerated(EnumType.STRING)

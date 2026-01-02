@@ -4,10 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +12,8 @@ import java.util.List;
 @Entity
 @Data
 @AllArgsConstructor
+@Getter
+@Setter
 @NoArgsConstructor
 @Table(name = "products")
 @ToString(exclude = {"products", "variants", "flavors"}) // Prevent infinite loops in logs
@@ -28,21 +27,22 @@ public class Product {
     private String productName;
 
     @NotBlank
-    @Size(min = 10, max = 1000, message = "product description must be between 10 and 1000 characters") // Increased for description
+    @Size(min = 10, max = 2000, message = "product description must be between 10 and 2000 characters")
+
+    @Column(length = 2000)
     private String description;
 
     @ElementCollection
     private List<String> images = new ArrayList<>();
 
     @NotNull
-    private Double price; // Base price
-
+    private Double price;
     @NotNull
     private Double discount;
 
     private Double specialPrice;
 
-    private int quantity; // Base quantity (total)
+    private int quantity;
 
     @ManyToOne
     @JoinColumn(name = "category_id")
@@ -70,4 +70,11 @@ public class Product {
 
     @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
     private List<CartItem> products = new ArrayList<>();
+
+    public String getImage() {
+        if (images != null && !images.isEmpty()) {
+            return images.get(0);
+        }
+        return null; // Return null or a default placeholder string if you prefer
+    }
 }

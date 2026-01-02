@@ -9,6 +9,10 @@ export const loginUser = createAsyncThunk(
     async (credentials, { rejectWithValue }) => {
         try {
             const response = await api.post('/auth/signin', credentials);
+            // ✅ Save token immediately upon login
+            if (response.data.token) {
+                localStorage.setItem("token", response.data.token);
+            }
             return response.data; 
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || "Login failed");
@@ -29,15 +33,26 @@ export const registerUser = createAsyncThunk(
     }
 );
 
-// 3. Check Auth Status
+// ✅ 3. FIXED: Check Auth Status (Prevents 401 Error for Guests)
 export const checkAuthStatus = createAsyncThunk(
     'auth/checkStatus',
     async (_, { rejectWithValue }) => {
+        // 1. Check for token in LocalStorage FIRST
+        const token = localStorage.getItem("token");
+
+        // 2. If NO token, stop here. Do not call API.
+        if (!token) {
+            return rejectWithValue("Guest Mode"); 
+        }
+
+        // 3. Only call API if we actually have a token
         try {
             const response = await api.get('/auth/user');
             return response.data; 
         } catch (error) {
-            return rejectWithValue("Not authenticated");
+            // If token is invalid/expired, clear it so we don't keep failing
+            localStorage.removeItem("token");
+            return rejectWithValue("Session Expired");
         }
     }
 );
@@ -48,6 +63,7 @@ export const logoutUser = createAsyncThunk(
     async (_, { rejectWithValue }) => {
         try {
             await api.post('/auth/signout');
+            localStorage.removeItem("token"); // ✅ Clean up token
             return true;
         } catch (error) {
             return rejectWithValue("Logout failed");
@@ -55,15 +71,11 @@ export const logoutUser = createAsyncThunk(
     }
 );
 
-// ✅ 5. NEW: Update User Profile (Required for Profile Page)
+// 5. Update User Profile
 export const updateUserProfile = createAsyncThunk(
     'auth/updateProfile',
     async (userData, { rejectWithValue }) => {
         try {
-            // This matches the Backend Endpoint we updated earlier
-            // ensure your backend accepts PUT on /auth/user or create a specific endpoint
-            // If using the controller I provided previously, it might need a specific endpoint like /users/profile
-            // For now, let's assume you added a PUT endpoint in AuthController or UserController
             const response = await api.put('/users/profile', userData); 
             return response.data; 
         } catch (error) {
@@ -133,7 +145,7 @@ const authSlice = createSlice({
             })
             .addCase(checkAuthStatus.rejected, (state) => {
                 state.loading = false;
-                state.isAuthenticated = false;
+                state.isAuthenticated = false; // ✅ Correctly sets guest mode
                 state.user = null;
             })
 
@@ -143,13 +155,12 @@ const authSlice = createSlice({
                 state.isAuthenticated = false;
             })
 
-            // ✅ NEW: UPDATE PROFILE HANDLERS
+            // --- UPDATE PROFILE ---
             .addCase(updateUserProfile.pending, (state) => {
                 state.loading = true;
             })
             .addCase(updateUserProfile.fulfilled, (state, action) => {
                 state.loading = false;
-                // Update the user object with the new data from backend
                 state.user = action.payload; 
             })
             .addCase(updateUserProfile.rejected, (state, action) => {
