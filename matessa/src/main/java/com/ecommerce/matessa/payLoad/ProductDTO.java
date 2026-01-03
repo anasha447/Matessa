@@ -23,7 +23,7 @@ public class ProductDTO {
     private String productName;
 
     @NotBlank
-    @Size(min = 10, max = 2000)
+    @Size(min = 10, max = 4000)
     private String description;
 
     private List<String> images = new ArrayList<>();

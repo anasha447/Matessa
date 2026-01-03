@@ -4,7 +4,7 @@ import Spinner from "../components/Spinner";
 import { toast } from "react-toastify";
 import { FaArrowLeft, FaArrowRight, FaBolt, FaLeaf, FaBrain } from "react-icons/fa"; // Changed icons to standard arrows
 import Questions from "../components/questions";
-import MasonryUsage from "../components/MasonryUsage.jsx";
+import MateRitual from "../components/mateRitual";
 import CultureSection from "../components/CultureSection";
 import { getImageUrl } from "../utils/imageUrl.js";
 import parse from 'html-react-parser';
@@ -143,21 +143,21 @@ const SingleProductPage = () => {
 
                 {/* ✅ CUSTOM PAGINATION CONTROL (Matches Screenshot) */}
                 {productImages.length > 1 && (
-                  <div className="mt-2 flex items-center justify-between bg-yellow rounded-full px-6 py-2 w-[100px] h-8 shadow-sm select-none">
+                  <div className="mt-2 flex items-center justify-between bg-gray-100 rounded-full px-6 py-2 w-[100px] h-8 shadow-sm select-none">
                     <button 
                       onClick={handlePrevImage} 
-                      className="text-[#7A2E19] hover:scale-110 transition-transform active:scale-95"
+                      className="text-green hover:scale-110 transition-transform active:scale-95"
                     >
                       <FaArrowLeft size={12} />
                     </button>
                     
-                    <span className="text-[#7A2E19] font-bold font-mono text-lg tracking-wider">
+                    <span className="text-green font-bold font-mono text-lg tracking-wider">
                       {currentImageIndex + 1}/{productImages.length}
                     </span>
                     
                     <button 
                       onClick={handleNextImage} 
-                      className="text-[#7A2E19] hover:scale-110 transition-transform active:scale-95"
+                      className="text-green hover:scale-110 transition-transform active:scale-95"
                     >
                       <FaArrowRight size={12} />
                     </button>
@@ -178,33 +178,21 @@ const SingleProductPage = () => {
           {/* --- RIGHT COLUMN: PRODUCT STORY & ACTIONS --- */}
           <div className="w-full md:w-1/2 flex flex-col space-y-8 md:pt-12">
             
+
+            
             {/* 1. TITLE & STORY */}
             <div>
-                <h1 className="text-3xl md:text-4xl font-heading font-bold text-[var(--color-darkgreen)] leading-tight mb-4">
+                <h1 className="text-3xl md:text-4xl font-heading font-bold text-[var(--color-darkgreen)] leading-tight mb-4 text-center">
                     {product.productName}
                 </h1>
-                <p className="text-gray-500 text-base leading-relaxed font-body font-semibold">
-                    Experience the ritual of <span className="text-[var(--color-orange)] font-bold">Matessa</span>. 
-                    Sourced from the heart of South America and blended with pure Indian botanicals. 
-                    Elevate your energy, naturally.
+                <p className="text-gray-500 text-base leading-relaxed font-body font-semibold text-center">
+                  <span className="font-bold text-[var(--color-green)]">Yerba Mate </span>  loose Leaf Imported from the farms of South America, our Yerba Mate offers the premium taste. 
+                 <br/> <span className="font-bold text-[var(--color-green)]">We hand-craft </span>every batch with mixing the ingredients to create a perfectly balanced and suitable Enargy . 
+                  Upgrade your daily routine with <span className="font-bold text-[var(--color-orange)]">MATESSA</span> blends.
                 </p>
             </div>
 
-            {/* 2. HEALTH BENEFITS */}
-            <div className="grid grid-cols-3 gap-4 py-6 border-y border-gray-100">
-                <div className="flex flex-col items-center text-center space-y-2">
-                    <div className="p-3 bg-green-50 text-[var(--color-green)] rounded-full text-xl"><FaBolt /></div>
-                    <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">Clean Energy</span>
-                </div>
-                <div className="flex flex-col items-center text-center space-y-2">
-                    <div className="p-3 bg-orange-50 text-[var(--color-orange)] rounded-full text-xl"><FaLeaf /></div>
-                    <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">100% Natural</span>
-                </div>
-                <div className="flex flex-col items-center text-center space-y-2">
-                    <div className="p-3 bg-purple-50 text-purple-500 rounded-full text-xl"><FaBrain /></div>
-                    <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">Focus</span>
-                </div>
-            </div>
+           
 
             {/* 3. PRICE */}
             <div>
@@ -283,7 +271,6 @@ const SingleProductPage = () => {
                     Add to Cart
                 </button>
             </div>
-
             {/* 7. HTML DESCRIPTION */}
             <div className="
                 pt-10 border-t border-gray-100
@@ -299,6 +286,8 @@ const SingleProductPage = () => {
                 [&_p]:mb-6
                 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-6
             ">
+                         <h3 className="font-bold text-2xl font-body py-6">Product Overview</h3>
+
                 {parse(product.description || "")}
             </div>
 
@@ -307,15 +296,19 @@ const SingleProductPage = () => {
         
         <div className="w-full mt-12">
             <CultureSection />
+
+
+        </div >
+
+        <div className="w-full mt-12">
+                            <MateRitual/>
+
         </div>
 
-        {/* ✅ MASONRY GALLERY */}
-        <div className="w-full mt-24">
-            <MasonryUsage />
-        </div>
+      
 
         {/* --- BOTTOM SECTION --- */}
-        <div className="mt-24 pt-16 border-t border-gray-200">
+        <div className="mt-12 pt-2 border-t border-gray-200">
             <Questions />
         </div>
       </div>

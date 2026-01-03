@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useDispatch, useSelector } from "react-redux";
-import { FaCloudUploadAlt, FaSave, FaArrowLeft, FaPlus, FaTrash, FaTag } from "react-icons/fa";
+import { FaCloudUploadAlt, FaSave, FaArrowLeft, FaPlus, FaTrash } from "react-icons/fa";
 
-// ✅ 1. Import React Quill
+// React Quill
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
@@ -12,7 +12,8 @@ import 'react-quill-new/dist/quill.snow.css';
 import { 
   fetchProductDetails, 
   updateProduct, 
-  uploadProductImage 
+  uploadProductImage,
+  deleteProductImage // ✅ 1. Import the delete action
 } from "../../redux/slices/productSlice"; 
 
 const ProductEditPage = () => {
@@ -20,7 +21,7 @@ const ProductEditPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // ✅ Main Form Data
+  // Form Data
   const [formData, setFormData] = useState({
     productName: "", 
     price: "", 
@@ -30,11 +31,12 @@ const ProductEditPage = () => {
     specialPrice: ""
   });
   
-  // ✅ Conditional Data (For Category 1)
+  // Conditional Data
   const [variants, setVariants] = useState([]); 
   const [flavors, setFlavors] = useState([]);
   const [currentCategoryId, setCurrentCategoryId] = useState(null);
 
+  // Image Upload State
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -42,14 +44,14 @@ const ProductEditPage = () => {
   // Redux State
   const { selectedProduct, loading: productLoading } = useSelector((state) => state.products);
 
-  // 1. Fetch Product on Mount
+  // 1. Fetch Product
   useEffect(() => {
     if (productId) {
       dispatch(fetchProductDetails(productId));
     }
   }, [productId, dispatch]);
 
-  // 2. Populate Form Data
+  // 2. Populate Form
   useEffect(() => {
     if (selectedProduct) {
       setFormData({
@@ -57,7 +59,7 @@ const ProductEditPage = () => {
         price: selectedProduct.price || 0,
         discount: selectedProduct.discount || 0,
         quantity: selectedProduct.quantity || 0,
-        description: selectedProduct.description || "", // Loads existing HTML description
+        description: selectedProduct.description || "",
         specialPrice: selectedProduct.specialPrice || 0
       });
 
@@ -67,8 +69,11 @@ const ProductEditPage = () => {
       setVariants(selectedProduct.variants || []);
       setFlavors(selectedProduct.flavors || []);
 
+      // If there's a primary image and no new file selected, show it as preview
+      // Note: We will now display ALL images in the gallery below
       if (!imageFile && selectedProduct.image) {
-         setImagePreview(`http://localhost:8080/api/public/images/${selectedProduct.image}`);
+         // Optional: You can keep this or rely on the gallery below
+         // setImagePreview(`http://localhost:8080/api/public/images/${selectedProduct.image}`);
       }
     }
   }, [selectedProduct, imageFile]);
@@ -76,12 +81,11 @@ const ProductEditPage = () => {
   // --- HANDLERS ---
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  // ✅ 2. Special Handler for Quill
   const handleDescriptionChange = (value) => {
     setFormData({ ...formData, description: value });
   };
 
-  // Variants Handlers
+  // Variants & Flavors
   const addVariant = () => setVariants([...variants, { name: "", price: "", stock: "" }]);
   const removeVariant = (idx) => setVariants(variants.filter((_, i) => i !== idx));
   const handleVariantChange = (idx, field, val) => {
@@ -90,7 +94,6 @@ const ProductEditPage = () => {
       setVariants(list);
   };
 
-  // Flavors Handlers
   const addFlavor = () => setFlavors([...flavors, { flavorName: "", targetProductId: "", colorCode: "#F3CB57" }]);
   const removeFlavor = (idx) => setFlavors(flavors.filter((_, i) => i !== idx));
   const handleFlavorChange = (idx, field, val) => {
@@ -99,7 +102,7 @@ const ProductEditPage = () => {
       setFlavors(list);
   };
 
-  // Image Handler
+  // Image Selection (New File)
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -110,14 +113,31 @@ const ProductEditPage = () => {
   };
 
   // --- ACTIONS ---
+
+  // ✅ 2. Handle Delete Existing Image
+  const handleDeleteExistingImage = async (fileName) => {
+    if (!window.confirm("Are you sure you want to delete this image?")) return;
+
+    try {
+      // Dispatch delete action
+      await dispatch(deleteProductImage({ productId, fileName })).unwrap();
+      toast.success("Image deleted successfully");
+      
+      // Refresh product details to update the list visually
+      dispatch(fetchProductDetails(productId));
+    } catch (error) {
+      toast.error(error || "Failed to delete image");
+    }
+  };
   
   const handleUploadImage = async () => {
     if (!imageFile) return toast.warning("Please select an image first");
     setUploading(true);
     try {
       await dispatch(uploadProductImage({ productId, file: imageFile })).unwrap();
-      toast.success("Image updated successfully!");
+      toast.success("Image uploaded successfully!");
       setImageFile(null); 
+      setImagePreview(null);
       dispatch(fetchProductDetails(productId)); 
     } catch (error) {
       toast.error("Failed to upload image");
@@ -129,7 +149,6 @@ const ProductEditPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Construct Payload
     const payload = {
         ...formData,
         price: parseFloat(formData.price),
@@ -150,12 +169,10 @@ const ProductEditPage = () => {
       toast.success("Product updated successfully");
       navigate("/admin/products");
     } catch (err) {
-      console.error(err);
       toast.error("Failed to update product");
     }
   };
 
-  // ✅ 3. Configure Quill Toolbar
   const quillModules = {
     toolbar: [
       ['bold', 'italic', 'underline'],
@@ -182,36 +199,66 @@ const ProductEditPage = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* LEFT COLUMN: Image */}
+          {/* LEFT COLUMN: Image Management */}
           <div className="lg:col-span-1 space-y-6">
              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 text-center">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">Product Image</h3>
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Media Gallery</h3>
                 
-                <div className="aspect-square w-full bg-gray-100 rounded-xl overflow-hidden mb-6 flex items-center justify-center border-2 border-dashed border-gray-300 relative">
+                {/* ✅ 3. EXISTING IMAGES GRID */}
+                {selectedProduct?.images && selectedProduct.images.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2 mb-6">
+                        {selectedProduct.images.map((imgName, index) => (
+                            <div key={index} className="relative group border rounded-lg overflow-hidden aspect-square bg-gray-50">
+                                <img
+                                    src={`http://localhost:8080/api/public/images/${imgName}`}
+                                    alt={`Product ${index}`}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => e.target.src = "https://via.placeholder.com/150?text=No+Img"}
+                                />
+                                {/* Overlay Delete Button */}
+                                <button
+                                    type="button"
+                                    onClick={() => handleDeleteExistingImage(imgName)}
+                                    className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+                                >
+                                    <FaTrash size={16} className="hover:text-red-400" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-sm text-gray-400 mb-4 italic">No images uploaded yet.</p>
+                )}
+
+                <div className="border-t border-gray-100 my-4 pt-4"></div>
+
+                {/* NEW IMAGE UPLOAD PREVIEW */}
+                <h4 className="text-sm font-bold text-gray-600 mb-2 text-left">Upload New Image</h4>
+                <div className="aspect-square w-full bg-gray-50 rounded-xl overflow-hidden mb-4 flex items-center justify-center border-2 border-dashed border-gray-300 relative">
                    {imagePreview ? (
-                      <img src={imagePreview} alt="Preview" className="w-full h-full object-contain" onError={(e) => { e.target.src = "https://placehold.co/300?text=No+Image"; }} />
+                      <img src={imagePreview} alt="New Selection" className="w-full h-full object-contain" />
                    ) : (
-                      <span className="text-gray-400">No Image</span>
+                      <span className="text-gray-400 text-xs">Preview New Image</span>
                    )}
                 </div>
 
                 <div className="mb-4">
                    <input type="file" id="img-upload" className="hidden" accept="image/*" onChange={handleFileChange} disabled={uploading} />
-                   <label htmlFor="img-upload" className="block w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg cursor-pointer border border-gray-300 font-medium transition-colors">
-                      {imageFile ? "Change Selection" : "Select New Image"}
+                   <label htmlFor="img-upload" className="block w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg cursor-pointer border border-gray-300 font-medium transition-colors text-sm">
+                      {imageFile ? "Change Selection" : "Select File"}
                    </label>
                    {imageFile && <p className="text-xs text-gray-500 mt-2 truncate">{imageFile.name}</p>}
                 </div>
 
                 {imageFile && (
                     <button onClick={handleUploadImage} disabled={uploading} className="w-full py-3 bg-[var(--color-orange)] text-white rounded-lg font-bold hover:opacity-90 flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-50">
-                       {uploading ? "Uploading..." : <><FaCloudUploadAlt /> Upload Now</>}
+                       {uploading ? "Uploading..." : <><FaCloudUploadAlt /> Upload Selected</>}
                     </button>
                 )}
              </div>
           </div>
 
-          {/* RIGHT COLUMN: Edit Form */}
+          {/* RIGHT COLUMN: Edit Form (Remains largely same) */}
           <div className="lg:col-span-2">
              <form onSubmit={handleSubmit} className="space-y-6">
                 
@@ -245,7 +292,6 @@ const ProductEditPage = () => {
                         </div>
                     </div>
 
-                    {/* ✅ 4. Replaced Textarea with ReactQuill */}
                     <div className="mb-4">
                         <label className="label font-body">Description</label>
                         <ReactQuill 
@@ -253,7 +299,7 @@ const ProductEditPage = () => {
                             value={formData.description}
                             onChange={handleDescriptionChange}
                             modules={quillModules}
-                            className="bg-white rounded-lg h-48 mb-12 font-body" // Added margin-bottom for toolbar space
+                            className="bg-white rounded-lg h-48 mb-12 font-body"
                         />
                     </div>
                 </div>
@@ -262,7 +308,7 @@ const ProductEditPage = () => {
                 {isSpecialCategory && (
                    <>
                       {/* Weight Variants */}
-                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 animate-fade-in mt-8"> {/* Added top margin to clear Quill */}
+                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 animate-fade-in mt-8">
                           <div className="flex justify-between items-center mb-4 border-b pb-2">
                               <h3 className="text-lg font-bold text-gray-800">Weight Variations</h3>
                               <button type="button" onClick={addVariant} className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-lg hover:bg-blue-100 flex items-center gap-1 font-bold">
@@ -305,7 +351,6 @@ const ProductEditPage = () => {
                    </>
                 )}
 
-                {/* Submit Actions */}
                 <div className="flex justify-end gap-4 pt-4">
                    <button type="button" onClick={() => navigate("/admin/products")} className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">Cancel</button>
                    <button type="submit" disabled={productLoading} className="bg-[var(--color-darkgreen)] hover:bg-green-900 text-white font-bold py-3 px-8 rounded-xl shadow-lg flex items-center gap-2 transition-transform active:scale-95 disabled:opacity-50">
@@ -317,28 +362,40 @@ const ProductEditPage = () => {
 
         </div>
       </div>
-     <style >{`
-        /* Form Label Styles */
+      <style>{`
+        /* ... existing styles ... */
+
         .label { display: block; font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.3rem; }
         .sub-label { display: block; font-size: 0.75rem; font-weight: 600; color: #6B7280; margin-bottom: 0.25rem; }
-        
-        /* Input Styles */
         .input-field { width: 100%; padding: 0.75rem 1rem; border: 1px solid #D1D5DB; border-radius: 0.5rem; outline: none; transition: all 0.2s; }
         .mini-input { width: 100%; padding: 0.5rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem; outline: none; }
         .input-field:focus, .mini-input:focus { border-color: var(--color-green); box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1); }
-        
-        /* Animation */
         .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Quill Editor Overrides */
-        .ql-container { min-height: 120px; font-size: 1rem; }
-        .ql-editor { min-height: 120px; }
 
-        /* ✅ SPACING FIX */
-        .ql-editor p {
-            margin-bottom: 0.5em; /* Gap between paragraphs */
-            line-height: 1.2;     /* Space between lines */
+        .ql-container { 
+            min-height: 120px; 
+            font-size: 1rem; 
+        }
+
+        /* ✅ UPDATED NUCLEAR FIX */
+        .ql-editor, .ql-editor * {
+            word-break: normal !important;       /* Forces words to stay together */
+            word-wrap: break-word !important;    /* Standard wrapping */
+            overflow-wrap: break-word !important; /* Modern wrapping */
+            white-space: pre-wrap !important;    /* Preserves new lines but wraps text */
+        }
+
+        /* Fix specifically for the internal paragraphs */
+        .ql-editor p { 
+            margin-bottom: 0.5em; 
+            line-height: 1.5; 
+            width: 100%;
+        }
+        
+        /* Fix for list items specifically */
+        .ql-editor li {
+            word-break: normal !important;
         }
       `}</style>
     </div>

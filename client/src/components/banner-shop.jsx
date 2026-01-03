@@ -1,22 +1,31 @@
-// src/components/ShopBanner.jsx
 import React, { useEffect, useState } from "react";
-import bannerImage from "../assets/leaf-pattern.jpeg"; // Replace with your image
+import bannerImage from "../assets/leaf-pattern.jpeg"; 
 
 const ShopBanner = () => {
   const [text, setText] = useState("");
-  const fullText = "Ouur Products";
-  const typingSpeed = 100; // ms per letter
+  const fullText = "Our Products";
+  const typingSpeed = 100; 
 
   useEffect(() => {
-    let i = 0;
+    // 1. Always reset text on mount ensures clean slate
+    setText(""); 
+    
+    let index = 0;
+    
     const timer = setInterval(() => {
-      setText((prev) => prev + fullText.charAt(i));
-      i++;
-      if (i >= fullText.length) clearInterval(timer);
+      // 2. Increment index first
+      index++; 
+      
+      // 3. Use slice() instead of appending. This prevents double letters.
+      setText(fullText.slice(0, index)); 
+      
+      if (index === fullText.length) {
+        clearInterval(timer);
+      }
     }, typingSpeed);
 
     return () => clearInterval(timer);
-  }, []);
+  }, []); // Empty dependency array ensures this runs once on mount
 
   return (
     <div
@@ -27,12 +36,11 @@ const ShopBanner = () => {
         backgroundPosition: "center",
       }}
     >
-      {/* Blur overlay */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
 
-      {/* Typing Text */}
       <h1 className="relative z-10 text-white text-5xl font-heading">
         {text}
+        {/* Blinking Cursor */}
         <span className="border-r-4 border-white animate-pulse ml-1"></span>
       </h1>
     </div>

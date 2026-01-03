@@ -107,7 +107,7 @@ const FeaturedProducts = () => {
                     onClick={(e) => handleAddToCart(e, product)}
                     className="
                       absolute bottom-4 left-1/2 -translate-x-1/2 translate-y-12 
-                      bg-[var(--color-darkgreen)] text-white px-6 py-2.5 rounded-full 
+                      bg-[var(--color-green)] text-white px-6 py-2.5 rounded-full border-1 border-darkgreen 
                       font-bold text-sm shadow-md opacity-0 
                       group-hover:translate-y-0 group-hover:opacity-100 
                       transition-all duration-300 hover:bg-[var(--color-orange)]

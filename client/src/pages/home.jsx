@@ -8,6 +8,7 @@ import CustomerReviews from "../components/review"; // Import the customer revie
 import DomeGallery from "../components/demoGallery";
 import QuoteParallax from "../components/quotes.jsx";
 import AfterBanner from "../components/afterBanner";
+import MatessaJourney from "../components/MatessaJourney.jsx";
 
 const Home = () => {
   return (
@@ -23,7 +24,7 @@ const Home = () => {
   Who Drinks Mate
 </h2>      <DomeGallery />
     </div>
-    <CustomerReviews/>  
+    <CustomerReviews/> 
     <QuoteParallax/>
    </div>
   );

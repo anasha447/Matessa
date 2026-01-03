@@ -27,9 +27,9 @@ public class Product {
     private String productName;
 
     @NotBlank
-    @Size(min = 10, max = 2000, message = "product description must be between 10 and 2000 characters")
+    @Size(min = 10, max = 4000, message = "product description must be between 10 and 2000 characters")
 
-    @Column(length = 2000)
+    @Column(length = 4000)
     private String description;
 
     @ElementCollection
