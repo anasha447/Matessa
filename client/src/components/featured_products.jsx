@@ -87,7 +87,7 @@ const FeaturedProducts = () => {
             return (
               <div
                 key={product.productId}
-                className="group cursor-pointer flex-shrink-0 w-[300px] md:w-[300px] snap-center flex flex-col items-center"
+                className="group cursor-pointer flex-shrink-0 w-[290px] md:w-[300px] snap-center flex flex-col items-center"
                 onClick={() => navigate(`/product/${product.productId}`)}
               >
                 {/* 1. IMAGE CONTAINER (Border is here now) */}

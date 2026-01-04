@@ -151,14 +151,14 @@ const ShopPage = () => {
                   
                   {/* 1. IMAGE CONTAINER (Border is here) */}
                   <div className="
-                     relative w-full aspect-[1/1.1] bg-gray-50 rounded-[2rem] overflow-hidden 
-                     border border-gray-400 transition-all duration-500 h-[175px] md:h-[340px]
-                     group-hover:border-[var(--color-orange)] group-hover:shadow-xl
+                      relative w-full aspect-[1/1.1] bg-gray-50 rounded-[2rem] overflow-hidden 
+                      border border-gray-400 transition-all duration-500 h-[200px] md:h-[340px]
+                      group-hover:border-[var(--color-orange)] group-hover:shadow-xl
                   ">
                     <img
                       src={getImageUrl(product.image || product.images?.[0])}
                       alt={product.productName}
-                      className="w-full h-full object-contain p-0 mix-blend-multiply transition-transform duration-700 group-hover:scale-110"
+                      className="w-full h-full object-cover p-0 mix-blend-multiply transition-transform duration-700 group-hover:scale-110"
                     />
 
                     {/* Quick Add Button (Appears on Hover) */}
@@ -178,23 +178,22 @@ const ShopPage = () => {
                     
                     {/* Mobile Only Cart Icon (Always visible on mobile) */}
                     <button
-                         onClick={(e) => handleAddToCart(e, product)}
-                         className="md:hidden absolute bottom-3 right-3 bg-[var(--color-darkgreen)] text-white p-2 rounded-full shadow-md"
+                          onClick={(e) => handleAddToCart(e, product)}
+                          className="md:hidden absolute bottom-3 right-3 bg-[var(--color-darkgreen)] text-white p-2 rounded-full shadow-md"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
                     </button>
                   </div>
 
                   {/* 2. PRODUCT INFO (Elegant & Minimal) */}
-                  <div className="mt-4 text-center px-1">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">
-                        {product.category?.categoryName || "Matessa"}
-                    </span>
-                    <h3 className="text-lg font-heading font-bold text-gray-800 group-hover:text-[var(--color-darkgreen)] transition-colors line-clamp-1">
+                  <div className="mt-4 text-center px-1 w-full"> {/* Added w-full to ensure text centers properly */}
+                    
+                    {/* ✅ FIX: Removed 'line-clamp-1' to show full text */}
+                    <h3 className="text-lg font-heading font-bold text-gray-800 group-hover:text-[var(--color-darkgreen)] transition-colors leading-tight">
                       {product.productName}
                     </h3>
                     
-                    <div className="mt-0 flex items-center justify-center gap-2">
+                    <div className="mt-1 flex items-center justify-center gap-2">
                       {product.specialPrice && product.specialPrice < product.price ? (
                         <>
                            <span className="text-gray-400 text-sm line-through font-body">₹{product.price}</span>

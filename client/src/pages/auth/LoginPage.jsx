@@ -21,7 +21,7 @@ const LoginPage = () => {
       if (isAdminUser(user)) {
         navigate("/admin/dashboard", { replace: true });
       } else {
-        navigate("/profile", { replace: true });
+        navigate("/", { replace: true });
       }
     }
     
@@ -47,8 +47,8 @@ const LoginPage = () => {
             navigate("/admin/dashboard");
         } else {
             dispatch(fetchCart()); // Users get their cart
-            console.log("User Logged In -> Going to Profile");
-            navigate("/profile"); 
+            console.log("User Logged In -> Going to Home");
+            navigate("/"); 
         }
     } else {
         toast.error(resultAction.payload || "Login failed");

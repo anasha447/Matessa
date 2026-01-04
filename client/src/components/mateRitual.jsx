@@ -3,7 +3,7 @@ import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 // --- 1. LOCAL VIDEO IMPORTS ---
 // Change these paths to match your actual file structure
-import step1Video from "../assets/videos/step1.mp4";
+import step1Video from "../assets/videos/step1..mp4";
 import step2Video from "../assets/videos/step2.mp4";
 import step3Video from "../assets/videos/step3.mp4";
 import step4Video from "../assets/videos/step4.mp4";

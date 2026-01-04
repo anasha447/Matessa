@@ -1,5 +1,5 @@
 package com.ecommerce.matessa.payLoad;
-import com.ecommerce.matessa.dtos.ProductFlavorDTO;
+import com.ecommerce.matessa.payLoad.ProductFlavorDTO;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

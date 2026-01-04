@@ -127,7 +127,10 @@ const App = () => {
           </Route>
 
         </Routes>
+        
       </main>
+            <GuestPopup />
+
       
       <AppFooter />
     </Router>

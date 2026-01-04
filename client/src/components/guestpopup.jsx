@@ -89,7 +89,7 @@ const GuestPopup = () => {
                    <div className="bg-orange-50 border-2 border-dashed border-[var(--color-orange)] rounded-lg p-3 mb-4">
                       <p className="text-gray-500 text-xs uppercase font-bold mb-1">Use Code at Checkout</p>
                       <div className="flex items-center justify-center gap-2">
-                        <span className="text-xl font-bold text-gray-800 tracking-wider">MA15</span>
+                        <span className="text-xl font-bold text-gray-800 tracking-wider">MATE15</span>
                         <button onClick={copyToClipboard} className="text-[var(--color-orange)] hover:text-orange-700">
                            <FaCopy />
                         </button>

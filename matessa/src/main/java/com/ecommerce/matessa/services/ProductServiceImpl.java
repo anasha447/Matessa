@@ -16,7 +16,7 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.transaction.annotation.Transactional;
-import  com.ecommerce.matessa.dtos.ProductFlavorDTO;
+import  com.ecommerce.matessa.payLoad.ProductFlavorDTO;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

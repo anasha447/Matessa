@@ -27,7 +27,7 @@ const ScrollingBar = () => {
         </span>
         <span className="mx-4">|</span>
         <span className="mx-4">
-          🚚 Free Shipping On All Orders
+           Free Shipping On All Orders
         </span>
       </marquee>
     </div>
