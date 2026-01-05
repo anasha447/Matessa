@@ -1,21 +1,13 @@
 # 1. Setup Phase
-# We use 'nodejs_20' because we know the server can download it.
+# Changed 'jdk' to 'zulu21' to force Java 21 installation
 [phases.setup]
-nixPkgs = ["jdk", "maven", "nodejs_20"]
+nixPkgs = ["zulu21", "maven", "nodejs_20"]
 
 # 2. Build Frontend (React)
 [phases.frontend]
 cmds = [
-    # A. Install dependencies
-    # --engine-strict=false: Tells server "I know you are older than Node 22, but install anyway!"
-    # --legacy-peer-deps: Fixes library conflicts
     "cd client && npm install --legacy-peer-deps --engine-strict=false",
-    
-    # B. FIX PERMISSION ERROR (Crucial!)
-    # This manually makes the Vite tool executable so it doesn't crash
     "chmod +x client/node_modules/.bin/vite", 
-    
-    # C. Build the app
     "cd client && CI=false npm run build"
 ]
 
@@ -24,7 +16,6 @@ cmds = [
 dependsOn = ["frontend"]
 cmds = [
     "mkdir -p matessa/src/main/resources/static",
-    # If your local build creates a 'build' folder instead of 'dist', change 'dist' to 'build' below
     "cp -r client/dist/* matessa/src/main/resources/static/"
 ]
 
