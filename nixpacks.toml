@@ -2,16 +2,15 @@
 [phases.setup]
 nixPkgs = ["jdk", "maven", "nodejs"]
 
-# 2. Build the Frontend (React)
 [phases.frontend]
-cmds = ["cd client && npm install && npm run build"]
+cmds = ["cd client && npm install && CI=false npm run build"]
 
 # 3. Copy React files to Java folder
 [phases.copy_assets]
 dependsOn = ["frontend"]
 cmds = [
     "mkdir -p matessa/src/main/resources/static",
-    "cp -r client/dist/* matessa/src/main/resources/static/"
+    "cp -r client/build/* matessa/src/main/resources/static/"
 ]
 
 # 4. Build the Backend (Java)
