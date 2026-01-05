@@ -16,8 +16,6 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
-import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,7 +31,7 @@ import java.util.Set;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true) // Allows @PreAuthorize("hasRole('ADMIN')") in controllers
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     @Autowired
@@ -68,37 +66,30 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // 1. CORS Enabled
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth ->
-                        auth.requestMatchers("/api/auth/**").permitAll()
-                                .requestMatchers("/h2-console/**").permitAll()
-                                .requestMatchers("/api/public/**").permitAll()
-                                .requestMatchers("/api/carts/**").permitAll()
-                                .requestMatchers("/error").permitAll()
-                                .requestMatchers("/swagger-ui/**").permitAll()
-                                .requestMatchers("/api/test/**").permitAll()
-                                .requestMatchers("/images/**").permitAll()
-                                .requestMatchers(
-                                        "/v3/api-docs/**",
-                                        "/swagger-ui/**",
-                                        "/swagger-ui.html"
-                                ).permitAll()
+                .authorizeHttpRequests(auth -> auth
+                        // 1. Allow Static Frontend Resources (React)
+                        .requestMatchers("/", "/index.html", "/static/**", "/assets/**", "/*.ico", "/*.json", "/*.png", "/*.js", "/*.css").permitAll()
 
-                                // ✅ 2. CRITICAL: Protect all Admin Routes
-                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // 2. Allow Auth & Public APIs
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/api/test/**").permitAll()
+                        .requestMatchers("/images/**").permitAll()
 
-                                .anyRequest().authenticated()
+                        // 3. Swagger UI
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+
+                        // 4. Admin Only Routes
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // 5. Everything else requires login
+                        .anyRequest().authenticated()
                 );
 
         http.authenticationProvider(authenticationProvider());
-
-        // Fix for H2 Console if you use it
-        http.headers(headers -> headers.frameOptions(
-                HeadersConfigurer.FrameOptionsConfig::sameOrigin
-        ));
-
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -108,8 +99,8 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow your React Frontend
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        // ALLOW ALL ORIGINS (Crucial for first deployment to work)
+        configuration.setAllowedOriginPatterns(List.of("*"));
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
@@ -120,21 +111,11 @@ public class SecurityConfig {
         return source;
     }
 
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web -> web.ignoring().requestMatchers("/v2/api-docs",
-                "/configuration/ui",
-                "/swagger-resources/**",
-                "/configuration/security",
-                "/swagger-ui.html",
-                "/webjars/**"));
-    }
-
-    // ✅ 3. Auto-Create/Update Admin User on Startup (Helper)
+    // ✅ FIXED INIT DATA (Prevents "Detached Entity" Error)
     @Bean
     public CommandLineRunner initData(RoleRepository roleRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-            // Ensure Roles Exist
+            // 1. Fetch or Create Roles (Safely)
             Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
                     .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_USER)));
 
@@ -147,29 +128,25 @@ public class SecurityConfig {
             Set<Role> userRoles = Set.of(userRole);
             Set<Role> adminRoles = Set.of(userRole, sellerRole, adminRole);
 
-            // Create Default Users if they don't exist
+            // 2. Create 'user1' if missing
             if (!userRepository.existsByUserName("user1")) {
                 User user1 = new User("user1", "user1@example.com", passwordEncoder.encode("password123"));
                 user1.setRoles(userRoles);
                 userRepository.save(user1);
             }
 
-            // ✅ FORCE UPDATE LOGIC FOR ADMIN
-            // Try to find the user by username "admin"
-            // If found, we use it. If not, we create a new User object.
+            // 3. Create or Update 'admin'
             User admin = userRepository.findByUserName("admin")
-                    .orElse(new User("admin", "admin@example.com", passwordEncoder.encode("adminPass")));
+                    .orElse(new User("admin", "anas@matessa.com", passwordEncoder.encode("matessa.in.123")));
 
-            // Always RESET the critical fields to ensure they are correct
-            // regardless of what is currently in the DB
-            admin.setEmail("admin@example.com"); // Ensure email matches your login info
-            admin.setPassword(passwordEncoder.encode("adminPass")); // Ensure password is correct
-            admin.setRoles(adminRoles); // Ensure ROLE_ADMIN is assigned
+            // Force update fields to ensure you can always login with these credentials
+            admin.setEmail("anas@matessa.com");
+            admin.setPassword(passwordEncoder.encode("matessa.in.123"));
+            admin.setRoles(adminRoles);
 
-            // Save (This performs an Update if ID exists, or Insert if new)
             userRepository.save(admin);
 
-            System.out.println("✅ ADMIN USER SYNCED: Username: admin | Email: admin@example.com | Roles: " + admin.getRoles());
+            System.out.println("✅ ADMIN USER READY: Login with 'admin' / 'adminPass'");
         };
     }
 }
