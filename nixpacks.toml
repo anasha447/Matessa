@@ -1,8 +1,8 @@
-# 1. Setup Phase (UPDATED: Requesting Node 20)
+# 1. Setup Phase (FIXED: Using 'nodejs_20')
 [phases.setup]
-nixPkgs = ["jdk", "maven", "nodejs-20_x"]
+nixPkgs = ["jdk", "maven", "nodejs_20"]
 
-# 2. Build Frontend (Keep the fixes we added)
+# 2. Build Frontend (Keep --legacy-peer-deps and CI=false)
 [phases.frontend]
 cmds = ["cd client && npm install --legacy-peer-deps && CI=false npm run build"]
 
