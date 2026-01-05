@@ -1,18 +1,17 @@
-# 1. Tell Nixpacks we need Java 21 and Node.js
+# 1. Setup Phase (Changed 'jdk21' to 'jdk')
 [phases.setup]
-nixPkgs = ["jdk21", "maven", "nodejs"]
+nixPkgs = ["jdk", "maven", "nodejs"]
 
 # 2. Build the Frontend (React)
 [phases.frontend]
 cmds = ["cd client && npm install && npm run build"]
 
-# 3. Copy React files to Java folder (The Magic Step)
-# This moves the built website into the Spring Boot static folder
+# 3. Copy React files to Java folder
 [phases.copy_assets]
 dependsOn = ["frontend"]
 cmds = [
     "mkdir -p matessa/src/main/resources/static",
-    "cp -r client/build/* matessa/src/main/resources/static/"
+    "cp -r client/dist/* matessa/src/main/resources/static/"
 ]
 
 # 4. Build the Backend (Java)
