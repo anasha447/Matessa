@@ -3,21 +3,19 @@
 # ==========================================
 FROM node:22-alpine AS frontend
 
-# 1. Set working directory for client files
+# 1. Set working directory
 WORKDIR /app/client
 
-# 2. Copy dependency files first (from local 'client' folder)
-COPY client/package*.json ./
-
-# 3. Install dependencies
-# We use --legacy-peer-deps to solve the React conflict you had earlier
-RUN npm install --legacy-peer-deps
-
-# 4. Copy the rest of the client source code
+# 2. Copy ALL client files (including package.json and your local node_modules)
 COPY client/ ./
 
-# 5. Build the React app
-# This generates the 'dist' folder
+# 3. CRITICAL FIX for Windows Users:
+# We delete the 'node_modules' folder we just copied because it contains Windows files.
+# Then we install fresh dependencies for Linux.
+RUN rm -rf node_modules package-lock.json
+RUN npm install --legacy-peer-deps
+
+# 4. Build the React app
 RUN npm run build
 
 
@@ -28,17 +26,16 @@ FROM maven:3.9-eclipse-temurin-21 AS backend
 
 WORKDIR /app
 
-# 1. Copy POM file (flattening the structure: matessa/pom.xml -> ./pom.xml)
+# 1. Copy POM file
 COPY matessa/pom.xml .
 
-# 2. Download dependencies (Cache layer)
+# 2. Download dependencies
 RUN mvn dependency:go-offline -B
 
-# 3. Copy the Java source code
+# 3. Copy source code
 COPY matessa/src ./src
 
-# 4. EMBED REACT: Copy the build from Stage 1 into the Spring Boot static folder
-# We take files from '/app/client/dist' and put them in 'src/main/resources/static'
+# 4. EMBED REACT: Copy the build from Stage 1
 COPY --from=frontend /app/client/dist ./src/main/resources/static
 
 # 5. Build the JAR file
@@ -52,11 +49,11 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# 1. Copy the built JAR from Stage 2
+# 1. Copy the built JAR
 COPY --from=backend /app/target/*.jar app.jar
 
-# 2. Expose the standard Spring Boot port
+# 2. Expose Port
 EXPOSE 8080
 
-# 3. Start the application
+# 3. Start App
 ENTRYPOINT ["java", "-jar", "app.jar"]
