@@ -1,8 +1,8 @@
-# 1. Setup Phase
+# 1. Setup Phase (UPDATED: Requesting Node 20)
 [phases.setup]
-nixPkgs = ["jdk", "maven", "nodejs"]
+nixPkgs = ["jdk", "maven", "nodejs-20_x"]
 
-# 2. Build Frontend (FIXED: Added --legacy-peer-deps)
+# 2. Build Frontend (Keep the fixes we added)
 [phases.frontend]
 cmds = ["cd client && npm install --legacy-peer-deps && CI=false npm run build"]
 
@@ -11,7 +11,7 @@ cmds = ["cd client && npm install --legacy-peer-deps && CI=false npm run build"]
 dependsOn = ["frontend"]
 cmds = [
     "mkdir -p matessa/src/main/resources/static",
-    "cp -r client/build/* matessa/src/main/resources/static/"
+    "cp -r client/dist/* matessa/src/main/resources/static/"
 ]
 
 # 4. Build Backend
