@@ -1,12 +1,21 @@
-# 1. Setup Phase (UPDATED: Changed to nodejs_22)
+# 1. Setup Phase
+# We use 'nodejs_20' because we know the server can download it.
 [phases.setup]
-nixPkgs = ["jdk", "maven", "nodejs_22"]
+nixPkgs = ["jdk", "maven", "nodejs_20"]
 
-# 2. Build Frontend (UPDATED: Added permission fix command)
+# 2. Build Frontend (React)
 [phases.frontend]
 cmds = [
-    "cd client && npm install --legacy-peer-deps",
+    # A. Install dependencies
+    # --engine-strict=false: Tells server "I know you are older than Node 22, but install anyway!"
+    # --legacy-peer-deps: Fixes library conflicts
+    "cd client && npm install --legacy-peer-deps --engine-strict=false",
+    
+    # B. FIX PERMISSION ERROR (Crucial!)
+    # This manually makes the Vite tool executable so it doesn't crash
     "chmod +x client/node_modules/.bin/vite", 
+    
+    # C. Build the app
     "cd client && CI=false npm run build"
 ]
 
@@ -15,10 +24,11 @@ cmds = [
 dependsOn = ["frontend"]
 cmds = [
     "mkdir -p matessa/src/main/resources/static",
+    # If your local build creates a 'build' folder instead of 'dist', change 'dist' to 'build' below
     "cp -r client/dist/* matessa/src/main/resources/static/"
 ]
 
-# 4. Build Backend
+# 4. Build Backend (Java)
 [phases.build]
 dependsOn = ["copy_assets"]
 cmds = ["cd matessa && mvn clean package -DskipTests"]
