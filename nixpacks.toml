@@ -1,10 +1,14 @@
-# 1. Setup Phase (FIXED: Using 'nodejs_20')
+# 1. Setup Phase (UPDATED: Changed to nodejs_22)
 [phases.setup]
-nixPkgs = ["jdk", "maven", "nodejs_20"]
+nixPkgs = ["jdk", "maven", "nodejs_22"]
 
-# 2. Build Frontend (Keep --legacy-peer-deps and CI=false)
+# 2. Build Frontend (UPDATED: Added permission fix command)
 [phases.frontend]
-cmds = ["cd client && npm install --legacy-peer-deps && CI=false npm run build"]
+cmds = [
+    "cd client && npm install --legacy-peer-deps",
+    "chmod +x client/node_modules/.bin/vite", 
+    "cd client && CI=false npm run build"
+]
 
 # 3. Copy React files to Java folder
 [phases.copy_assets]
