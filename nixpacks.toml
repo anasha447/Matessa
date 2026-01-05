@@ -12,7 +12,7 @@ cmds = ["cd client && npm install && npm run build"]
 dependsOn = ["frontend"]
 cmds = [
     "mkdir -p matessa/src/main/resources/static",
-    "cp -r client/dist/* matessa/src/main/resources/static/"
+    "cp -r client/build/* matessa/src/main/resources/static/"
 ]
 
 # 4. Build the Backend (Java)
