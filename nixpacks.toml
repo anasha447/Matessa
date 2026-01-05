@@ -1,9 +1,10 @@
-# 1. Setup Phase (Changed 'jdk21' to 'jdk')
+# 1. Setup Phase
 [phases.setup]
 nixPkgs = ["jdk", "maven", "nodejs"]
 
+# 2. Build Frontend (FIXED: Added --legacy-peer-deps)
 [phases.frontend]
-cmds = ["cd client && npm install && CI=false npm run build"]
+cmds = ["cd client && npm install --legacy-peer-deps && CI=false npm run build"]
 
 # 3. Copy React files to Java folder
 [phases.copy_assets]
@@ -13,11 +14,11 @@ cmds = [
     "cp -r client/build/* matessa/src/main/resources/static/"
 ]
 
-# 4. Build the Backend (Java)
+# 4. Build Backend
 [phases.build]
 dependsOn = ["copy_assets"]
 cmds = ["cd matessa && mvn clean package -DskipTests"]
 
-# 5. Start the Server
+# 5. Start Server
 [start]
 cmd = "java -jar matessa/target/*.jar"
