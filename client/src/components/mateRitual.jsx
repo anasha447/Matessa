@@ -69,7 +69,7 @@ const HowToPrepare = () => {
         
         {/* --- HEADER --- */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-5xl font-heading font-extrabold text-[var(--color-darkgreen)] mb-4 uppercase tracking-tight">
+          <h2 className="text-2xl md:text-4xl font-heading font-extrabold text-[var(--color-darkgreen)] mb-4 uppercase tracking-tight">
             How To Prepare Yerba Mate
           </h2>
           <p className="text-gray-600 text-lg md:text-xl font-medium max-w-2xl mx-auto">
