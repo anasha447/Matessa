@@ -115,7 +115,7 @@ public class SecurityConfig {
     @Bean
     public CommandLineRunner initData(RoleRepository roleRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-            // 1. Fetch or Create Roles (Safely)
+            // 1. Fetch or Create Roles
             Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
                     .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_USER)));
 
@@ -128,25 +128,36 @@ public class SecurityConfig {
             Set<Role> userRoles = Set.of(userRole);
             Set<Role> adminRoles = Set.of(userRole, sellerRole, adminRole);
 
-            // 2. Create 'user1' if missing
+            // 2. Create 'user1' (Test User)
             if (!userRepository.existsByUserName("user1")) {
                 User user1 = new User("user1", "user1@example.com", passwordEncoder.encode("password123"));
                 user1.setRoles(userRoles);
                 userRepository.save(user1);
             }
 
-            // 3. Create or Update 'admin'
-            User admin = userRepository.findByUserName("admin")
-                    .orElse(new User("admin", "anas@matessa.com", passwordEncoder.encode("matessa.in.123")));
+            // 3. SECURE ADMIN CREATION
+            // We read the password from the Server Environment.
+            // If the variable is missing, we use a random safe fallback or the hardcoded one ONLY for local dev.
+            String adminEmail = System.getenv("ADMIN_EMAIL");
+            String adminPass = System.getenv("ADMIN_PASSWORD");
 
-            // Force update fields to ensure you can always login with these credentials
-            admin.setEmail("anas@matessa.com");
-            admin.setPassword(passwordEncoder.encode("matessa.in.123"));
+            // Safety check: If env variables are missing (like on local PC), use defaults.
+            if (adminEmail == null) adminEmail = "anas@matessa.com";
+            if (adminPass == null) adminPass = "tempPass123"; // Change this locally!
+
+            String finalEmail = adminEmail; // variable effectively final for lambda
+            String finalPass = adminPass;
+
+            User admin = userRepository.findByUserName("admin")
+                    .orElse(new User("admin", finalEmail, passwordEncoder.encode(finalPass)));
+
+            // Always update to match the current Environment variables
+            admin.setEmail(finalEmail);
+            admin.setPassword(passwordEncoder.encode(finalPass));
             admin.setRoles(adminRoles);
 
             userRepository.save(admin);
-
-            System.out.println("✅ ADMIN USER READY: Login with 'admin' / 'adminPass'");
+            System.out.println("✅ ADMIN USER READY. Email: " + finalEmail);
         };
     }
 }
