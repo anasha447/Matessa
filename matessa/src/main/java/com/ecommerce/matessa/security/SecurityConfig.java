@@ -96,7 +96,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/categories/**").permitAll()
                         .requestMatchers("/api/products/**").permitAll()
                         .requestMatchers("/images/**").permitAll()
-
+                        .requestMatchers("/error").permitAll()
+                        .requestMatchers("/admin", "/admin/**").permitAll()
+                        .anyRequest().authenticated()
                         // -----------------------------------------------------------
                         // 3. FRONTEND ROUTES (Must allow these so React handles them)
                         // -----------------------------------------------------------
