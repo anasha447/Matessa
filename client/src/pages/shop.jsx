@@ -17,7 +17,8 @@ const ShopPage = () => {
   const navigate = useNavigate();
 
   // 1. Redux State
-  const { items: products, loading: productsLoading } = useSelector((state) => state.products);
+  // We rename 'items' to 'rawProducts' to remind us it might need processing
+  const { items: rawProducts, loading: productsLoading, error: productError } = useSelector((state) => state.products);
   const { items: categories, loading: categoriesLoading } = useSelector((state) => state.categories);
 
   // 2. Local State
@@ -30,9 +31,24 @@ const ShopPage = () => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  // 4. Filter Logic
+  // 🔍 DEBUGGING LOGS (Check Console)
+  useEffect(() => {
+    console.log("🛒 SHOP PAGE DEBUG:");
+    console.log("Raw Products from Redux:", rawProducts);
+    console.log("Categories:", categories);
+    console.log("Loading State:", productsLoading);
+    console.log("Error State:", productError);
+  }, [rawProducts, categories, productsLoading, productError]);
+
+  // 4. Filter Logic (FIXED)
   const processedProducts = useMemo(() => {
-    let result = [...products];
+    // ✅ FIX: Extract the actual array. 
+    // Spring Boot returns { content: [...] }, not just [...]
+    const productList = Array.isArray(rawProducts) 
+        ? rawProducts 
+        : (rawProducts?.content || []);
+
+    let result = [...productList];
 
     if (selectedCategoryId !== "All") {
       result = result.filter((p) => {
@@ -42,7 +58,7 @@ const ShopPage = () => {
     }
 
     return result;
-  }, [products, selectedCategoryId]);
+  }, [rawProducts, selectedCategoryId]);
 
   // 5. Add to Cart
   const handleAddToCart = (e, product) => {
@@ -133,9 +149,16 @@ const ShopPage = () => {
           {processedProducts.length === 0 ? (
             <div className="text-center py-24 bg-gray-50 rounded-[2rem] border border-dashed border-gray-200">
               <p className="text-xl text-gray-400 mb-4">No products found here.</p>
+              
+              {/* DEBUG INFO: Only shows if empty */}
+              <div className="text-xs text-red-400 mt-2 p-2 bg-red-50 inline-block rounded">
+                 Debug: Redux items count = {Array.isArray(rawProducts) ? rawProducts.length : (rawProducts?.content?.length || 0)}
+              </div>
+
+              <br/>
               <button 
                 onClick={() => setSelectedCategoryId("All")}
-                className="text-[var(--color-orange)] font-bold hover:underline text-lg"
+                className="text-[var(--color-orange)] font-bold hover:underline text-lg mt-4"
               >
                 Clear Filters
               </button>
@@ -149,7 +172,7 @@ const ShopPage = () => {
                   onClick={() => navigate(`/product/${product.productId}`)}
                 >
                   
-                  {/* 1. IMAGE CONTAINER (Border is here) */}
+                  {/* 1. IMAGE CONTAINER */}
                   <div className="
                       relative w-full aspect-[1/1.1] bg-gray-50 rounded-[2rem] overflow-hidden 
                       border border-gray-400 transition-all duration-500 h-[200px] md:h-[340px]
@@ -161,7 +184,7 @@ const ShopPage = () => {
                       className="w-full h-full object-cover p-0 mix-blend-multiply transition-transform duration-700 group-hover:scale-110"
                     />
 
-                    {/* Quick Add Button (Appears on Hover) */}
+                    {/* Quick Add Button */}
                     <button
                       onClick={(e) => handleAddToCart(e, product)}
                       className="
@@ -176,7 +199,7 @@ const ShopPage = () => {
                       Add to Cart
                     </button>
                     
-                    {/* Mobile Only Cart Icon (Always visible on mobile) */}
+                    {/* Mobile Only Cart Icon */}
                     <button
                           onClick={(e) => handleAddToCart(e, product)}
                           className="md:hidden absolute bottom-3 right-3 bg-[var(--color-darkgreen)] text-white p-2 rounded-full shadow-md"
@@ -185,10 +208,8 @@ const ShopPage = () => {
                     </button>
                   </div>
 
-                  {/* 2. PRODUCT INFO (Elegant & Minimal) */}
-                  <div className="mt-4 text-center px-1 w-full"> {/* Added w-full to ensure text centers properly */}
-                    
-                    {/* ✅ FIX: Removed 'line-clamp-1' to show full text */}
+                  {/* 2. PRODUCT INFO */}
+                  <div className="mt-4 text-center px-1 w-full"> 
                     <h3 className="text-lg font-heading font-bold text-gray-800 group-hover:text-[var(--color-darkgreen)] transition-colors leading-tight">
                       {product.productName}
                     </h3>

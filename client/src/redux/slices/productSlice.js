@@ -9,7 +9,7 @@ export const fetchAllProducts = createAsyncThunk(
   'products/fetchAll',
   async ({ pageNumber = 0, pageSize = 100 } = {}, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/public/products`, { params: { pageNumber, pageSize } });
+      const response = await api.get(`/public/products`);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Failed to fetch products");
