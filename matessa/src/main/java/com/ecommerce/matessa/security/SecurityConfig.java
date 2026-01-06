@@ -173,27 +173,17 @@ public class SecurityConfig {
     @Bean
     public CommandLineRunner initData(RoleRepository roleRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-            // 1. Fetch or Create Roles
+            // 1. Roles
             Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
                     .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_USER)));
-
             Role sellerRole = roleRepository.findByRoleName(AppRole.ROLE_SELLER)
                     .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_SELLER)));
-
             Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
                     .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_ADMIN)));
 
-            Set<Role> userRoles = Set.of(userRole);
             Set<Role> adminRoles = Set.of(userRole, sellerRole, adminRole);
 
-            // 2. Create 'user1' (Test User)
-            if (!userRepository.existsByUserName("user1")) {
-                User user1 = new User("user1", "user1@example.com", passwordEncoder.encode("password123"));
-                user1.setRoles(userRoles);
-                userRepository.save(user1);
-            }
-
-            // 3. SECURE ADMIN CREATION
+            // 2. Get Credentials
             String adminEmail = System.getenv("ADMIN_EMAIL");
             String adminPass = System.getenv("ADMIN_PASSWORD");
 
@@ -203,15 +193,16 @@ public class SecurityConfig {
             String finalEmail = adminEmail;
             String finalPass = adminPass;
 
-            User admin = userRepository.findByUserName("admin")
+            // 3. Find User by EMAIL
+            User admin = userRepository.findByEmail(finalEmail)
                     .orElse(new User("admin", finalEmail, passwordEncoder.encode(finalPass)));
 
-            admin.setEmail(finalEmail);
+            // 4. FORCE UPDATE (Syncs password with Env Variable)
             admin.setPassword(passwordEncoder.encode(finalPass));
             admin.setRoles(adminRoles);
 
             userRepository.save(admin);
-            System.out.println("✅ ADMIN USER READY. Email: " + finalEmail);
+            System.out.println("✅ ADMIN READY. Login with Email: " + finalEmail);
         };
     }
 }

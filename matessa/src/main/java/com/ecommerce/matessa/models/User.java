@@ -1,5 +1,6 @@
 package com.ecommerce.matessa.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -46,12 +47,15 @@ public class User {
     @Column(name = "phone_no")
     private String phoneNo;
 
+
+    @JsonIgnore
     @ToString.Exclude
     // In User.java
     @OneToOne(mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}, orphanRemoval = true)
     private Cart cart;
 
     // ✅ Proper OneToMany side matching Address.user (ManyToOne)
+    @JsonIgnore
     @ToString.Exclude
     @OneToMany(
             mappedBy = "user",
@@ -59,6 +63,7 @@ public class User {
             orphanRemoval = true
     )
     private List<Address> addresses = new ArrayList<>();
+
 
     public User(String userName, String email, String password) {
         this.userName = userName;
@@ -85,6 +90,7 @@ public class User {
     private Set<Role> roles = new HashSet<>();
 
     @ToString.Exclude
+    @JsonIgnore
     @OneToMany(
             mappedBy = "user",
             cascade = {CascadeType.PERSIST, CascadeType.MERGE},
@@ -93,6 +99,7 @@ public class User {
     private Set<Product> products = new HashSet<>();
 
     @ToString.Exclude
+    @JsonIgnore
     @OneToMany(mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private List<Order> orders = new ArrayList<>();
 }

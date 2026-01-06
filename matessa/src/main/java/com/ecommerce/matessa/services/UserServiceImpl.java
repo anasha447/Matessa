@@ -24,30 +24,41 @@ public class UserServiceImpl implements UserService {
     public List<UserDTO> getAllUsers() {
         List<User> users = userRepository.findAll();
 
-        // Convert List<User> to List<UserDTO>
-        // This automatically maps fields like 'image' if they exist in both classes
-        return users.stream()
-                .map(user -> modelMapper.map(user, UserDTO.class))
-                .collect(Collectors.toList());
+        return users.stream().map(user -> {
+            // 1. Map basic fields
+            UserDTO dto = modelMapper.map(user, UserDTO.class);
+
+            // 2. FORCE Role Mapping (Fixes the "Empty Roles" issue)
+            List<String> roles = user.getRoles().stream()
+                    .map(role -> role.getRoleName().name())
+                    .collect(Collectors.toList());
+            dto.setRoles(roles);
+
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     @Override
     public UserDTO getUserById(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceExceptionHandler("User", "userId", userId));
-        return modelMapper.map(user, UserDTO.class);
+
+        // 1. Map basic fields
+        UserDTO dto = modelMapper.map(user, UserDTO.class);
+
+        // 2. FORCE Role Mapping
+        List<String> roles = user.getRoles().stream()
+                .map(role -> role.getRoleName().name())
+                .collect(Collectors.toList());
+        dto.setRoles(roles);
+
+        return dto;
     }
 
     @Override
     public String deleteUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceExceptionHandler("User", "userId", userId));
-
-        // Optional: If you want to delete the user's profile image from the disk
-        // you would use FileService here.
-        // String imagePath = "images/" + user.getImage();
-        // File file = new File(imagePath);
-        // if(file.exists()) file.delete();
 
         userRepository.delete(user);
         return "User with ID " + userId + " deleted successfully.";
@@ -58,14 +69,21 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceExceptionHandler("User", "userId", userId));
 
-        // Update basic fields
-        // Note: For Password update, usually we have a separate endpoint
+        // Update fields if they are not null
         if (userDTO.getUserName() != null) user.setUserName(userDTO.getUserName());
-        // Email update might require verification, skipping for now or allow it
         if (userDTO.getEmail() != null) user.setEmail(userDTO.getEmail());
 
-        // Save
+        // NOTE: Never update Password or Roles here directly for security reasons.
+        // Create specific endpoints for changing passwords or promoting admins.
+
         User updatedUser = userRepository.save(user);
-        return modelMapper.map(updatedUser, UserDTO.class);
+
+        // Return mapped DTO with roles
+        UserDTO responseDto = modelMapper.map(updatedUser, UserDTO.class);
+        responseDto.setRoles(user.getRoles().stream()
+                .map(role -> role.getRoleName().name())
+                .collect(Collectors.toList()));
+
+        return responseDto;
     }
 }
