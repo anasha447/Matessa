@@ -96,11 +96,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/categories/**").permitAll()
                         .requestMatchers("/api/products/**").permitAll()
                         .requestMatchers("/images/**").permitAll()
-                        .requestMatchers("/error").permitAll()
-                        .requestMatchers("/admin", "/admin/**").permitAll()
-                        .anyRequest().authenticated()
+
                         // -----------------------------------------------------------
-                        // 3. FRONTEND ROUTES (Must allow these so React handles them)
+                        // 3. FRONTEND ROUTES (React Pages)
                         // -----------------------------------------------------------
                         .requestMatchers(
                                 // Public Pages
@@ -110,7 +108,7 @@ public class SecurityConfig {
                                 "/contact-us",
                                 "/privacy-policy",
                                 "/track-order",
-                                "/product/**",  // Covers /product/123
+                                "/product/**",
 
                                 // Auth Pages
                                 "/login",
@@ -121,12 +119,16 @@ public class SecurityConfig {
                                 "/cart",
                                 "/checkoutpage",
 
-                                // User Pages (Allow React to load, then React checks login)
+                                // User Pages
                                 "/profile",
                                 "/myorders",
                                 "/order/**",
                                 "/order-confirmation/**"
                         ).permitAll()
+
+                        // Allow Admin Frontend & Error Pages (Prevents Redirect Loop)
+                        .requestMatchers("/admin", "/admin/**").permitAll()
+                        .requestMatchers("/error").permitAll()
 
                         // -----------------------------------------------------------
                         // 4. SWAGGER UI (API Documentation)
@@ -143,10 +145,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // -----------------------------------------------------------
-                        // 6. DEFAULT: Everything else needs a token
+                        // 6. DEFAULT: Everything else needs a token (MUST BE LAST)
                         // -----------------------------------------------------------
                         .anyRequest().authenticated()
-                );
+                ); // <--- Closing parenthesis for authorizeHttpRequests
 
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
@@ -157,7 +159,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Allow all origins for simplicity (Update this for strict prod security later if needed)
+        // Allow all origins for simplicity
         configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
