@@ -70,25 +70,79 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 1. Allow Static Frontend Resources (React)
-                        .requestMatchers("/", "/index.html", "/static/**", "/assets/**", "/*.ico", "/*.json", "/*.png", "/*.js", "/*.css").permitAll()
+                        // -----------------------------------------------------------
+                        // 1. STATIC ASSETS (React Build Files)
+                        // -----------------------------------------------------------
+                        .requestMatchers(
+                                "/",
+                                "/index.html",
+                                "/static/**",
+                                "/assets/**",
+                                "/*.ico",
+                                "/*.json",
+                                "/*.png",
+                                "/*.jpg",
+                                "/*.jpeg",
+                                "/*.svg",
+                                "/*.js",
+                                "/*.css"
+                        ).permitAll()
 
-                        // 2. Allow Auth & Public APIs
+                        // -----------------------------------------------------------
+                        // 2. PUBLIC API ENDPOINTS (Backend Data)
+                        // -----------------------------------------------------------
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/categories/**").permitAll()
                         .requestMatchers("/api/products/**").permitAll()
-                        .requestMatchers("/api/shop").permitAll()
-                        .requestMatchers("/api/public/**").permitAll()
-                        .requestMatchers("/api/test/**").permitAll()
                         .requestMatchers("/images/**").permitAll()
 
-                        // 3. Swagger UI
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        // -----------------------------------------------------------
+                        // 3. FRONTEND ROUTES (Must allow these so React handles them)
+                        // -----------------------------------------------------------
+                        .requestMatchers(
+                                // Public Pages
+                                "/shop",
+                                "/what.is.mate",
+                                "/our_story",
+                                "/contact-us",
+                                "/privacy-policy",
+                                "/track-order",
+                                "/product/**",  // Covers /product/123
 
-                        // 4. Admin Only Routes
+                                // Auth Pages
+                                "/login",
+                                "/register",
+                                "/resetpassword/**",
+
+                                // Cart & Checkout
+                                "/cart",
+                                "/checkoutpage",
+
+                                // User Pages (Allow React to load, then React checks login)
+                                "/profile",
+                                "/myorders",
+                                "/order/**",
+                                "/order-confirmation/**"
+                        ).permitAll()
+
+                        // -----------------------------------------------------------
+                        // 4. SWAGGER UI (API Documentation)
+                        // -----------------------------------------------------------
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+
+                        // -----------------------------------------------------------
+                        // 5. SECURE ADMIN ROUTES (Strictly Protected)
+                        // -----------------------------------------------------------
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // 5. Everything else requires login
+                        // -----------------------------------------------------------
+                        // 6. DEFAULT: Everything else needs a token
+                        // -----------------------------------------------------------
                         .anyRequest().authenticated()
                 );
 
@@ -101,10 +155,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
-        // ALLOW ALL ORIGINS (Crucial for first deployment to work)
+        // Allow all origins for simplicity (Update this for strict prod security later if needed)
         configuration.setAllowedOriginPatterns(List.of("*"));
-
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
@@ -114,7 +166,6 @@ public class SecurityConfig {
         return source;
     }
 
-    // ✅ FIXED INIT DATA (Prevents "Detached Entity" Error)
     @Bean
     public CommandLineRunner initData(RoleRepository roleRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
@@ -139,22 +190,18 @@ public class SecurityConfig {
             }
 
             // 3. SECURE ADMIN CREATION
-            // We read the password from the Server Environment.
-            // If the variable is missing, we use a random safe fallback or the hardcoded one ONLY for local dev.
             String adminEmail = System.getenv("ADMIN_EMAIL");
             String adminPass = System.getenv("ADMIN_PASSWORD");
 
-            // Safety check: If env variables are missing (like on local PC), use defaults.
             if (adminEmail == null) adminEmail = "anas@matessa.com";
-            if (adminPass == null) adminPass = "tempPass123"; // Change this locally!
+            if (adminPass == null) adminPass = "tempPass123";
 
-            String finalEmail = adminEmail; // variable effectively final for lambda
+            String finalEmail = adminEmail;
             String finalPass = adminPass;
 
             User admin = userRepository.findByUserName("admin")
                     .orElse(new User("admin", finalEmail, passwordEncoder.encode(finalPass)));
 
-            // Always update to match the current Environment variables
             admin.setEmail(finalEmail);
             admin.setPassword(passwordEncoder.encode(finalPass));
             admin.setRoles(adminRoles);
