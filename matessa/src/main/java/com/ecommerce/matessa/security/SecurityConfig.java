@@ -75,6 +75,9 @@ public class SecurityConfig {
 
                         // 2. Allow Auth & Public APIs
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/categories/**").permitAll()
+                        .requestMatchers("/api/products/**").permitAll()
+                        .requestMatchers("/api/shop").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/test/**").permitAll()
                         .requestMatchers("/images/**").permitAll()

@@ -18,6 +18,7 @@ const API_URL = import.meta.env.VITE_API_URL
 const FeaturedProducts = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState(null); // Added for debug
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -27,12 +28,17 @@ const FeaturedProducts = () => {
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
+        console.log(`Fetching from: ${API_URL}/public/categories/${FEATURED_CATEGORY_ID}/products`);
+        
         const { data } = await axios.get(`${API_URL}/public/categories/${FEATURED_CATEGORY_ID}/products`);
         const productList = Array.isArray(data) ? data : (data.content || []);
+        
+        console.log("Products found:", productList);
         setProducts(productList);
         setLoading(false);
       } catch (err) {
         console.error("Error fetching featured products:", err);
+        setErrorMsg(err.message);
         setLoading(false);
       }
     };
@@ -61,7 +67,22 @@ const FeaturedProducts = () => {
   };
 
   if (loading) return <div className="text-center py-12 text-gray-500">Loading Featured Items...</div>;
-  if (products.length === 0) return null; 
+
+  // 🚨 DEBUG MODE: Instead of hiding, show us WHY it's empty
+  if (products.length === 0) {
+      return (
+          <section className="py-12 bg-gray-100 text-center border-2 border-red-500 m-4 rounded-xl">
+              <h2 className="text-2xl font-bold text-red-600">⚠️ Debug Mode: No Products Found</h2>
+              <p className="text-gray-700 mt-2">
+                  Tried to fetch Category ID: <strong>{FEATURED_CATEGORY_ID}</strong>
+              </p>
+              {errorMsg && <p className="text-red-500 mt-2">API Error: {errorMsg}</p>}
+              <p className="text-sm text-gray-500 mt-4">
+                  (Check your Database: Does Category 1 exist? Does it have products?)
+              </p>
+          </section>
+      );
+  }
 
   return (
     <section className="py-8 px-4 bg-white">
@@ -101,7 +122,7 @@ const FeaturedProducts = () => {
                     alt={product.productName}
                     className="w-full h-full object-contain p-0 mix-blend-multiply transition-transform duration-700 group-hover:scale-110"
                   />
-                   
+                    
                   {/* Quick Add Button (Appears on Hover) */}
                   <button
                     onClick={(e) => handleAddToCart(e, product)}
@@ -125,7 +146,7 @@ const FeaturedProducts = () => {
                   <div className="mt-1 flex items-center justify-center gap-2">
                     {product.specialPrice ? (
                       <>
-                         <span className="text-[var(--color-green)] font-bold text-lg font-body">₹{product.specialPrice.toFixed(0)}</span>
+                          <span className="text-[var(--color-green)] font-bold text-lg font-body">₹{product.specialPrice.toFixed(0)}</span>
                       </>
                     ) : (
                       <span className="text-gray-800 font-bold text-lg">₹{product.price.toFixed(1)}</span>
