@@ -7,7 +7,7 @@ const ScrollingBar = () => {
       // UPDATED: Border uses existing Tailwind class
       className="w-full bg-darkgreen text-[#F4EBD0] h-[44px] overflow-hidden 
         whitespace-nowrap flex items-center font-body-simi-heading justify-center
-        border-t-2 border-b-2 border-orange shadow-lg z-50 relative"
+        border-t-1  border-orange shadow-lg z-50 relative"
       style={{
         fontSize: "16px",
         fontFamily: "Quicksand, sans-serif",

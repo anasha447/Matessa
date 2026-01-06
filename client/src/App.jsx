@@ -74,7 +74,6 @@ const App = () => {
       />
       
       <Header />
-      <GuestPopup />
 
       <main className="min-h-screen bg-white">
         <Routes>

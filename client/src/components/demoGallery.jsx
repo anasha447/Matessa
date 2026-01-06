@@ -99,10 +99,8 @@ export default function DomeGallery({
   images = DEFAULT_IMAGES,
   fit = 0.5,
   fitBasis = "auto",
-  /** Responsive min radius (use these; `minRadius` stays for backward compatibility) */
   minRadiusMobile = 800,
   minRadiusDesktop = 1000,
-  /** Legacy prop (still accepted, used as fallback) */
   minRadius = 1000,
   maxRadius = Infinity,
   padFactor = 0.25,
@@ -111,8 +109,8 @@ export default function DomeGallery({
   enlargeTransitionMs = DEFAULTS.enlargeTransitionMs,
   segments = DEFAULTS.segments,
   dragDampening = 2,
-  openedImageWidth = "400px",
-  openedImageHeight = "450px",
+  openedImageWidth = "300px",
+  openedImageHeight = "350px",
   imageBorderRadius = "30px",
   openedImageBorderRadius = "30px",
   grayscale = true,
@@ -140,11 +138,14 @@ export default function DomeGallery({
   const lastDragEndAt = useRef(0);
 
   const scrollLockedRef = useRef(false);
+  
+  // Logic to prevent page scroll ONLY when an image is opened (fullscreen)
   const lockScroll = useCallback(() => {
     if (scrollLockedRef.current) return;
     scrollLockedRef.current = true;
     document.body.classList.add("dg-scroll-lock");
   }, []);
+
   const unlockScroll = useCallback(() => {
     if (!scrollLockedRef.current) return;
     if (rootRef.current?.getAttribute("data-enlarging") === "true") return;
@@ -175,33 +176,22 @@ export default function DomeGallery({
       const maxDim = Math.max(w, h);
       const aspect = w / h;
 
-      // pick a basis for sphere size
       let basis;
       switch (fitBasis) {
-        case "min":
-          basis = minDim;
-          break;
-        case "max":
-          basis = maxDim;
-          break;
-        case "width":
-          basis = w;
-          break;
-        case "height":
-          basis = h;
-          break;
-        default:
-          basis = aspect >= 1.3 ? w : minDim;
+        case "min": basis = minDim; break;
+        case "max": basis = maxDim; break;
+        case "width": basis = w; break;
+        case "height": basis = h; break;
+        default: basis = aspect >= 1.3 ? w : minDim;
       }
 
-      // responsive min radius (mobile vs desktop)
       const effectiveMinRadius =
         w < 768
           ? (minRadiusMobile ?? Math.max(320, Math.floor(minRadius * 0.5)))
           : (minRadiusDesktop ?? minRadius);
 
       let radius = basis * fit;
-      const heightGuard = h * 1.35; // keep sphere inside frame
+      const heightGuard = h * 1.35;
       radius = Math.min(radius, heightGuard);
       radius = clamp(radius, effectiveMinRadius, maxRadius);
 
@@ -246,18 +236,8 @@ export default function DomeGallery({
     ro.observe(root);
     return () => ro.disconnect();
   }, [
-    fit,
-    fitBasis,
-    minRadius,
-    minRadiusMobile,
-    minRadiusDesktop,
-    maxRadius,
-    padFactor,
-    grayscale,
-    imageBorderRadius,
-    openedImageBorderRadius,
-    openedImageWidth,
-    openedImageHeight,
+    fit, fitBasis, minRadius, minRadiusMobile, minRadiusDesktop, maxRadius, padFactor,
+    grayscale, imageBorderRadius, openedImageBorderRadius, openedImageWidth, openedImageHeight,
   ]);
 
   useEffect(() => {
@@ -310,16 +290,16 @@ export default function DomeGallery({
     [dragDampening, maxVerticalRotationDeg, stopInertia]
   );
 
-  useGesture(
+ useGesture(
     {
       onDragStart: ({ event }) => {
         if (focusedElRef.current) return;
         stopInertia();
 
         pointerTypeRef.current = event.pointerType || "mouse";
-        if (pointerTypeRef.current === "touch") event.preventDefault();
-        if (pointerTypeRef.current === "touch") lockScroll();
-
+        
+        // We do NOT call preventDefault here, allowing logic to flow
+        
         draggingRef.current = true;
         cancelTapRef.current = false;
         movedRef.current = false;
@@ -334,10 +314,32 @@ export default function DomeGallery({
         velocity: velArr = [0, 0],
         direction: dirArr = [0, 0],
         movement,
+        delta: [dx, dy] // ✅ 1. Add 'delta' here to track instant movement
       }) => {
         if (focusedElRef.current || !draggingRef.current || !startPosRef.current) return;
 
-        if (pointerTypeRef.current === "touch") event.preventDefault();
+        // ✅ 2. LOGIC FOR SCROLL HANDOFF
+        // Check if we are at the rotation limits
+        const currentX = rotationRef.current.x;
+        const isAtTopLimit = currentX >= maxVerticalRotationDeg;
+        const isAtBottomLimit = currentX <= -maxVerticalRotationDeg;
+
+        // dy > 0 means dragging DOWN (finger moves down)
+        // dy < 0 means dragging UP (finger moves up)
+        
+        // If at TOP limit and dragging DOWN further... OR
+        // If at BOTTOM limit and dragging UP further...
+        if ((isAtTopLimit && dy > 0) || (isAtBottomLimit && dy < 0)) {
+           // ...Scroll the window instead of the sphere
+           window.scrollBy(0, -dy);
+           
+           // IMPORTANT: Reset the "drag start" position so the sphere doesn't 
+           // "jump" when you eventually scroll back the other way.
+           startPosRef.current.y = event.clientY; 
+           return; 
+        }
+        
+        // --- Standard Rotation Logic Continues Below ---
 
         const dxTotal = event.clientX - startPosRef.current.x;
         const dyTotal = event.clientY - startPosRef.current.y;
@@ -397,7 +399,6 @@ export default function DomeGallery({
           if (cancelTapRef.current) setTimeout(() => (cancelTapRef.current = false), 120);
           if (movedRef.current) lastDragEndAt.current = performance.now();
           movedRef.current = false;
-          if (pointerTypeRef.current === "touch") unlockScroll();
         }
       },
     },
@@ -429,6 +430,8 @@ export default function DomeGallery({
         focusedElRef.current = null;
         rootRef.current?.removeAttribute("data-enlarging");
         openingRef.current = false;
+        // Unlock scroll when closing image
+        unlockScroll();
         return;
       }
 
@@ -516,8 +519,8 @@ export default function DomeGallery({
                 el.style.transition = "";
                 el.style.opacity = "";
                 openingRef.current = false;
-                if (!draggingRef.current && rootRef.current?.getAttribute("data-enlarging") !== "true")
-                  document.body.classList.remove("dg-scroll-lock");
+                // Unlock scroll when closed
+                unlockScroll(); 
               }, 300);
             });
           });
@@ -537,13 +540,15 @@ export default function DomeGallery({
       scrim.removeEventListener("click", close);
       window.removeEventListener("keydown", onKey);
     };
-  }, [enlargeTransitionMs, openedImageBorderRadius, grayscale]);
+  }, [enlargeTransitionMs, openedImageBorderRadius, grayscale, unlockScroll]);
 
   const openItemFromElement = (el) => {
     if (!el || cancelTapRef.current) return;
     if (openingRef.current) return;
     openingRef.current = true;
     openStartedAtRef.current = performance.now();
+    
+    // Lock scroll when an image is opened (fullscreen)
     lockScroll();
 
     const parent = el.parentElement;
@@ -674,7 +679,7 @@ export default function DomeGallery({
       --rot-x: calc((360deg / var(--segments-y)) / 2);
       --item-width: calc(var(--circ) / var(--segments-x));
       --item-height: calc(var(--circ) / var(--segments-y));
-      box-sizing: border-box; /* ensure padding doesn't cause overflow */
+      box-sizing: border-box; 
     }
     .sphere-root * { box-sizing: border-box; }
     .sphere, .sphere-item, .item__image { transform-style: preserve-3d; }
@@ -742,7 +747,6 @@ export default function DomeGallery({
       <style dangerouslySetInnerHTML={{ __html: cssStyles }} />
       <div
         ref={rootRef}
-        
         className="
           sphere-root relative
           z-0 w-screen h-[80vh] md:h-[90vh]
@@ -752,8 +756,7 @@ export default function DomeGallery({
           max-w-[100vw]
         "
         style={{
-          backgroundImage: `url(${bgimg})`, // ✅ background applied here
-
+          backgroundImage: `url(${bgimg})`,
           ["--segments-x"]: segments,
           ["--segments-y"]: segments,
           ["--tile-radius"]: imageBorderRadius,
@@ -764,7 +767,8 @@ export default function DomeGallery({
         <main
           ref={mainRef}
           className="absolute inset-0 grid place-items-center select-none bg-transparent"
-          style={{ touchAction: "none", WebkitUserSelect: "none" }}
+          // --- CHANGE THIS LINE BELOW ---
+          style={{ touchAction: "none", WebkitUserSelect: "none" }} 
         >
           <div className="stage">
             <div ref={sphereRef} className="sphere">
@@ -824,7 +828,6 @@ export default function DomeGallery({
             </div>
           </div>
 
-          {/* Lightbox viewer (kept, but no blur/overlay color effects) */}
           <div
             ref={viewerRef}
             className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center"
@@ -834,7 +837,7 @@ export default function DomeGallery({
               ref={scrimRef}
               className="scrim absolute inset-0 z-10 pointer-events-none opacity-0 transition-opacity duration-500"
               style={{
-                background: "rgba(0, 0, 0, 0.35)", // no backdrop blur, no overlay color
+                background: "rgba(0, 0, 0, 0.35)", 
               }}
             />
             <div

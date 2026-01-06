@@ -75,7 +75,7 @@ export default function QuoteParallax({
       />
 
       {/* Content */}
-      <div className="relative max-w-7xl mx-auto px-4 py-20 sm:py-28 lg:py-36">
+      <div className="relative max-w-7xl mx-auto px-4 py-16 sm:py-28 lg:py-36">
         <div className="text-center">
           <blockquote className="mx-auto max-w-3xl">
             <p className="text-2xl sm:text-3xl lg:text-4xl font-heading text-white leading-tight drop-shadow-sm">
