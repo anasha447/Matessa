@@ -89,7 +89,7 @@ const Header = () => {
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-18 relative">
+          <div className="flex items-center justify-between h-14 lg:h-20  relative">
             
             {/* Left: Nav & Mobile Toggle */}
             <div className="flex items-center">
@@ -138,7 +138,7 @@ const Header = () => {
                 <img
                   src={logo}
                   alt="Matessa Logo"
-                  className="h-11 md:h-18 lg:h-16 object-contain transition-transform duration-500 hover:scale-105"
+                  className="h-10 md:h-18 lg:h-16 object-contain transition-transform duration-500 hover:scale-105"
                 />
               </Link>
             </div>
