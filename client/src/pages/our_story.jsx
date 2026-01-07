@@ -21,8 +21,8 @@ const sections = [
   },
   {
     id: 3,
-    title: "The Birth of Mateesa",
-    text: "MaTeesa was inspired by the magic of Indian herbs, creating a unique harmony with South American yerba mate, Matessa is not just a drink , it's a bridge connecting nature, cultures, and communities.",
+    title: "The Birth of Matessa",
+    text: "Matessa was inspired by the magic of Indian herbs, creating a unique harmony with South American yerba mate, Matessa is not just a drink , it's a bridge connecting nature, cultures, and communities.",
     image: branding,
   },
   

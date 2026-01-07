@@ -20,7 +20,7 @@ import java.io.IOException;
 @Component
 public class AuthTokenFilter extends OncePerRequestFilter {
     @Autowired
-    private JwtUtils jwtUtils; // use lower-case field name
+    private JwtUtils jwtUtils;
 
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
@@ -33,11 +33,14 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         logger.debug("AuthTokenFilter called for URI: {}", request.getRequestURI());
         try {
             String jwt = parseJwt(request);
-            // ✅ FIX: Added !jwt.isEmpty() check to prevent "JWT String argument cannot be null or empty" error
+
             if (jwt != null && !jwt.isEmpty() && jwtUtils.validateJwtToken(jwt)) {
-                String username = jwtUtils.getUserNameFromJwtToken(jwt);
-                if (username != null) {
-                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                // This string is your email (since you used email as the subject when generating token)
+                String email = jwtUtils.getUserNameFromJwtToken(jwt);
+
+                if (email != null) {
+                    // ✅ FIX: Use the standard method name (which now contains your email logic)
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
@@ -45,9 +48,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                    logger.debug("Authenticated user '{}' with roles {}", username, userDetails.getAuthorities());
+                    logger.debug("Authenticated user '{}' with roles {}", email, userDetails.getAuthorities());
                 } else {
-                    logger.warn("JWT validated but username was null");
+                    logger.warn("JWT validated but email was null");
                 }
             } else {
                 logger.debug("No JWT found or JWT invalid for request: {}", request.getRequestURI());
@@ -61,13 +64,11 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
     private String parseJwt(HttpServletRequest request) {
         String jwtFromCookie = jwtUtils.getJwtFromCookie(request);
-        // ✅ FIX: Check if cookie string is empty
         if (jwtFromCookie != null && !jwtFromCookie.isEmpty()) {
             return jwtFromCookie;
         }
 
         String jwtFromHeader = jwtUtils.getJwtFromHeader(request);
-        // ✅ FIX: Check if header string is empty
         if (jwtFromHeader != null && !jwtFromHeader.isEmpty()) {
             return jwtFromHeader;
         }
