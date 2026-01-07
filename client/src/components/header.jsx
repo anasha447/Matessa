@@ -138,7 +138,7 @@ const Header = () => {
                 <img
                   src={logo}
                   alt="Matessa Logo"
-                  className="h-10 md:h-18 lg:h-16 object-contain transition-transform duration-500 hover:scale-105"
+                  className="h-10 md:h-15 lg:h-15 object-contain transition-transform duration-500 hover:scale-105"
                 />
               </Link>
             </div>
