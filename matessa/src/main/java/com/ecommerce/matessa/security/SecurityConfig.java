@@ -173,7 +173,7 @@ public class SecurityConfig {
     @Bean
     public CommandLineRunner initData(RoleRepository roleRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-            // 1. Roles
+            // 1. Ensure Roles Exist
             Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
                     .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_USER)));
             Role sellerRole = roleRepository.findByRoleName(AppRole.ROLE_SELLER)
@@ -183,26 +183,18 @@ public class SecurityConfig {
 
             Set<Role> adminRoles = Set.of(userRole, sellerRole, adminRole);
 
-            // 2. Get Credentials
-            String adminEmail = System.getenv("ADMIN_EMAIL");
-            String adminPass = System.getenv("ADMIN_PASSWORD");
+            // 2. Check Admin
+            String email = "anas@matessa.com";
+            String password = "tempPass123";
 
-            if (adminEmail == null) adminEmail = "anas@matessa.com";
-            if (adminPass == null) adminPass = "tempPass123";
-
-            String finalEmail = adminEmail;
-            String finalPass = adminPass;
-
-            // 3. Find User by EMAIL
-            User admin = userRepository.findByEmail(finalEmail)
-                    .orElse(new User("admin", finalEmail, passwordEncoder.encode(finalPass)));
-
-            // 4. FORCE UPDATE (Syncs password with Env Variable)
-            admin.setPassword(passwordEncoder.encode(finalPass));
-            admin.setRoles(adminRoles);
-
-            userRepository.save(admin);
-            System.out.println("✅ ADMIN READY. Login with Email: " + finalEmail);
+            if (!userRepository.existsByEmail(email)) {
+                User admin = new User("admin", email, passwordEncoder.encode(password));
+                admin.setRoles(adminRoles);
+                userRepository.save(admin);
+                System.out.println("✅ ADMIN CREATED: " + email);
+            } else {
+                System.out.println("ℹ️ ADMIN ALREADY EXISTS. SKIPPING CREATION.");
+            }
         };
     }
 }
