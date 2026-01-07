@@ -2,15 +2,17 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Spinner from "../components/Spinner";
 import { toast } from "react-toastify";
-import { FaArrowLeft, FaArrowRight, FaBolt, FaLeaf, FaBrain } from "react-icons/fa"; // Changed icons to standard arrows
+import { FaArrowLeft, FaArrowRight, FaBolt, FaLeaf, FaBrain } from "react-icons/fa"; 
 import Questions from "../components/questions";
 import MateRitual from "../components/mateRitual";
 import CultureSection from "../components/CultureSection";
-import { getImageUrl } from "../utils/imageUrl.js";
 import parse from 'html-react-parser';
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "../redux/slices/cartSlice";
 import { fetchProductDetails, createProductReview, resetReviewSuccess } from "../redux/slices/productSlice";
+
+// ✅ 1. DEFINE API URL (Crucial for Image Display)
+const API_BASE_URL = "https://matessa.in";
 
 const SingleProductPage = () => {
   const { id } = useParams();
@@ -50,6 +52,15 @@ const SingleProductPage = () => {
         dispatch(fetchProductDetails(id)); 
     }
   }, [reviewSuccess, dispatch, id]);
+
+  // ✅ 2. Image Helper Function (Inline Fix)
+  const getProductImage = (imageName) => {
+    if (!imageName) return "/assets/placeholder.png";
+    if (imageName.startsWith("http")) return imageName; // Check for external links
+    
+    // Connects to your Java Backend Container
+    return `${API_BASE_URL}/images/${imageName}`;
+  };
 
   const productImages = product 
     ? (product.images && product.images.length > 0 
@@ -133,15 +144,16 @@ const SingleProductPage = () => {
                 {/* IMAGE CONTAINER */}
                 <div className="w-full relative -mx-4 md:mx-0 flex justify-center items-center bg-white">
                   
-                  {/* Main Image */}
+                  {/* Main Image (Uses Fixed Helper) */}
                   <img 
-                    src={getImageUrl(mainImage)} 
+                    src={getProductImage(mainImage)} 
                     alt={product.productName} 
                     className="w-full h-auto max-h-[85vh] object-contain" 
+                    onError={(e) => { e.target.src = "/assets/placeholder.png"; }} // Fallback
                   />
                 </div>
 
-                {/* ✅ CUSTOM PAGINATION CONTROL (Matches Screenshot) */}
+                {/* ✅ CUSTOM PAGINATION CONTROL */}
                 {productImages.length > 1 && (
                   <div className="mt-2 flex items-center justify-between bg-gray-100 rounded-full px-6 py-2 w-[100px] h-8 shadow-sm select-none">
                     <button 
@@ -163,12 +175,6 @@ const SingleProductPage = () => {
                     </button>
                   </div>
                 )}
-
-                {/* Thumbnails (Hidden if pagination is preferred, or keep as secondary nav) */}
-                {/* <div className="flex gap-3 mt-8 overflow-x-auto py-2 px-1 w-full justify-center opacity-50 hover:opacity-100 transition-opacity">
-                    {productImages.map((img, index) => ( ... ))}
-                </div> 
-                */}
               </>
             ) : (
                 <div className="w-full h-[500px] flex items-center justify-center bg-gray-50 rounded-xl"><p className="text-gray-400">No Image Available</p></div>
@@ -178,8 +184,6 @@ const SingleProductPage = () => {
           {/* --- RIGHT COLUMN: PRODUCT STORY & ACTIONS --- */}
           <div className="w-full md:w-1/2 flex flex-col space-y-8 md:pt-12">
             
-
-            
             {/* 1. TITLE & STORY */}
             <div>
                 <h1 className="text-3xl md:text-4xl font-heading font-bold text-[var(--color-darkgreen)] leading-tight mb-4 text-center">
@@ -187,12 +191,10 @@ const SingleProductPage = () => {
                 </h1>
                 <p className="text-gray-500 text-base leading-relaxed font-body font-semibold text-center">
                   <span className="font-bold text-[var(--color-green)]">Yerba Mate </span>  loose Leaf Imported from the farms of South America, our Yerba Mate offers the premium taste. 
-                 <br/> <span className="font-bold text-[var(--color-green)]">We hand-craft </span>every batch with mixing the ingredients to create a perfectly balanced and suitable Enargy . 
+                  <br/> <span className="font-bold text-[var(--color-green)]">We hand-craft </span>every batch with mixing the ingredients to create a perfectly balanced and suitable Enargy . 
                   Upgrade your daily routine with <span className="font-bold text-[var(--color-orange)]">MATESSA</span> blends.
                 </p>
             </div>
-
-           
 
             {/* 3. PRICE */}
             <div>
@@ -271,6 +273,7 @@ const SingleProductPage = () => {
                     Add to Cart
                 </button>
             </div>
+            
             {/* 7. HTML DESCRIPTION */}
             <div className="
                 pt-10 border-t border-gray-100
@@ -286,9 +289,8 @@ const SingleProductPage = () => {
                 [&_p]:mb-6
                 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-6
             ">
-                         <h3 className="font-bold text-2xl font-body py-6">Product Overview</h3>
-
-                {parse(product.description || "")}
+                 <h3 className="font-bold text-2xl font-body py-6">Product Overview</h3>
+                 {parse(product.description || "")}
             </div>
 
           </div>
@@ -296,16 +298,11 @@ const SingleProductPage = () => {
         
         <div className="w-full mt-12">
             <CultureSection />
-
-
-        </div >
-
-        <div className="w-full mt-12">
-                            <MateRitual/>
-
         </div>
 
-      
+        <div className="w-full mt-12">
+            <MateRitual/>
+        </div>
 
         {/* --- BOTTOM SECTION --- */}
         <div className="mt-12 pt-2 border-t border-gray-200">

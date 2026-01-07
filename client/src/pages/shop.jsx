@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import ShopBanner from "../components/banner-shop";
-import { getImageUrl } from "../utils/imageUrl.js";
 
 // Redux Imports
 import { useDispatch, useSelector } from "react-redux";
@@ -12,38 +11,31 @@ import { addToCart } from "../redux/slices/cartSlice";
 // Icons
 import { Filter, SlidersHorizontal } from "lucide-react";
 
+// ✅ 1. DEFINE API URL (Crucial Fix for Images)
+// This ensures the browser looks for images on your server, not localhost
+const API_BASE_URL = "https://matessa.in"; 
+
 const ShopPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // 1. Redux State
-  // We rename 'items' to 'rawProducts' to remind us it might need processing
-  const { items: rawProducts, loading: productsLoading, error: productError } = useSelector((state) => state.products);
+  // 2. Redux State
+  const { items: rawProducts, loading: productsLoading } = useSelector((state) => state.products);
   const { items: categories, loading: categoriesLoading } = useSelector((state) => state.categories);
 
-  // 2. Local State
+  // 3. Local State
   const [selectedCategoryId, setSelectedCategoryId] = useState("All"); 
   const [showMobileFilter, setShowMobileFilter] = useState(false);
 
-  // 3. Initial Fetch
+  // 4. Initial Fetch
   useEffect(() => {
     dispatch(fetchAllProducts());
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  // 🔍 DEBUGGING LOGS (Check Console)
-  useEffect(() => {
-    console.log("🛒 SHOP PAGE DEBUG:");
-    console.log("Raw Products from Redux:", rawProducts);
-    console.log("Categories:", categories);
-    console.log("Loading State:", productsLoading);
-    console.log("Error State:", productError);
-  }, [rawProducts, categories, productsLoading, productError]);
-
-  // 4. Filter Logic (FIXED)
+  // 5. Filter Logic
   const processedProducts = useMemo(() => {
-    // ✅ FIX: Extract the actual array. 
-    // Spring Boot returns { content: [...] }, not just [...]
+    // Handle Spring Boot "Page" response structure vs plain Array
     const productList = Array.isArray(rawProducts) 
         ? rawProducts 
         : (rawProducts?.content || []);
@@ -60,7 +52,14 @@ const ShopPage = () => {
     return result;
   }, [rawProducts, selectedCategoryId]);
 
-  // 5. Add to Cart
+  // 6. Image Helper Function (Inline Fix)
+  const getProductImage = (imageName) => {
+    if (!imageName) return "/assets/placeholder.png";
+    if (imageName.startsWith("http")) return imageName;
+    // ✅ Prepend the domain so browser finds the file
+    return `${API_BASE_URL}/images/${imageName}`;
+  };
+
   const handleAddToCart = (e, product) => {
     e.stopPropagation();
     dispatch(addToCart({
@@ -149,13 +148,6 @@ const ShopPage = () => {
           {processedProducts.length === 0 ? (
             <div className="text-center py-24 bg-gray-50 rounded-[2rem] border border-dashed border-gray-200">
               <p className="text-xl text-gray-400 mb-4">No products found here.</p>
-              
-              {/* DEBUG INFO: Only shows if empty */}
-              <div className="text-xs text-red-400 mt-2 p-2 bg-red-50 inline-block rounded">
-                 Debug: Redux items count = {Array.isArray(rawProducts) ? rawProducts.length : (rawProducts?.content?.length || 0)}
-              </div>
-
-              <br/>
               <button 
                 onClick={() => setSelectedCategoryId("All")}
                 className="text-[var(--color-orange)] font-bold hover:underline text-lg mt-4"
@@ -172,16 +164,18 @@ const ShopPage = () => {
                   onClick={() => navigate(`/product/${product.productId}`)}
                 >
                   
-                  {/* 1. IMAGE CONTAINER */}
+                  {/* PRODUCT CARD IMAGE */}
                   <div className="
                       relative w-full aspect-[1/1.1] bg-gray-50 rounded-[2rem] overflow-hidden 
                       border border-gray-400 transition-all duration-500 h-[200px] md:h-[340px]
                       group-hover:border-[var(--color-orange)] group-hover:shadow-xl
                   ">
+                    {/* ✅ Uses the new getProductImage helper */}
                     <img
-                      src={getImageUrl(product.image || product.images?.[0])}
+                      src={getProductImage(product.image || product.images?.[0])}
                       alt={product.productName}
                       className="w-full h-full object-cover p-0 mix-blend-multiply transition-transform duration-700 group-hover:scale-110"
+                      onError={(e) => { e.target.src = "/assets/placeholder.png"; }}
                     />
 
                     {/* Quick Add Button */}
@@ -208,7 +202,7 @@ const ShopPage = () => {
                     </button>
                   </div>
 
-                  {/* 2. PRODUCT INFO */}
+                  {/* PRODUCT INFO */}
                   <div className="mt-4 text-center px-1 w-full"> 
                     <h3 className="text-lg font-heading font-bold text-gray-800 group-hover:text-[var(--color-darkgreen)] transition-colors leading-tight">
                       {product.productName}
