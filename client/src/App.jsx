@@ -4,7 +4,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 // ✅ Redux Imports
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux"; // <--- Added useSelector
 import { checkAuthStatus } from "./redux/slices/authSlice";
 import { fetchCart } from "./redux/slices/cartSlice";
 
@@ -20,18 +20,17 @@ import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import ProfilePage from "./pages/ProfilePage";
-import OrderPage from "./pages/OrderPage"; // Public/User View
+import OrderPage from "./pages/OrderPage"; 
 import OrderHistoryPage from "./pages/OrderHistoryPage";
-import PrivacyPolicyPage from "./pages/PrivacyPolicyPage"; // ✅ Import this
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage"; 
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import TrackOrderPage from "./pages/TrackOrderPage";
 
 // Admin Pages
 import UserListPage from "./pages/admin/UserListPage";
 import UserEditPage from "./pages/admin/UserEditPage";
-// import OrderListPage from "./pages/admin/OrderListPage"; // ❌ Old page
-import OrderManagementPage from "./pages/admin/OrderListPage"; // ✅ NEW Page
-import SingleOrderPage from "./pages/admin/SingleOrderPage"; // ✅ Admin Single Order View
+import OrderManagementPage from "./pages/admin/OrderListPage"; 
+import SingleOrderPage from "./pages/admin/SingleOrderPage"; 
 import Dashboard from "./components/admin/Dashboard";
 import ProductListPage from "./pages/admin/ProductListPage";
 import ProductEditPage from "./pages/admin/ProductEditPage";
@@ -52,11 +51,26 @@ import ScrollToTop from "./components/ScrollToTop";
 
 const App = () => {
   const dispatch = useDispatch();
+  
+  // ✅ 1. Get the loading/checking state from Redux
+  // Use 'isCheckingAuth' if you added it to your slice, otherwise use 'loading'
+  const { isCheckingAuth } = useSelector((state) => state.auth); 
 
   useEffect(() => {
     dispatch(checkAuthStatus());
     dispatch(fetchCart());
   }, [dispatch]);
+
+  // ✅ 2. THE GATEKEEPER
+  // If we are currently checking if the user is logged in, DO NOT render the router yet.
+  // This prevents the AdminRoute from kicking you out prematurely.
+  if (isCheckingAuth ) {
+     return (
+       <div className="flex items-center justify-center min-h-screen bg-[var(--color-craemy)]">
+         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-[var(--color-darkgreen)]"></div>
+       </div>
+     );
+  }
 
   return (
     <Router>
@@ -96,30 +110,22 @@ const App = () => {
           
           {/* User Routes */}
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/order/:id" element={<OrderPage />} /> {/* User's Public View */}
+          <Route path="/order/:id" element={<OrderPage />} /> 
           <Route path="/order-confirmation/:orderId" element={<OrderConfirmationPage />} />
           <Route path="/myorders" element={<OrderHistoryPage />} />
           
           {/* --- ADMIN ROUTES (PROTECTED) --- */}
-          {/* ✅ Wraps all admin routes in AdminRoute component */}
+          {/* The AdminRoute will now work correctly because 'user' data is fully loaded */}
           <Route element={<AdminRoute />}>
             <Route path="/admin/dashboard" element={<Dashboard />} />
-            
-            {/* User Management */}
             <Route path="/admin/users" element={<UserListPage />} />
             <Route path="/admin/user/:id/edit" element={<UserEditPage />} />
-            
-            {/* Order Management */}
             <Route path="/admin/orders" element={<OrderManagementPage />} />
             <Route path="/admin/order/:id" element={<SingleOrderPage />} />
-            
-            {/* Product Management */}
             <Route path="/admin/products" element={<ProductListPage />} />
             <Route path="/admin/product/create" element={<ProductCreatePage />} />
             <Route path="/admin/product/:id/edit" element={<ProductEditPage />} />
             <Route path="/admin/categories" element={<CategoryManagementPage />} />
-            
-            {/* Other Admin Tools */}
             <Route path="/admin/AdminInbox" element={<AdminInbox />} />
             <Route path="/admin/subscribers" element={<SubscriberList />} />
             <Route path="/admin/coupons" element={<AdminCoupons />} />
@@ -128,9 +134,7 @@ const App = () => {
         </Routes>
         
       </main>
-            <GuestPopup />
-
-      
+      <GuestPopup />
       <AppFooter />
     </Router>
   );

@@ -1,15 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../apis/axiosConfig';
 
-// --- A. ASYNC ACTIONS ---
+// --- A. ASYNC ACTIONS (Keep these exactly the same) ---
 
-// 1. Login User
 export const loginUser = createAsyncThunk(
     'auth/login',
     async (credentials, { rejectWithValue }) => {
         try {
             const response = await api.post('/auth/signin', credentials);
-            // ✅ Save token immediately upon login
             if (response.data.token) {
                 localStorage.setItem("token", response.data.token);
             }
@@ -20,7 +18,6 @@ export const loginUser = createAsyncThunk(
     }
 );
 
-// 2. Register User
 export const registerUser = createAsyncThunk(
     'auth/register',
     async (userData, { rejectWithValue }) => {
@@ -33,37 +30,28 @@ export const registerUser = createAsyncThunk(
     }
 );
 
-// ✅ 3. FIXED: Check Auth Status (Prevents 401 Error for Guests)
 export const checkAuthStatus = createAsyncThunk(
     'auth/checkStatus',
     async (_, { rejectWithValue }) => {
-        // 1. Check for token in LocalStorage FIRST
         const token = localStorage.getItem("token");
+        if (!token) return rejectWithValue("Guest Mode"); 
 
-        // 2. If NO token, stop here. Do not call API.
-        if (!token) {
-            return rejectWithValue("Guest Mode"); 
-        }
-
-        // 3. Only call API if we actually have a token
         try {
             const response = await api.get('/auth/user');
             return response.data; 
         } catch (error) {
-            // If token is invalid/expired, clear it so we don't keep failing
             localStorage.removeItem("token");
             return rejectWithValue("Session Expired");
         }
     }
 );
 
-// 4. Logout User
 export const logoutUser = createAsyncThunk(
     'auth/logout',
     async (_, { rejectWithValue }) => {
         try {
             await api.post('/auth/signout');
-            localStorage.removeItem("token"); // ✅ Clean up token
+            localStorage.removeItem("token");
             return true;
         } catch (error) {
             return rejectWithValue("Logout failed");
@@ -71,7 +59,6 @@ export const logoutUser = createAsyncThunk(
     }
 );
 
-// 5. Update User Profile
 export const updateUserProfile = createAsyncThunk(
     'auth/updateProfile',
     async (userData, { rejectWithValue }) => {
@@ -84,14 +71,15 @@ export const updateUserProfile = createAsyncThunk(
     }
 );
 
-// --- B. THE SLICE ---
+// --- B. THE SLICE (Updated Logic) ---
 
 const authSlice = createSlice({
     name: 'auth',
     initialState: {
         user: null,           
         isAuthenticated: false,
-        loading: false,
+        loading: false,        // For buttons (Login/Register spinners)
+        isCheckingAuth: true,  // ✅ NEW: Starts TRUE to hold the screen on load
         error: null,
         registrationSuccess: false 
     },
@@ -103,7 +91,7 @@ const authSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
-            // --- LOGIN ---
+            // --- LOGIN (Uses 'loading' for button spinner) ---
             .addCase(loginUser.pending, (state) => {
                 state.loading = true;
                 state.error = null;
@@ -134,18 +122,19 @@ const authSlice = createSlice({
                 state.error = action.payload; 
             })
 
-            // --- CHECK AUTH ---
+            // --- CHECK AUTH (Uses 'isCheckingAuth' to block/unblock App) ---
             .addCase(checkAuthStatus.pending, (state) => {
-                state.loading = true;
+                state.isCheckingAuth = true; // ✅ Start blocking
+                // Note: We do NOT set state.loading = true here to avoid UI flash
             })
             .addCase(checkAuthStatus.fulfilled, (state, action) => {
-                state.loading = false;
+                state.isCheckingAuth = false; // ✅ Stop blocking
                 state.isAuthenticated = true;
                 state.user = action.payload;
             })
             .addCase(checkAuthStatus.rejected, (state) => {
-                state.loading = false;
-                state.isAuthenticated = false; // ✅ Correctly sets guest mode
+                state.isCheckingAuth = false; // ✅ Stop blocking (Let them see Public pages)
+                state.isAuthenticated = false; 
                 state.user = null;
             })
 
