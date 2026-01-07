@@ -2,9 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { trackOrder, clearTracking } from "../redux/slices/orderSlice";
 import { Link } from "react-router-dom";
-import { Search, Package, ArrowRight, AlertCircle, Calendar, CreditCard } from "lucide-react";
+import { Search, ArrowRight, AlertCircle, Calendar, CreditCard, Package } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import Spinner from "../components/Spinner"; // Assuming you have this
+import Spinner from "../components/Spinner"; 
+
+// ✅ 1. DEFINE IMAGE BASE URL
+const IMG_BASE_URL = "https://matessa.in";
 
 const TrackOrderPage = () => {
   const dispatch = useDispatch();
@@ -24,6 +27,13 @@ const TrackOrderPage = () => {
     e.preventDefault();
     if (!email.trim()) return;
     dispatch(trackOrder(email));
+  };
+
+  // ✅ 2. HELPER FUNCTION FOR IMAGES (Adds the Thumbnail feature)
+  const getProductImage = (imageName) => {
+    if (!imageName) return "/assets/placeholder.png";
+    if (imageName.startsWith("http")) return imageName;
+    return `${IMG_BASE_URL}/images/${imageName}`;
   };
 
   // Helper for Status Colors
@@ -113,57 +123,79 @@ const TrackOrderPage = () => {
                     </h3>
                 </div>
 
-                {trackingResult.orderDetails.map((order, index) => (
-                  <motion.div
-                    key={order.orderId}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-                      
-                      {/* Left: Order Info */}
-                      <div>
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="font-mono text-lg font-bold text-gray-800">#{order.orderId}</span>
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(order.orderStatus)}`}>
-                            {order.orderStatus}
-                          </span>
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <Calendar size={14} />
-                            {new Date(order.orderDate).toLocaleDateString()}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <CreditCard size={14} />
-                            {order.payment?.paymentMode || "COD"}
-                          </div>
-                        </div>
-                      </div>
+                {trackingResult.orderDetails.map((order, index) => {
+                  // ✅ Get First Image for Preview
+                  const firstItem = order.orderItems?.[0];
+                  const previewImage = firstItem?.product?.images?.[0] || firstItem?.product?.image;
 
-                      {/* Right: Amount & Action */}
-                      <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto mt-2 md:mt-0 border-t md:border-t-0 pt-4 md:pt-0">
-                        <div className="text-right">
-                          <p className="text-xs text-gray-500">Total Amount</p>
-                          <p className="text-xl font-bold text-[var(--color-orange)]">
-                            ₹{order.totalAmount.toFixed(2)}
-                          </p>
-                        </div>
+                  return (
+                    <motion.div
+                      key={order.orderId}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex flex-col md:flex-row gap-4">
                         
-                        <Link 
-                          to={`/order-confirmation/${order.orderId}`}
-                          className="flex items-center gap-2 text-[var(--color-darkgreen)] font-semibold hover:underline"
-                        >
-                          View Details <ArrowRight size={16} />
-                        </Link>
-                      </div>
+                        {/* ✅ THUMBNAIL IMAGE (Added Feature) */}
+                        <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden border border-gray-200">
+                            {previewImage ? (
+                                <img 
+                                    src={getProductImage(previewImage)} 
+                                    alt="Order Preview" 
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => e.target.src = "/assets/placeholder.png"}
+                                />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                    <Package size={24} />
+                                </div>
+                            )}
+                        </div>
 
-                    </div>
-                  </motion.div>
-                ))}
+                        {/* Order Info */}
+                        <div className="flex-grow">
+                            <div className="flex items-center gap-3 mb-2">
+                                <span className="font-mono text-lg font-bold text-gray-800">#{order.orderCode || order.orderId}</span>
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(order.orderStatus)}`}>
+                                    {order.orderStatus}
+                                </span>
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                                <div className="flex items-center gap-1">
+                                    <Calendar size={14} />
+                                    {new Date(order.orderDate).toLocaleDateString()}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <CreditCard size={14} />
+                                    {order.payment?.paymentMode || "COD"}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Amount & Action */}
+                        <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto mt-2 md:mt-0 md:pt-0 pt-4 border-t md:border-t-0">
+                            <div className="text-right">
+                                <p className="text-xs text-gray-500">Total Amount</p>
+                                <p className="text-xl font-bold text-[var(--color-orange)]">
+                                    ₹{order.totalAmount.toFixed(2)}
+                                </p>
+                            </div>
+                            
+                            <Link 
+                                to={`/order-confirmation/${order.orderId}`}
+                                className="flex items-center gap-2 text-[var(--color-darkgreen)] font-semibold hover:underline"
+                            >
+                                View Details <ArrowRight size={16} />
+                            </Link>
+                        </div>
+
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </motion.div>
             </AnimatePresence>
           )}

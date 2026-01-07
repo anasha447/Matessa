@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import axios from "axios"; 
-import api from "../apis/axiosConfig"; 
 import { 
   FaLock, FaTruck, FaShieldAlt, FaCreditCard, 
   FaMoneyBillWave, FaTag, FaTimesCircle, FaCheckCircle 
@@ -13,10 +12,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { placeOrder } from "../redux/slices/orderSlice";
 import { clearCart, applyCoupon, removeCoupon } from "../redux/slices/cartSlice"; 
 
-// Image Utility
-import { getImageUrl } from "../utils/imageUrl"; 
-
-const API_URL = "http://localhost:8080/api";
+// ✅ 1. DEFINE CONSTANTS
+const IMG_BASE_URL = "https://matessa.in";
+const API_URL = "https://matessa.in/api"; // Updated to production URL
 
 // ✅ COMPONENT OUTSIDE to prevent typing focus loss
 const InputField = ({ label, name, type = "text", colSpan = "col-span-1", value, onChange }) => (
@@ -55,10 +53,17 @@ const CheckoutPage = () => {
     country: "India",
   });
 
+  // ✅ 2. HELPER FUNCTION FOR IMAGES (Internal Fix)
+  const getProductImage = (imageName) => {
+    if (!imageName) return "/assets/placeholder.png";
+    if (imageName.startsWith("http")) return imageName;
+    return `${IMG_BASE_URL}/images/${imageName}`;
+  };
+
   // 1. Reset Coupon on Mount
   useEffect(() => {
     if (cartId) {
-       dispatch(removeCoupon(cartId));
+        dispatch(removeCoupon(cartId));
     }
   }, [cartId, dispatch]);
 
@@ -183,26 +188,13 @@ const CheckoutPage = () => {
 
     try {
         setLocalLoading(true);
-
-        // 2. Dispatch Action
         const result = await dispatch(placeOrder({ paymentMode: mode, orderRequest })).unwrap();
-        
-        // 🔍 DEBUG: See what the backend actually sent
-        console.log("Order Placed Successfully:", result);
-
-        // 3. ✅ SAFE ID EXTRACTION (The Fix)
-        // Checks 'orderId' directly, or inside 'data', or checks 'orderCode'
         const targetId = result.orderId || result.data?.orderId || result.orderCode;
 
-        if (!targetId) {
-            throw new Error("Order was placed, but the Order ID is missing from the response.");
-        }
+        if (!targetId) throw new Error("Order was placed, but ID is missing.");
 
-        // 4. Success & Navigate
         dispatch(clearCart());
         toast.success("Order placed successfully!");
-        
-        // Navigate using the safely extracted ID
         navigate(`/order-confirmation/${targetId}`);
 
     } catch (error) {
@@ -216,21 +208,12 @@ const CheckoutPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 1. Validation
     if (items.length === 0) {
         toast.error("Your cart is empty.");
         return;
     }
 
-    if (
-        !formData.name || 
-        !formData.email || 
-        !formData.phone || 
-        !formData.street || 
-        !formData.city || 
-        !formData.state || 
-        !formData.pincode 
-    ) {
+    if (!formData.name || !formData.email || !formData.phone || !formData.street || !formData.city || !formData.state || !formData.pincode) {
         toast.error("Please fill in all delivery details.");
         return;
     }
@@ -242,21 +225,13 @@ const CheckoutPage = () => {
 
     try {
         setLocalLoading(true);
-
-        // ❌ DELETED: The "Guest Sync" block.
-        // We do NOT need to add items again. The backend already has them.
-
-        // 2. Proceed directly to Payment
         if (paymentMethod === "ONLINE") {
             handleRazorpayPayment();
         } else {
-            // Pass the "COD" mode
             saveOrderToBackend("COD");
         }
-
     } catch (err) {
         setLocalLoading(false);
-        console.error("Order Prep Failed:", err);
         const errMsg = err.response?.data?.message || "Failed to place order.";
         toast.error(errMsg);
     }
@@ -356,11 +331,12 @@ const CheckoutPage = () => {
                     return (
                         <div key={index} className="flex gap-4 p-2 hover:bg-gray-50 rounded-lg transition-colors group">
                             <div className="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 relative">
+                                {/* ✅ USED NEW HELPER HERE */}
                                 <img
-                                    src={getImageUrl(item.images?.[0] || item.image)} 
+                                    src={getProductImage(item.images?.[0] || item.image)} 
                                     alt={item.productName}
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                    onError={(e) => { e.target.src = "https://via.placeholder.com/64?text=No+Img"; }}
+                                    onError={(e) => { e.target.src = "/assets/placeholder.png"; }}
                                 />
                             </div>
                             <div className="flex-1">
@@ -373,7 +349,6 @@ const CheckoutPage = () => {
                                     <div className="text-right">
                                         {appliedCode ? (
                                             <>
-                                                <span className="text-xs text-gray-400 line-through block">₹{itemTotal.toFixed(2)}</span>
                                                 <span className="text-sm font-bold text-[var(--color-green)]">₹{itemDiscounted.toFixed(2)}</span>
                                             </>
                                         ) : (
@@ -482,7 +457,7 @@ const CheckoutPage = () => {
               </button>
 
               <div className="mt-4 flex justify-center items-center gap-2 text-xs text-gray-400 bg-gray-50 py-2 rounded-lg">
-                <FaLock size={10} /> 100% Secure SSL Encrypted Payment
+                <FaLock size={10} />  Secure Payment
               </div>
             </div>
           </div>

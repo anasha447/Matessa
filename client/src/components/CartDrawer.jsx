@@ -6,27 +6,35 @@ import { X, Minus, Plus, Trash2 } from "lucide-react";
 // Redux Imports
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCart, updateCartItem, removeCartItem } from "../redux/slices/cartSlice";
-import { getImageUrl } from "../utils/imageUrl"; 
+
+// ✅ 1. DEFINE IMAGE BASE URL
+const IMG_BASE_URL = "https://matessa.in";
 
 const CartDrawer = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // 1. Get Data from Redux
-  // ✅ FIX: Added 'cartId' here so handleRemove can use it
+  // 2. Get Data from Redux
   const { items = [], totalPrice = 0, cartId } = useSelector((state) => state.cart || {});
 
-  // 2. Fetch Cart on Mount (if open)
+  // 3. Fetch Cart on Mount (if open)
   useEffect(() => {
     if (isOpen) {
         dispatch(fetchCart());
     }
   }, [isOpen, dispatch]);
 
-  // 3. Handlers
+  // ✅ 4. HELPER FUNCTION FOR IMAGES (Internal Fix)
+  const getCartImage = (imageName) => {
+    if (!imageName) return "/assets/placeholder.png";
+    if (imageName.startsWith("http")) return imageName;
+    // Points to: https://matessa.in/images/your-file.jpg
+    return `${IMG_BASE_URL}/images/${imageName}`;
+  };
+
+  // 5. Handlers
   const handleQtyChange = (productId, operation, currentQty, variantId) => {
     if (operation === 'decrease' && currentQty <= 1) {
-        // Logic to remove specific variant
         const item = items.find(i => i.productId === productId && i.variantId === variantId);
         if (window.confirm("Remove this item?")) {
             dispatch(removeCartItem({ cartId, productId, variant: item?.variant }));
@@ -37,7 +45,6 @@ const CartDrawer = ({ isOpen, onClose }) => {
   };
 
   const handleRemove = (productId, variant) => {
-    // ✅ Now 'cartId' is defined, so this will work
     dispatch(removeCartItem({ cartId, productId, variant }));
   };
 
@@ -80,7 +87,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
             exit="hidden"
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
           >
-            {/* 1. Header */}
+            {/* Header */}
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <h2 className="text-2xl font-bold font-heading text-[#2F3B28]">
                 Your Cart ({items.length})
@@ -90,7 +97,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
               </button>
             </div>
 
-            {/* 2. Items List OR Empty State */}
+            {/* Items List OR Empty State */}
             <div className="flex-grow overflow-y-auto p-6 bg-[#F9F7F3]">
               {items.length === 0 ? (
                 // --- EMPTY STATE ---
@@ -109,11 +116,12 @@ const CartDrawer = ({ isOpen, onClose }) => {
                   {items.map((item, idx) => (
                     <li key={`${item.productId}-${item.variantId || 'def'}-${idx}`} className="bg-white p-4 rounded-lg shadow-sm flex gap-4 border border-[#E6E0D2]">
                       <div className="w-20 h-20 flex-shrink-0 bg-gray-50 rounded-md overflow-hidden border border-gray-100">
+                        {/* ✅ USED NEW HELPER HERE */}
                         <img
-                          src={getImageUrl(item.images?.[0] || item.image)}
+                          src={getCartImage(item.images?.[0] || item.image)}
                           alt={item.productName}
                           className="w-full h-full object-contain"
-                          onError={(e) => { e.target.src = "https://via.placeholder.com/80?text=No+Img"; }}
+                          onError={(e) => { e.target.src = "/assets/placeholder.png"; }}
                         />
                       </div>
                       <div className="flex-grow flex flex-col justify-between">
@@ -158,7 +166,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
               )}
             </div>
 
-            {/* 3. Footer (Only if items exist) */}
+            {/* Footer (Only if items exist) */}
             {items.length > 0 && (
               <div className="p-6 border-t border-gray-100 bg-white">
                 <div className="flex justify-between items-center mb-4">

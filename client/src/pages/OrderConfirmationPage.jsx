@@ -8,6 +8,9 @@ import {
 import { fetchOrderDetails } from "../redux/slices/orderSlice";
 import Spinner from "../components/Spinner";
 
+// ✅ 1. DEFINE IMAGE BASE URL
+const IMG_BASE_URL = "https://matessa.in";
+
 // --- STATUS BADGE COMPONENT ---
 const StatusBadge = ({ status }) => {
   const styles = {
@@ -26,30 +29,29 @@ const StatusBadge = ({ status }) => {
 };
 
 const OrderConfirmationPage = () => {
-  // 1. ✅ USE 'orderId' (Matches Route: /order-confirmation/:orderId)
   const { orderId } = useParams(); 
   const dispatch = useDispatch();
 
   const { currentOrder, loading, error } = useSelector((state) => state.orders);
 
   useEffect(() => {
-    // 2. ✅ PREVENT 'undefined' API CALLS & FIX EMPTY ITEMS BUG
     if (orderId && orderId !== "undefined") {
-       
-       // Check 1: Do IDs mismatch?
        const isIdMismatch = !currentOrder || currentOrder.orderId?.toString() !== orderId.toString();
-       
-       // Check 2: 🔥 CRITICAL FIX - If order exists but has NO items (common after checkout), REFETCH.
        const hasNoItems = currentOrder && (!currentOrder.orderItems || currentOrder.orderItems.length === 0);
 
        if (isIdMismatch || hasNoItems) {
-          // console.log("Refetching because order is missing or items are empty...");
           dispatch(fetchOrderDetails(orderId));
        }
     }
   }, [dispatch, orderId, currentOrder]);
 
-  // 3. ✅ HANDLE INVALID URL
+  // ✅ 2. HELPER FUNCTION FOR IMAGES (Internal Fix)
+  const getProductImage = (imageName) => {
+    if (!imageName) return "/assets/placeholder.png";
+    if (imageName.startsWith("http")) return imageName;
+    return `${IMG_BASE_URL}/images/${imageName}`;
+  };
+
   if (!orderId || orderId === "undefined") {
       return (
         <div className="h-screen flex flex-col justify-center items-center text-center p-4">
@@ -77,7 +79,6 @@ const OrderConfirmationPage = () => {
   const orderItems = order.orderItems || [];
   const address = order.address || order.shippingAddress || {};
   
-  // Recalculate subtotal from items to ensure accuracy
   const rawSubtotal = orderItems.reduce((acc, item) => acc + (item.orderedProductPrice * item.quantity), 0);
   const finalTotal = order.totalAmount > 0 ? order.totalAmount : rawSubtotal;
 
@@ -138,31 +139,25 @@ const OrderConfirmationPage = () => {
                        </div>
                    ) : (
                        orderItems.map((item, index) => {
-                          // ✅ 4. EXACT IMAGE LOGIC FROM ADMIN PAGE
                           const prodImage = item.product?.images?.[0] || item.product?.image;
-                          const imageUrl = prodImage 
-                            ? `http://localhost:8080/api/public/images/${prodImage}` 
-                            : "https://via.placeholder.com/150";
-
+                          
                           return (
                             <div key={index} className="flex gap-4 items-center border-b border-gray-50 pb-4 last:border-0 last:pb-0">
-                               {/* Image Box: Matches Admin Page Size (w-16 h-16) */}
                                <div className="w-16 h-16 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
+                                  {/* ✅ 3. USE HELPER FUNCTION HERE */}
                                   <img 
-                                    src={imageUrl}
+                                    src={getProductImage(prodImage)}
                                     alt={item.product?.productName}
                                     className="w-full h-full object-cover"
-                                    onError={(e) => e.target.src = "https://via.placeholder.com/150"}
+                                    onError={(e) => e.target.src = "/assets/placeholder.png"}
                                   />
                                </div>
                                
-                               {/* Name & Unit Price */}
                                <div className="flex-1">
                                   <h4 className="font-bold text-gray-800">{item.product?.productName}</h4>
                                   <p className="text-xs text-gray-500">Unit Price: ₹{item.orderedProductPrice?.toFixed(2)}</p>
                                 </div>
                                
-                               {/* Total & Qty */}
                                <div className="text-right">
                                   <p className="font-bold text-gray-800">₹{(item.orderedProductPrice * item.quantity).toFixed(2)}</p>
                                   <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
@@ -193,7 +188,7 @@ const OrderConfirmationPage = () => {
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                          order.payment?.pgStatus === "success" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
                       }`}>
-                         {order.payment?.pgStatus?.toUpperCase() || "PENDING"}
+                          {order.payment?.pgStatus?.toUpperCase() || "PENDING"}
                       </span>
                    </div>
                 </div>
@@ -251,7 +246,7 @@ const OrderConfirmationPage = () => {
                    <div className="flex justify-between items-end">
                       <span className="font-bold text-gray-800 mb-1">Grand Total</span>
                       <span className="text-3xl font-extrabold text-[var(--color-darkgreen)]">
-                         ₹{finalTotal.toFixed(2)}
+                          ₹{finalTotal.toFixed(2)}
                       </span>
                    </div>
                 </div>
