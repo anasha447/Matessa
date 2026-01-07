@@ -183,18 +183,28 @@ public class SecurityConfig {
 
             Set<Role> adminRoles = Set.of(userRole, sellerRole, adminRole);
 
-            // 2. Check Admin
-            String email = "anas@matessa.com";
-            String password = "tempPass123";
+            // 2. READ FROM ENVIRONMENT (Dokploy)
+            String adminEmail = System.getenv("ADMIN_EMAIL");
+            String adminPass = System.getenv("ADMIN_PASSWORD");
 
-            if (!userRepository.existsByEmail(email)) {
-                User admin = new User("admin", email, passwordEncoder.encode(password));
-                admin.setRoles(adminRoles);
-                userRepository.save(admin);
-                System.out.println("✅ ADMIN CREATED: " + email);
-            } else {
-                System.out.println("ℹ️ ADMIN ALREADY EXISTS. SKIPPING CREATION.");
-            }
+            // Safety Fallback (only if Env is missing)
+            if (adminEmail == null || adminEmail.isEmpty()) adminEmail = "anas@matessa.com";
+            if (adminPass == null || adminPass.isEmpty()) adminPass = "tempPass123";
+
+            // 3. Find Admin OR Create New Object
+            String finalEmail = adminEmail;
+            User admin = userRepository.findByEmail(finalEmail)
+                    .orElse(new User("admin", finalEmail, passwordEncoder.encode(adminPass)));
+
+            // 4. FORCE UPDATE (Crucial Step)
+            // Even if user exists, we OVERWRITE the password with the one from Dokploy
+            admin.setPassword(passwordEncoder.encode(adminPass));
+            admin.setRoles(adminRoles);
+
+            userRepository.save(admin);
+
+            System.out.println("✅ ADMIN SYNCED: " + finalEmail);
+            System.out.println("🔑 Password active: " + adminPass);
         };
     }
 }
