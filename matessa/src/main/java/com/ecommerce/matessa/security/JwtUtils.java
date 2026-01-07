@@ -36,12 +36,19 @@ public class JwtUtils {
             logger.error(err);
             throw new IllegalStateException(err);
         }
+
         byte[] keyBytes;
         try {
+            // Try to interpret the secret as Base64 (Standard practice)
             keyBytes = Decoders.BASE64.decode(jwtSecret);
-        } catch (IllegalArgumentException ex) {
+        } catch (Exception ex) {
+            // 🚨 FIX: Catch 'Exception' instead of 'IllegalArgumentException'
+            // If Base64 fails (because of underscores or special chars),
+            // fall back to using the raw bytes of the string.
+            logger.warn("JWT Secret is not Base64 encoded. Falling back to plain text bytes.");
             keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
         }
+
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
