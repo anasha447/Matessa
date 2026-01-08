@@ -1,10 +1,10 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom"; // ✅ FIXED: Added missing import
 import { FaXTwitter } from "react-icons/fa6";
 import logo from "../assets/full.logo.png"; 
 import {
   FaFacebookF,
   FaInstagram,
-  FaTwitter,
   FaYoutube,
   FaChevronDown,
   FaChevronUp,
@@ -47,7 +47,6 @@ const AppFooter = () => {
       {/* --- Social Bar --- */}
       <div className="bg-[var(--color-green)]">
         <div className="max-w-7xl mx-auto flex justify-center gap-8 py-3 px-6">
-            {/* ✅ CHANGED: text color to creamy hex code [#fefae0] */}
             <a href="#" className="text-[#fefae0] hover:text-[var(--color-orange)] transition-transform hover:-translate-y-1 p-1">
               <FaFacebookF size={18} />
             </a>
@@ -68,45 +67,43 @@ const AppFooter = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
           
           {/* 1. Brand Section (Always Visible) */}
-          {/* ✅ CHANGED: Added 'items-center text-center' for mobile, reset with 'md:items-start md:text-left' for desktop */}
           <div className="flex flex-col items-center text-center md:items-start md:text-left space-y-4 md:col-span-1 relative">
     
-    {/* 1. Invisible Image: Keeps the width/height correct in the layout */}
-    <img src={logo} alt="Matessa Logo" className="w-36 md:w-40 opacity-0 pointer-events-none" />
+            {/* 1. Invisible Image: Keeps the width/height correct in the layout */}
+            <img src={logo} alt="Matessa Logo" className="w-36 md:w-40 opacity-0 pointer-events-none" />
 
-    {/* 2. Color Overlay Layer: This sits on top and takes the shape of the logo */}
-    <div 
-        // ✅ CHANGE 'bg-green-600' to any color class you want (e.g. bg-[var(--color-orange)])
-        className="absolute inset-0 w-full h-full bg-[var(--color-yellow)]"
-        style={{
-            maskImage: `url(${logo})`,
-            WebkitMaskImage: `url(${logo})`, // Safari support
-            maskSize: 'contain',
-            WebkitMaskSize: 'contain',
-            maskRepeat: 'no-repeat',
-            WebkitMaskRepeat: 'no-repeat',
-            maskPosition: 'center',
-            WebkitMaskPosition: 'center'
-        }}
-    />
-
-</div>
+            {/* 2. Color Overlay Layer */}
+            <div 
+                className="absolute inset-0 w-full h-full bg-[var(--color-yellow)]"
+                style={{
+                    maskImage: `url(${logo})`,
+                    WebkitMaskImage: `url(${logo})`,
+                    maskSize: 'contain',
+                    WebkitMaskSize: 'contain',
+                    maskRepeat: 'no-repeat',
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskPosition: 'center',
+                    WebkitMaskPosition: 'center'
+                }}
+            />
+          </div>
 
           {/* 2. Quick Links (Accordion on Mobile) */}
           <FooterSection title="Quick Links">
             <ul className="space-y-3 text-sm text-gray-300">
-              <li><a href="/" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">Home</a></li>
-              <li><a href="/shop" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">Shop</a></li>
-              <li><a href="/our_story" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">Our Story</a></li>
-              <li><a href="/contact-us" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">Contact</a></li>
+              <li><Link to="/" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">Home</Link></li>
+              <li><Link to="/shop" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">Shop</Link></li>
+              <li><Link to="/our_story" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">Our Story</Link></li>
+              <li><Link to="/contact-us" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">Contact</Link></li>
             </ul>
+            {/* ✅ FIXED: Removed stray 's' here */}
           </FooterSection>
 
           {/* 3. Customer Service (Accordion on Mobile) */}
           <FooterSection title="Customer Service">
             <ul className="space-y-3 text-sm text-gray-300">
-              <li><a href="/privacy-policy" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">privacy&Policy</a></li>
-              <li><a href="/track-order" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">Track Order</a></li>
+              <li><Link to="/privacy-policy" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">Privacy Policy</Link></li>
+              <li><Link to="/track-order" className="hover:text-[var(--color-orange)] hover:pl-1 transition-all">Track Order</Link></li>
             </ul>
           </FooterSection>
 
@@ -138,7 +135,6 @@ const AppFooter = () => {
       <div className="border-t border-[var(--color-green)]/30 bg-black/10">
         <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col md:flex-row justify-center items-center gap-4 text-xs text-gray-400">
           <p>© {new Date().getFullYear()} Matessa. All rights reserved.</p>
-          
         </div>
       </div>
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // --- Assets ---
-import bannerImg from "../assets/animationbg.png"; 
+import bannerImg from "../assets/animationbg.png"; // Animation BG
 import bannerImg1 from "../assets/bannervibe1.png"; // PC Vibe
 import bannerImg3 from "../assets/Mobilebanner.png"; // Mobile Banner
 import brandName from "../assets/brandname.png"; 

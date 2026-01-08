@@ -21,5 +21,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addResourceLocations("file:" + path + "/")
                 // ✅ ADDED: Tell browser to cache this for 365 days
                 .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS));
+
+        registry.addResourceHandler("/**")
+                .addResourceLocations("classpath:/static/", "classpath:/public/", "classpath:/resources/", "classpath:/META-INF/resources/")
+                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS));
     }
 }
