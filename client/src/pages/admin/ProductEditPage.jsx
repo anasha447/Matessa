@@ -13,8 +13,12 @@ import {
   fetchProductDetails, 
   updateProduct, 
   uploadProductImage,
-  deleteProductImage // ✅ 1. Import the delete action
+  deleteProductImage,
+  fetchAllProducts // ✅ ADD THIS: To refresh list after save
 } from "../../redux/slices/productSlice"; 
+
+// ✅ FIX 1: Define API URL for Live Server
+const API_BASE_URL = "https://matessa.in";
 
 const ProductEditPage = () => {
   const { id: productId } = useParams();
@@ -68,15 +72,8 @@ const ProductEditPage = () => {
 
       setVariants(selectedProduct.variants || []);
       setFlavors(selectedProduct.flavors || []);
-
-      // If there's a primary image and no new file selected, show it as preview
-      // Note: We will now display ALL images in the gallery below
-      if (!imageFile && selectedProduct.image) {
-         // Optional: You can keep this or rely on the gallery below
-         // setImagePreview(`http://localhost:8080/api/public/images/${selectedProduct.image}`);
-      }
     }
-  }, [selectedProduct, imageFile]);
+  }, [selectedProduct]);
 
   // --- HANDLERS ---
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -112,18 +109,21 @@ const ProductEditPage = () => {
     }
   };
 
+  // ✅ Helper to get Image URL (Fixes Localhost issue)
+  const getImageUrl = (imgName) => {
+      if(!imgName) return "";
+      if(imgName.startsWith("http")) return imgName;
+      return `${API_BASE_URL}/images/${imgName}`;
+  };
+
   // --- ACTIONS ---
 
-  // ✅ 2. Handle Delete Existing Image
   const handleDeleteExistingImage = async (fileName) => {
     if (!window.confirm("Are you sure you want to delete this image?")) return;
 
     try {
-      // Dispatch delete action
       await dispatch(deleteProductImage({ productId, fileName })).unwrap();
       toast.success("Image deleted successfully");
-      
-      // Refresh product details to update the list visually
       dispatch(fetchProductDetails(productId));
     } catch (error) {
       toast.error(error || "Failed to delete image");
@@ -160,13 +160,18 @@ const ProductEditPage = () => {
             ...v, price: parseFloat(v.price), stock: parseInt(v.stock)
         })),
         flavors: flavors.map(f => ({
-            ...f, targetProductId: parseInt(f.targetProductId)
+            ...f, targetProductId: parseInt(f.targetProductId) || 0 // Handle NaN
         }))
     };
 
     try {
+      // 1. Update Product
       await dispatch(updateProduct({ productId, productData: payload })).unwrap();
       toast.success("Product updated successfully");
+
+      // ✅ FIX 2: Force Refresh the List so Admin Panel isn't stale
+      await dispatch(fetchAllProducts());
+
       navigate("/admin/products");
     } catch (err) {
       toast.error("Failed to update product");
@@ -204,13 +209,14 @@ const ProductEditPage = () => {
              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 text-center">
                 <h3 className="text-lg font-bold text-gray-800 mb-4">Media Gallery</h3>
                 
-                {/* ✅ 3. EXISTING IMAGES GRID */}
+                {/* ✅ EXISTING IMAGES GRID */}
                 {selectedProduct?.images && selectedProduct.images.length > 0 ? (
                     <div className="grid grid-cols-3 gap-2 mb-6">
                         {selectedProduct.images.map((imgName, index) => (
                             <div key={index} className="relative group border rounded-lg overflow-hidden aspect-square bg-gray-50">
                                 <img
-                                    src={`http://localhost:8080/api/public/images/${imgName}`}
+                                    // ✅ FIX 3: Use the Helper Function (No Localhost)
+                                    src={getImageUrl(imgName)}
                                     alt={`Product ${index}`}
                                     className="w-full h-full object-cover"
                                     onError={(e) => e.target.src = "https://via.placeholder.com/150?text=No+Img"}
@@ -258,7 +264,7 @@ const ProductEditPage = () => {
              </div>
           </div>
 
-          {/* RIGHT COLUMN: Edit Form (Remains largely same) */}
+          {/* RIGHT COLUMN: Edit Form */}
           <div className="lg:col-span-2">
              <form onSubmit={handleSubmit} className="space-y-6">
                 
@@ -363,8 +369,6 @@ const ProductEditPage = () => {
         </div>
       </div>
       <style>{`
-        /* ... existing styles ... */
-
         .label { display: block; font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.3rem; }
         .sub-label { display: block; font-size: 0.75rem; font-weight: 600; color: #6B7280; margin-bottom: 0.25rem; }
         .input-field { width: 100%; padding: 0.75rem 1rem; border: 1px solid #D1D5DB; border-radius: 0.5rem; outline: none; transition: all 0.2s; }
@@ -373,30 +377,10 @@ const ProductEditPage = () => {
         .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .ql-container { 
-            min-height: 120px; 
-            font-size: 1rem; 
-        }
-
-        /* ✅ UPDATED NUCLEAR FIX */
-        .ql-editor, .ql-editor * {
-            word-break: normal !important;       /* Forces words to stay together */
-            word-wrap: break-word !important;    /* Standard wrapping */
-            overflow-wrap: break-word !important; /* Modern wrapping */
-            white-space: pre-wrap !important;    /* Preserves new lines but wraps text */
-        }
-
-        /* Fix specifically for the internal paragraphs */
-        .ql-editor p { 
-            margin-bottom: 0.5em; 
-            line-height: 1.5; 
-            width: 100%;
-        }
-        
-        /* Fix for list items specifically */
-        .ql-editor li {
-            word-break: normal !important;
-        }
+        .ql-container { min-height: 120px; font-size: 1rem; }
+        .ql-editor, .ql-editor * { word-break: normal !important; word-wrap: break-word !important; overflow-wrap: break-word !important; white-space: pre-wrap !important; }
+        .ql-editor p { margin-bottom: 0.5em; line-height: 1.5; width: 100%; }
+        .ql-editor li { word-break: normal !important; }
       `}</style>
     </div>
   );

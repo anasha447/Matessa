@@ -20,6 +20,7 @@ const SingleProductPage = () => {
   const dispatch = useDispatch();
 
   const { userInfo } = useSelector((state) => state.auth);
+  // ✅ FIX: Don't just rely on 'selectedProduct' from global state if it might be stale.
   const { selectedProduct: product, loading, reviewSuccess, error } = useSelector((state) => state.products);
 
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -28,20 +29,28 @@ const SingleProductPage = () => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
 
+  // ✅ Force Fetch on Mount (Even if we visited before)
   useEffect(() => {
     if (id) {
         dispatch(fetchProductDetails(id));
-        setSelectedVariant(null);
         setQuantity(1);
         setCurrentImageIndex(0);
+        // Reset variant initially so we don't show old data
+        setSelectedVariant(null);
     }
   }, [dispatch, id]);
 
+  // ✅ Update Local State when Product Data Arrives
   useEffect(() => {
-    if (product?.variants?.length > 0) {
-        setSelectedVariant(product.variants[0]);
+    if (product && product.productId?.toString() === id?.toString()) {
+        // Only set variant if it's the CORRECT product
+        if (product.variants?.length > 0) {
+            setSelectedVariant(product.variants[0]);
+        } else {
+            setSelectedVariant(null);
+        }
     }
-  }, [product]);
+  }, [product, id]);
 
   useEffect(() => {
     if (reviewSuccess) {
@@ -56,9 +65,7 @@ const SingleProductPage = () => {
   // ✅ 2. Image Helper Function (Inline Fix)
   const getProductImage = (imageName) => {
     if (!imageName) return "/assets/placeholder.png";
-    if (imageName.startsWith("http")) return imageName; // Check for external links
-    
-    // Connects to your Java Backend Container
+    if (imageName.startsWith("http")) return imageName; 
     return `${API_BASE_URL}/images/${imageName}`;
   };
 
@@ -78,16 +85,15 @@ const SingleProductPage = () => {
     if (productImages.length > 0) setCurrentImageIndex((prev) => (prev - 1 + productImages.length) % productImages.length);
   };
 
-  const handleThumbnailClick = (index) => setCurrentImageIndex(index);
-
   const handleFlavorClick = (targetProductId) => {
+    // Force navigation to the new ID
     if (targetProductId === product.productId) return;
     navigate(`/product/${targetProductId}`);
   };
 
   const handleAddToCart = async () => {
     if (!product) return;
-    if (product.variants && product.variants.length > 0 && !selectedVariant) return toast.error("Please select a weight option");
+    if (product.variants && product.variants.length > 0 && !selectedVariant) return toast.error("Please select a size option");
 
     try {
       await dispatch(addToCart({
@@ -103,7 +109,7 @@ const SingleProductPage = () => {
 
   const handleBuyNow = async () => {
     if (!product) return;
-    if (product.variants && product.variants.length > 0 && !selectedVariant) return toast.error("Please select a weight option");
+    if (product.variants && product.variants.length > 0 && !selectedVariant) return toast.error("Please select a size option");
 
     try {
       await dispatch(addToCart({
@@ -125,7 +131,12 @@ const SingleProductPage = () => {
   };
 
   if (loading) return <Spinner />;
-  if (error || !product) return <div className="text-center py-20">Product Not Found</div>;
+  
+  // Show "Not Found" only if we are done loading AND have no product
+  if (!loading && (error || !product)) return <div className="text-center py-20 text-xl font-bold text-gray-400">Product Not Found</div>;
+  
+  // Prevent crash if product is null but loading hasn't started yet
+  if (!product) return <div className="min-h-screen"></div>;
 
   const isFeatured = (product?.category?.categoryId === 1) || (product?.category?.id === 1) || (product?.categoryId === 1);           
   const displayPrice = selectedVariant ? selectedVariant.price : product.specialPrice;
@@ -138,18 +149,16 @@ const SingleProductPage = () => {
         <div className="flex flex-col md:flex-row items-start relative gap-12 mb-16">
            
           {/* --- LEFT COLUMN: STICKY IMAGE --- */}
-          <div className="w-full md:w-1/2 flex flex-col items-center md:sticky md:top-0 self-start transition-all duration-300 z-10">
+          <div className="w-full md:w-1/2 flex flex-col items-center md:sticky md:top-24 self-start transition-all duration-300 z-10">
             {mainImage ? (
               <>
                 {/* IMAGE CONTAINER */}
                 <div className="w-full relative -mx-4 md:mx-0 flex justify-center items-center bg-white">
-                  
-                  {/* Main Image (Uses Fixed Helper) */}
                   <img 
                     src={getProductImage(mainImage)} 
                     alt={product.productName} 
                     className="w-full h-auto max-h-[85vh] object-contain" 
-                    onError={(e) => { e.target.src = "/assets/placeholder.png"; }} // Fallback
+                    onError={(e) => { e.target.src = "/assets/placeholder.png"; }} 
                   />
                 </div>
 
@@ -296,9 +305,9 @@ const SingleProductPage = () => {
           </div>
         </div>
         
-       <div className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] mt-12">
-    <CultureSection />
-</div>
+        <div className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] mt-12">
+            <CultureSection />
+        </div>
 
         <div className="w-full mt-12">
             <MateRitual/>
