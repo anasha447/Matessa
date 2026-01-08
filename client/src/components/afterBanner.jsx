@@ -153,8 +153,8 @@ const AfterBanner = () => {
         >
           {/* Primary Button */}
           <Link 
-            to="/product/3" 
-            className="w-full sm:w-auto font-bold font-body py-3.5 px-10 rounded-full transition-all duration-300 shadow-lg hover:shadow-orange-200 hover:-translate-y-1 active:scale-95"
+            to="/product/1" 
+            className="w-full sm:w-auto font-bold font-body py-3 px-8 rounded-full transition-all duration-300 shadow-lg hover:shadow-orange-200 hover:-translate-y-1 active:scale-95"
             style={{ 
               backgroundColor: '#F26323', 
               color: '#F9F7F3' 
@@ -166,7 +166,7 @@ const AfterBanner = () => {
           {/* Secondary Button (Ghost/Outline style) */}
           <Link 
             to="/what.is.mate" 
-            className="w-full sm:w-auto font-bold font-body py-3.5 px-10 rounded-full border-2 transition-all duration-300 hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2 group"
+            className="w-full sm:w-auto font-bold font-body py-3 px-8 rounded-full border-1 transition-all duration-300 hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2 group"
             style={{ 
               borderColor: '#2F3B28', 
               color: '#2F3B28',

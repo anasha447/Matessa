@@ -3,44 +3,24 @@ import api from '../../apis/axiosConfig';
 
 // --- A. ASYNC ACTIONS (THUNKS) ---
 
-// 1. Fetch Cart (Load on startup)
+// 1. Fetch Cart
 export const fetchCart = createAsyncThunk(
     'cart/fetchCart',
     async (_, { rejectWithValue }) => {
         try {
             const response = await api.get('/public/carts/users/cart');
             
-            // If backend returns 204 No Content (empty cart)
-            if (response.status === 204) {
+            // ✅ Handle Empty Cart (204 No Content)
+            if (response.status === 204 || !response.data) {
                 return { cartId: null, totalPrice: 0, products: [] };
             }
             return response.data; 
         } catch (error) {
+            // If 404, it just means no cart exists yet
+            if (error.response && error.response.status === 404) {
+                 return { cartId: null, totalPrice: 0, products: [] };
+            }
             return rejectWithValue(error.response?.data || "Failed to load cart");
-        }
-    }
-);
-
-export const removeCoupon = createAsyncThunk(
-    'cart/removeCoupon',
-    async (cartId, { rejectWithValue }) => {
-        try {
-            const response = await api.delete(`/public/carts/${cartId}/coupon`);
-            return response.data; // Returns updated CartDTO with NO discount
-        } catch (error) {
-            return rejectWithValue(error.response?.data?.message || "Failed to remove coupon");
-        }
-    }
-);
-
-export const applyCoupon = createAsyncThunk(
-    'cart/applyCoupon',
-    async ({ cartId, code }, { rejectWithValue }) => {
-        try {
-            const response = await api.post(`/public/carts/${cartId}/coupon/${code}`);
-            return response.data; // Returns updated CartDTO
-        } catch (error) {
-            return rejectWithValue(error.response?.data?.message || "Invalid Coupon");
         }
     }
 );
@@ -48,33 +28,26 @@ export const applyCoupon = createAsyncThunk(
 // 2. Add Item
 export const addToCart = createAsyncThunk(
     'cart/addToCart',
-    // ✅ Updated: Now expects 'variantId' (Long) instead of just name
     async ({ productId, quantity, variantId }, { rejectWithValue }) => {
         try {
-            // Backend expects: POST /.../quantity/{qty}?variantId={id}
             const variantParam = variantId ? `?variantId=${variantId}` : "";
-            
             const response = await api.post(
                 `/public/carts/products/${productId}/quantity/${quantity}${variantParam}`
             );
-            return response.data; // Returns updated CartDTO
+            return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || "Could not add item");
         }
     }
 );
 
-// 3. Update Quantity (Increase/Decrease)
+// 3. Update Quantity
 export const updateCartItem = createAsyncThunk(
     'cart/updateItem',
-    // ✅ Updated: Now accepts 'variantId'
     async ({ productId, operation, variantId }, { rejectWithValue }) => {
         try {
             const opString = operation === 'increase' ? 'increase' : 'delete'; 
-            
-            // Backend expects: PUT /.../quantity/{op}?variantId={id}
             const variantParam = variantId ? `?variantId=${variantId}` : "";
-
             const response = await api.put(
                 `/public/cart/products/${productId}/quantity/${opString}${variantParam}`
             );
@@ -85,18 +58,19 @@ export const updateCartItem = createAsyncThunk(
     }
 );
 
-// 4. Remove Item
+// 4. Remove Item (✅ FIXED Logic)
 export const removeCartItem = createAsyncThunk(
     'cart/removeItem',
     async ({ cartId, productId, variant }, { rejectWithValue }) => {
         try {
             const variantParam = variant ? `?variant=${encodeURIComponent(variant)}` : "";
-
-            // 1. Call Backend
             const response = await api.delete(`/public/carts/${cartId}/product/${productId}${variantParam}`);
             
-            // ✅ FIX: Return the Backend Response (CartDTO)
-            // This object contains the NEW totalPrice calculated by the server.
+            // ✅ CRITICAL FIX: If backend returns 204 (Cart is now empty), return empty object manually
+            if (response.status === 204 || !response.data) {
+                return { cartId: null, totalPrice: 0, products: [] };
+            }
+
             return response.data; 
         } catch (error) {
             return rejectWithValue(error.response?.data?.message);
@@ -104,21 +78,52 @@ export const removeCartItem = createAsyncThunk(
     }
 );
 
+// 5. Coupons
+export const applyCoupon = createAsyncThunk(
+    'cart/applyCoupon',
+    async ({ cartId, code }, { rejectWithValue }) => {
+        try {
+            const response = await api.post(`/public/carts/${cartId}/coupon/${code}`);
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Invalid Coupon");
+        }
+    }
+);
+
+export const removeCoupon = createAsyncThunk(
+    'cart/removeCoupon',
+    async (cartId, { rejectWithValue }) => {
+        try {
+            const response = await api.delete(`/public/carts/${cartId}/coupon`);
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Failed to remove coupon");
+        }
+    }
+);
+
+
 // --- B. THE SLICE ---
 
 const cartSlice = createSlice({
     name: 'cart',
     initialState: {
         cartId: null,
-        items: [],       // List of ProductDTO (with quantity)
+        items: [],       
         totalPrice: 0,
+        discount: 0,
+        couponCode: null,
         loading: false,
         error: null,
     },
     reducers: {
+        // ✅ Ensure this nukes everything
         clearCart: (state) => {
             state.items = [];
             state.totalPrice = 0;
+            state.discount = 0;
+            state.couponCode = null;
             state.cartId = null;
         }
     },
@@ -131,61 +136,56 @@ const cartSlice = createSlice({
             })
             .addCase(fetchCart.fulfilled, (state, action) => {
                 state.loading = false;
-                if (action.payload) {
-                    state.cartId = action.payload.cartId;
-                    state.items = action.payload.products || []; // Ensure array
-                    state.totalPrice = action.payload.totalPrice || 0;
-                }
+                const data = action.payload || {};
+                state.cartId = data.cartId || null;
+                state.items = data.products || []; // Safe fallback
+                state.totalPrice = data.totalPrice || 0;
+                state.discount = data.discount || 0;
+                state.couponCode = data.couponCode || null;
             })
-            .addCase(fetchCart.rejected, (state, action) => {
+            .addCase(fetchCart.rejected, (state) => {
                 state.loading = false;
-                state.items = [];
+                state.items = []; // On error/404, assume empty
+                state.totalPrice = 0;
             })
 
-            // --- ADD ITEM ---
+            // --- ADD / UPDATE / REMOVE (Unified Handler) ---
+            // Since all these return the same CartDTO, we can use a helper or just repeat
             .addCase(addToCart.fulfilled, (state, action) => {
                 state.cartId = action.payload.cartId;
-                state.items = action.payload.products;
-                state.totalPrice = action.payload.totalPrice;
-                state.loading = false;
+                state.items = action.payload.products || [];
+                state.totalPrice = action.payload.totalPrice || 0;
+                state.discount = action.payload.discount || 0;
             })
-            .addCase(addToCart.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
-            })
-
-            // --- UPDATE ITEM ---
             .addCase(updateCartItem.fulfilled, (state, action) => {
                 state.cartId = action.payload.cartId;
-                state.items = action.payload.products;
-                state.totalPrice = action.payload.totalPrice;
+                state.items = action.payload.products || [];
+                state.totalPrice = action.payload.totalPrice || 0;
+                state.discount = action.payload.discount || 0;
+            })
+            .addCase(removeCartItem.fulfilled, (state, action) => {
+                // ✅ Now safe because we return empty structure on 204
+                state.items = action.payload.products || []; 
+                state.totalPrice = action.payload.totalPrice || 0;
+                state.discount = action.payload.discount || 0;
+                state.cartId = action.payload.cartId || null;
             })
 
+            // --- COUPONS ---
             .addCase(applyCoupon.fulfilled, (state, action) => {
-        state.cartId = action.payload.cartId;
-        state.items = action.payload.products;
-        state.totalPrice = action.payload.totalPrice;
-        // You might need to add a 'discount' field to your state if you want to show it
-        state.discount = action.payload.discount; 
-         })
-         .addCase(removeCartItem.fulfilled, (state, action) => {
-    // ❌ OLD WAY: (Manual filtering - Keeps old price)
-    // state.items = state.items.filter(item => item.productId !== action.payload.productId);
-
-    // ✅ NEW WAY: (Full Sync - Updates Price & Items)
-    // The backend did the math, we just display the result.
-    state.items = action.payload.products; 
-    state.totalPrice = action.payload.totalPrice; // <--- The Fix
-    state.discount = action.payload.discount || 0;
-    state.couponCode = action.payload.couponCode;
-})
-
+                state.cartId = action.payload.cartId;
+                state.items = action.payload.products || [];
+                state.totalPrice = action.payload.totalPrice;
+                state.discount = action.payload.discount;
+                state.couponCode = action.payload.couponCode;
+            })
             .addCase(removeCoupon.fulfilled, (state, action) => {
-        state.cartId = action.payload.cartId;
-        state.items = action.payload.products;
-        state.totalPrice = action.payload.totalPrice;
-        state.discount = 0; // Reset discount
-         });
+                state.cartId = action.payload.cartId;
+                state.items = action.payload.products || [];
+                state.totalPrice = action.payload.totalPrice;
+                state.discount = 0;
+                state.couponCode = null;
+            });
     },
 });
 

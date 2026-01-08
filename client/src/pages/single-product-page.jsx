@@ -296,9 +296,9 @@ const SingleProductPage = () => {
           </div>
         </div>
         
-        <div className="w-full mt-12">
-            <CultureSection />
-        </div>
+       <div className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] mt-12">
+    <CultureSection />
+</div>
 
         <div className="w-full mt-12">
             <MateRitual/>

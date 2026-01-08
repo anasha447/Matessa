@@ -74,6 +74,9 @@ const App = () => {
 
   return (
     <Router>
+      <Header />
+
+
       <ScrollToTop />
       <ToastContainer
         position="top-right"
@@ -87,7 +90,6 @@ const App = () => {
         pauseOnHover
       />
       
-      <Header />
 
       <main className="min-h-screen bg-white">
         <Routes>

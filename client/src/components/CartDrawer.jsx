@@ -24,7 +24,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
     }
   }, [isOpen, dispatch]);
 
-  // ✅ 4. HELPER FUNCTION FOR IMAGES (Internal Fix)
+  // ✅ 4. HELPER FUNCTION FOR IMAGES
   const getCartImage = (imageName) => {
     if (!imageName) return "/assets/placeholder.png";
     if (imageName.startsWith("http")) return imageName;

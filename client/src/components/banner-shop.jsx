@@ -29,7 +29,7 @@ const ShopBanner = () => {
 
   return (
     <div
-      className="relative w-full h-[450px] flex items-center justify-center"
+      className="relative w-full h-[300px] lg:h-[400px] flex items-center justify-center"
       style={{
         backgroundImage: `url(${bannerImage})`,
         backgroundSize: "cover",

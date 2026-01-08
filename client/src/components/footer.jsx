@@ -47,7 +47,7 @@ const AppFooter = () => {
       {/* --- Social Bar --- */}
       <div className="bg-[var(--color-green)]">
         <div className="max-w-7xl mx-auto flex justify-center gap-8 py-3 px-6">
-            <a href="#" className="text-[#fefae0] hover:text-[var(--color-orange)] transition-transform hover:-translate-y-1 p-1">
+            <a href="https://www.facebook.com/profile.php?id=61586346984878" className="text-[#fefae0] hover:text-[var(--color-orange)] transition-transform hover:-translate-y-1 p-1">
               <FaFacebookF size={18} />
             </a>
             <a href="https://www.instagram.com/matessa.in?igsh=MTZpNXluZDI5c3hrcA==" className="text-[#fefae0] hover:text-[var(--color-orange)] transition-transform hover:-translate-y-1 p-1">
@@ -56,7 +56,7 @@ const AppFooter = () => {
             <a href="#" className="text-[#fefae0] hover:text-[var(--color-orange)] transition-transform hover:-translate-y-1 p-1">
              <FaXTwitter size={18} />
             </a>
-            <a href="#" className="text-[#fefae0] hover:text-[var(--color-orange)] transition-transform hover:-translate-y-1 p-1">
+            <a href="https://www.youtube.com/feed/you" className="text-[#fefae0] hover:text-[var(--color-orange)] transition-transform hover:-translate-y-1 p-1">
               <FaYoutube size={18} />
             </a>
         </div>
