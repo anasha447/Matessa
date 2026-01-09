@@ -53,12 +53,6 @@ const AppFooter = () => {
             <a href="https://www.instagram.com/matessa.in?igsh=MTZpNXluZDI5c3hrcA==" className="text-[#fefae0] hover:text-[var(--color-orange)] transition-transform hover:-translate-y-1 p-1">
               <FaInstagram size={18} />
             </a>
-            <a href="#" className="text-[#fefae0] hover:text-[var(--color-orange)] transition-transform hover:-translate-y-1 p-1">
-             <FaXTwitter size={18} />
-            </a>
-            <a href="https://www.youtube.com/feed/you" className="text-[#fefae0] hover:text-[var(--color-orange)] transition-transform hover:-translate-y-1 p-1">
-              <FaYoutube size={18} />
-            </a>
         </div>
       </div>
 

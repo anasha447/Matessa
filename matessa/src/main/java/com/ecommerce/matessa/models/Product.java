@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +19,7 @@ import java.util.List;
 @Table(name = "products")
 @ToString(exclude = {"products", "variants", "flavors"}) // Prevent infinite loops in logs
 public class Product {
+    public Container setFlavors;
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long productId;

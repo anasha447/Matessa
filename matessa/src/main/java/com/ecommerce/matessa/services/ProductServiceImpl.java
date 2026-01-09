@@ -202,21 +202,53 @@ public class ProductServiceImpl implements ProductService {
         productFromDb.setDiscount(productDTO.getDiscount());
         productFromDb.setQuantity(productDTO.getQuantity());
 
-        // 3. Recalculate Special Price logic
-        // (Using the values from DTO ensures we calculate based on the new price)
+        // ---------------------------------------------------------
+        // 3. UPDATE VARIANTS (Weight Options)
+        // ---------------------------------------------------------
+        // Step A: Clear existing list (triggers delete for removed items)
+        productFromDb.getVariants().clear();
+
+        // Step B: Add new items from DTO
+        if (productDTO.getVariants() != null) {
+            for (ProductVariantDTO variantDTO : productDTO.getVariants()) {
+                ProductVariant variant = modelMapper.map(variantDTO, ProductVariant.class);
+
+                // ⚠️ CRITICAL: Link child back to parent
+                variant.setProduct(productFromDb);
+
+                productFromDb.getVariants().add(variant);
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 4. UPDATE FLAVORS (Links to other products)
+        // ---------------------------------------------------------
+        // Step A: Clear existing list
+        productFromDb.getFlavors().clear();
+
+        // Step B: Add new items from DTO
+        if (productDTO.getFlavors() != null) {
+            for (ProductFlavorDTO flavorDTO : productDTO.getFlavors()) {
+                ProductFlavor flavor = modelMapper.map(flavorDTO, ProductFlavor.class);
+
+                // ⚠️ CRITICAL: Link child back to parent
+                flavor.setProduct(productFromDb);
+
+                productFromDb.getFlavors().add(flavor);
+            }
+        }
+
+        // 5. Recalculate Special Price logic
         double specialPrice = productDTO.getPrice() - ((productDTO.getDiscount() * 0.01) * productDTO.getPrice());
         productFromDb.setSpecialPrice(specialPrice);
 
-        // 4. Save the product
+        // 6. Save the product (Cascade will handle Variants/Flavors automatically)
         Product savedProduct = productRepository.save(productFromDb);
 
-        // 5. Update price in all Carts that have this product
-        // (This loop is much simpler than mapping DTOs unnecessarily)
+        // 7. Update price in all Carts
         List<Cart> carts = cartRepository.findCartsByProductId(productId);
-
         carts.forEach(cart -> cartService.updateProductInCarts(cart.getCartId(), productId));
 
-        // 6. Return DTO
         return modelMapper.map(savedProduct, ProductDTO.class);
     }
 
