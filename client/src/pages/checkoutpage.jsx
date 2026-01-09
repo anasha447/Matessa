@@ -354,7 +354,6 @@ const CheckoutPage = () => {
                                         ) : (
                                             item.specialPrice > 0 ? (
                                                 <>
-                                                    <span className="text-xs text-gray-400 line-through block">₹{(item.price * item.quantity).toFixed(2)}</span>
                                                     <span className="text-sm font-bold text-gray-800">₹{itemTotal.toFixed(2)}</span>
                                                 </>
                                             ) : (

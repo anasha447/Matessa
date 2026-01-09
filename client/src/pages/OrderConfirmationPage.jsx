@@ -33,6 +33,8 @@ const OrderConfirmationPage = () => {
   const dispatch = useDispatch();
 
   const { currentOrder, loading, error } = useSelector((state) => state.orders);
+  // Get User Info for fallback email
+  const { userInfo } = useSelector((state) => state.auth); 
 
   useEffect(() => {
     if (orderId && orderId !== "undefined") {
@@ -62,7 +64,7 @@ const OrderConfirmationPage = () => {
   }
 
   if (loading) return <div className="h-screen flex justify-center items-center"><Spinner /></div>;
-  
+   
   if (error || !currentOrder) {
     return (
       <div className="h-screen flex flex-col justify-center items-center text-center p-4">
@@ -76,9 +78,11 @@ const OrderConfirmationPage = () => {
   const order = currentOrder;
   const address = order.address || order.shippingAddress || {};
 
-  // ✅ FIX 1: Filter out "Ghost Items" (items with no product name)
+  // ✅ FIX 1: Filter out "Ghost Items" (items with no product name/ID)
   const validItems = (order.orderItems || []).filter(item => 
-      item.product && item.product.productName && item.product.productName.trim() !== ""
+      item.product && 
+      item.product.productName && 
+      item.product.productName.trim() !== ""
   );
 
   // ✅ FIX 2: Calculate Subtotal ONLY from Valid Items
@@ -86,6 +90,10 @@ const OrderConfirmationPage = () => {
   
   // Use order total if available, else calculated subtotal
   const finalTotal = order.totalAmount > 0 ? order.totalAmount : rawSubtotal;
+
+  // ✅ FIX 3: Robust Email Selection
+  // 1. Try Order Email -> 2. Try User Info Email -> 3. Fallback
+  const displayEmail = order.email || userInfo?.email || "N/A";
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 font-body">
@@ -133,7 +141,6 @@ const OrderConfirmationPage = () => {
                      <FaBox className="text-blue-500" /> Order Items
                    </h2>
                    <span className="text-xs font-bold bg-white border border-gray-200 px-3 py-1 rounded-full text-gray-600">
-                      {/* ✅ FIX 3: Show count of valid items only */}
                       {validItems.length} Items
                    </span>
                 </div>
@@ -213,8 +220,8 @@ const OrderConfirmationPage = () => {
                    <div>
                       <p className="text-xs text-gray-400 uppercase font-bold mb-1">Contact</p>
                       <div className="flex items-center gap-2 text-sm font-medium text-gray-800 break-all bg-gray-50 p-2 rounded border border-gray-100">
-                          {/* ✅ FIX 4: Ensure we use order email, fallback to 'N/A' if missing */}
-                          <FaEnvelope className="text-gray-400"/> {order.email || "N/A"}
+                          {/* ✅ FIX 4: Use the robust displayEmail */}
+                          <FaEnvelope className="text-gray-400"/> {displayEmail}
                       </div>
                    </div>
                    <div>
@@ -242,7 +249,7 @@ const OrderConfirmationPage = () => {
                 <div className="p-6 space-y-3">
                    <div className="flex justify-between items-center text-gray-600 text-sm">
                       <span>Subtotal</span>
-                      {/* ✅ FIX 5: Use calculated rawSubtotal */}
+                      {/* ✅ FIX 5: Use rawSubtotal calculated from valid items */}
                       <span>₹{rawSubtotal.toFixed(2)}</span>
                    </div>
                    <div className="flex justify-between items-center text-gray-600 text-sm">

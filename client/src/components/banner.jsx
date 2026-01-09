@@ -90,7 +90,7 @@ export default function Banner() {
   };
 
   return (
-    <div className="w-full h-[600px] sm:h-[500px] md:h-[600px] overflow-hidden relative bg-black">
+    <div className="w-full h-[525px] sm:h-[500px] md:h-[600px] overflow-hidden relative bg-black">
       
       {/* 1. BACKGROUND SLIDER */}
       {slideData.map((slide, index) => (
