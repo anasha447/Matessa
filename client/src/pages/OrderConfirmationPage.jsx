@@ -33,14 +33,11 @@ const OrderConfirmationPage = () => {
   const dispatch = useDispatch();
 
   const { currentOrder, loading, error } = useSelector((state) => state.orders);
-  // Get User Info for fallback email
   const { userInfo } = useSelector((state) => state.auth); 
 
   useEffect(() => {
     if (orderId && orderId !== "undefined") {
-       // Only fetch if we don't have it or if IDs don't match
        const isIdMismatch = !currentOrder || currentOrder.orderId?.toString() !== orderId.toString();
-       
        if (isIdMismatch) {
           dispatch(fetchOrderDetails(orderId));
        }
@@ -49,7 +46,7 @@ const OrderConfirmationPage = () => {
 
   // 2. HELPER FUNCTION FOR IMAGES
   const getProductImage = (imageName) => {
-    if (!imageName) return "/assets/placeholder.png";
+    if (!imageName) return "https://via.placeholder.com/150";
     if (imageName.startsWith("http")) return imageName;
     return `${IMG_BASE_URL}/images/${imageName}`;
   };
@@ -78,21 +75,16 @@ const OrderConfirmationPage = () => {
   const order = currentOrder;
   const address = order.address || order.shippingAddress || {};
 
-  // ✅ FIX 1: Filter out "Ghost Items" (items with no product name/ID)
+  // ✅ FIX 1: Filter Ghost Items
   const validItems = (order.orderItems || []).filter(item => 
-      item.product && 
-      item.product.productName && 
-      item.product.productName.trim() !== ""
+      item.product && item.product.productName
   );
 
-  // ✅ FIX 2: Calculate Subtotal ONLY from Valid Items
+  // ✅ FIX 2: Calculate Subtotal from Valid Items only
   const rawSubtotal = validItems.reduce((acc, item) => acc + (item.orderedProductPrice * item.quantity), 0);
-  
-  // Use order total if available, else calculated subtotal
   const finalTotal = order.totalAmount > 0 ? order.totalAmount : rawSubtotal;
 
-  // ✅ FIX 3: Robust Email Selection
-  // 1. Try Order Email -> 2. Try User Info Email -> 3. Fallback
+  // ✅ FIX 3: Correct Email Logic (Order -> User -> Fallback)
   const displayEmail = order.email || userInfo?.email || "N/A";
 
   return (
@@ -147,9 +139,7 @@ const OrderConfirmationPage = () => {
                 
                 <div className="p-6 space-y-6">
                    {validItems.length === 0 ? (
-                       <div className="p-4 text-center text-gray-500 italic">
-                         No items found in this order.
-                       </div>
+                       <div className="p-4 text-center text-gray-500 italic">No valid items found.</div>
                    ) : (
                        validItems.map((item, index) => {
                           const prodImage = item.product?.images?.[0] || item.product?.image;
@@ -161,7 +151,7 @@ const OrderConfirmationPage = () => {
                                     src={getProductImage(prodImage)}
                                     alt={item.product?.productName}
                                     className="w-full h-full object-cover"
-                                    onError={(e) => e.target.src = "/assets/placeholder.png"}
+                                    onError={(e) => e.target.src = "https://via.placeholder.com/150"}
                                   />
                                </div>
                                
@@ -220,7 +210,7 @@ const OrderConfirmationPage = () => {
                    <div>
                       <p className="text-xs text-gray-400 uppercase font-bold mb-1">Contact</p>
                       <div className="flex items-center gap-2 text-sm font-medium text-gray-800 break-all bg-gray-50 p-2 rounded border border-gray-100">
-                          {/* ✅ FIX 4: Use the robust displayEmail */}
+                          {/* ✅ FIX 3: Display Correct Email */}
                           <FaEnvelope className="text-gray-400"/> {displayEmail}
                       </div>
                    </div>
@@ -249,7 +239,6 @@ const OrderConfirmationPage = () => {
                 <div className="p-6 space-y-3">
                    <div className="flex justify-between items-center text-gray-600 text-sm">
                       <span>Subtotal</span>
-                      {/* ✅ FIX 5: Use rawSubtotal calculated from valid items */}
                       <span>₹{rawSubtotal.toFixed(2)}</span>
                    </div>
                    <div className="flex justify-between items-center text-gray-600 text-sm">

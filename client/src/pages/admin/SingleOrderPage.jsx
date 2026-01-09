@@ -8,6 +8,9 @@ import {
 import { fetchOrderDetails } from "../../redux/slices/orderSlice";
 import Spinner from "../../components/Spinner";
 
+// 1. DEFINE IMAGE BASE URL
+const IMG_BASE_URL = "https://matessa.in";
+
 // Status Badge Component
 const StatusBadge = ({ status }) => {
   const styles = {
@@ -34,10 +37,17 @@ const SingleOrderPage = () => {
   // Fetch Logic
   useEffect(() => {
     // We compare strings to ensure type safety (URL param is string, ID is usually number)
-    if (!currentOrder || currentOrder.orderId.toString() !== id) {
+    if (!currentOrder || currentOrder.orderId?.toString() !== id) {
        dispatch(fetchOrderDetails(id));
     }
   }, [dispatch, id, currentOrder]);
+
+  // 2. HELPER FUNCTION FOR IMAGES
+  const getProductImage = (imageName) => {
+    if (!imageName) return "https://via.placeholder.com/150"; // Admin placeholder
+    if (imageName.startsWith("http")) return imageName;
+    return `${IMG_BASE_URL}/images/${imageName}`; // Use /api/public/images/ if needed
+  };
 
   if (loading) return <Spinner />;
   
@@ -54,6 +64,11 @@ const SingleOrderPage = () => {
   // Handle address mapping (JSON returns 'address', not 'shippingAddress')
   const address = order.address || order.shippingAddress || {};
 
+  // ✅ FIX 1: Filter Ghost Items
+  const validItems = (order.orderItems || []).filter(item => 
+      item.product && item.product.productName
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8 font-body">
       <div className="max-w-6xl mx-auto">
@@ -65,7 +80,6 @@ const SingleOrderPage = () => {
                 <FaArrowLeft /> Back to Orders
              </Link>
              <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
-                {/* ✅ FIX: Display Order Code (MA123) if available, else ID */}
                 Order #{order.orderCode || order.orderId} 
                 <StatusBadge status={order.orderStatus} />
              </h1>
@@ -84,36 +98,40 @@ const SingleOrderPage = () => {
                    <h2 className="font-bold text-gray-800 flex items-center gap-2">
                      <FaBox className="text-blue-500" /> Order Items
                    </h2>
+                   <span className="text-xs font-bold bg-white border border-gray-200 px-3 py-1 rounded-full text-gray-600">
+                      {validItems.length} Items
+                   </span>
                 </div>
                 <div className="p-6 space-y-6">
-                   {order.orderItems?.map((item, index) => {
-                      // Handle Images Array
-                      const prodImage = item.product?.images?.[0] || item.product?.image;
-                      const imageUrl = prodImage 
-                        ? `http://localhost:8080/api/public/images/${prodImage}` 
-                        : "https://via.placeholder.com/150";
-
-                      return (
-                        <div key={index} className="flex gap-4 items-center">
-                           <div className="w-16 h-16 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
-                              <img 
-                                src={imageUrl}
-                                alt={item.product?.productName}
-                                className="w-full h-full object-cover"
-                                onError={(e) => e.target.src = "https://via.placeholder.com/150"}
-                              />
-                           </div>
-                           <div className="flex-1">
-                              <h4 className="font-bold text-gray-800">{item.product?.productName}</h4>
-                              <p className="text-xs text-gray-500">Unit Price: ₹{item.orderedProductPrice?.toFixed(2)}</p>
-                           </div>
-                           <div className="text-right">
-                              <p className="font-bold text-gray-800">₹{(item.orderedProductPrice * item.quantity).toFixed(2)}</p>
-                              <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
-                           </div>
-                        </div>
-                      );
-                   })}
+                   {validItems.length === 0 ? (
+                       <div className="text-center text-gray-400 italic">No valid items found.</div>
+                   ) : (
+                       validItems.map((item, index) => {
+                          // Handle Images Array
+                          const prodImage = item.product?.images?.[0] || item.product?.image;
+                          
+                          return (
+                            <div key={index} className="flex gap-4 items-center">
+                               <div className="w-16 h-16 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
+                                  <img 
+                                    src={getProductImage(prodImage)}
+                                    alt={item.product?.productName}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => e.target.src = "https://via.placeholder.com/150"}
+                                  />
+                               </div>
+                               <div className="flex-1">
+                                  <h4 className="font-bold text-gray-800">{item.product?.productName}</h4>
+                                  <p className="text-xs text-gray-500">Unit Price: ₹{item.orderedProductPrice?.toFixed(2)}</p>
+                               </div>
+                               <div className="text-right">
+                                  <p className="font-bold text-gray-800">₹{(item.orderedProductPrice * item.quantity).toFixed(2)}</p>
+                                  <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                               </div>
+                            </div>
+                          );
+                       })
+                   )}
                 </div>
              </div>
 
@@ -150,16 +168,20 @@ const SingleOrderPage = () => {
                 <div className="p-6 space-y-4">
                    <div>
                       <p className="text-xs text-gray-400 uppercase font-bold">Email</p>
-                      <p className="text-sm font-medium text-gray-800 break-all">{order.email}</p>
+                      {/* ✅ FIX 2: Use Order Email */}
+                      <p className="text-sm font-medium text-gray-800 break-all">
+                          <FaEnvelope className="inline mr-2 text-gray-400"/>
+                          {order.email || "N/A"}
+                      </p>
                    </div>
                    <hr className="border-gray-100" />
                    <div>
                       <p className="text-xs text-gray-400 uppercase font-bold mb-1"><FaMapMarkerAlt className="inline mr-1"/> Shipping To</p>
                       <div className="text-sm text-gray-600 leading-relaxed">
-                         <p className="font-bold text-gray-800">{address.addressLine1 || "No Street Info"}</p>
-                         <p>{address.city || ""}{address.state ? `, ${address.state}` : ""}</p>
-                         <p>{address.country || "India"} - {address.pincode || ""}</p>
-                         {address.phoneNumber && <p className="mt-1 text-gray-500 text-xs"><FaPhone className="inline mr-1"/>{address.phoneNumber}</p>}
+                          <p className="font-bold text-gray-800">{address.addressLine1 || "No Street Info"}</p>
+                          <p>{address.city || ""}{address.state ? `, ${address.state}` : ""}</p>
+                          <p>{address.country || "India"} - {address.pincode || ""}</p>
+                          {address.phoneNumber && <p className="mt-1 text-gray-500 text-xs"><FaPhone className="inline mr-1"/>{address.phoneNumber}</p>}
                       </div>
                    </div>
                 </div>
