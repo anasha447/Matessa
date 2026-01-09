@@ -8,7 +8,7 @@ import {
 import { fetchOrderDetails } from "../redux/slices/orderSlice";
 import Spinner from "../components/Spinner";
 
-// ✅ 1. DEFINE IMAGE BASE URL
+// 1. DEFINE IMAGE BASE URL
 const IMG_BASE_URL = "https://matessa.in";
 
 // --- STATUS BADGE COMPONENT ---
@@ -36,16 +36,16 @@ const OrderConfirmationPage = () => {
 
   useEffect(() => {
     if (orderId && orderId !== "undefined") {
+       // Only fetch if we don't have it or if IDs don't match
        const isIdMismatch = !currentOrder || currentOrder.orderId?.toString() !== orderId.toString();
-       const hasNoItems = currentOrder && (!currentOrder.orderItems || currentOrder.orderItems.length === 0);
-
-       if (isIdMismatch || hasNoItems) {
+       
+       if (isIdMismatch) {
           dispatch(fetchOrderDetails(orderId));
        }
     }
   }, [dispatch, orderId, currentOrder]);
 
-  // ✅ 2. HELPER FUNCTION FOR IMAGES (Internal Fix)
+  // 2. HELPER FUNCTION FOR IMAGES
   const getProductImage = (imageName) => {
     if (!imageName) return "/assets/placeholder.png";
     if (imageName.startsWith("http")) return imageName;
@@ -56,7 +56,6 @@ const OrderConfirmationPage = () => {
       return (
         <div className="h-screen flex flex-col justify-center items-center text-center p-4">
             <h2 className="text-xl font-bold text-red-500">Invalid Order Link</h2>
-            <p className="text-gray-500 mb-4">No valid Order ID was provided.</p>
             <Link to="/" className="text-blue-600 underline">Return to Shop</Link>
         </div>
       );
@@ -68,7 +67,6 @@ const OrderConfirmationPage = () => {
     return (
       <div className="h-screen flex flex-col justify-center items-center text-center p-4">
         <h2 className="text-2xl font-bold text-red-600 mb-2">Order Not Found</h2>
-        <p className="text-gray-600 mb-6">We couldn't retrieve details for Order #{orderId}.</p>
         <Link to="/" className="text-blue-600 underline">Return Home</Link>
       </div>
     );
@@ -76,10 +74,17 @@ const OrderConfirmationPage = () => {
 
   // --- DATA PREPARATION ---
   const order = currentOrder;
-  const orderItems = order.orderItems || [];
   const address = order.address || order.shippingAddress || {};
+
+  // ✅ FIX 1: Filter out "Ghost Items" (items with no product name)
+  const validItems = (order.orderItems || []).filter(item => 
+      item.product && item.product.productName && item.product.productName.trim() !== ""
+  );
+
+  // ✅ FIX 2: Calculate Subtotal ONLY from Valid Items
+  const rawSubtotal = validItems.reduce((acc, item) => acc + (item.orderedProductPrice * item.quantity), 0);
   
-  const rawSubtotal = orderItems.reduce((acc, item) => acc + (item.orderedProductPrice * item.quantity), 0);
+  // Use order total if available, else calculated subtotal
   const finalTotal = order.totalAmount > 0 ? order.totalAmount : rawSubtotal;
 
   return (
@@ -128,23 +133,23 @@ const OrderConfirmationPage = () => {
                      <FaBox className="text-blue-500" /> Order Items
                    </h2>
                    <span className="text-xs font-bold bg-white border border-gray-200 px-3 py-1 rounded-full text-gray-600">
-                      {orderItems.length} Items
+                      {/* ✅ FIX 3: Show count of valid items only */}
+                      {validItems.length} Items
                    </span>
                 </div>
                 
                 <div className="p-6 space-y-6">
-                   {orderItems.length === 0 ? (
+                   {validItems.length === 0 ? (
                        <div className="p-4 text-center text-gray-500 italic">
-                         {loading ? "Loading items..." : "Fetching order details..."}
+                         No items found in this order.
                        </div>
                    ) : (
-                       orderItems.map((item, index) => {
+                       validItems.map((item, index) => {
                           const prodImage = item.product?.images?.[0] || item.product?.image;
                           
                           return (
                             <div key={index} className="flex gap-4 items-center border-b border-gray-50 pb-4 last:border-0 last:pb-0">
                                <div className="w-16 h-16 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
-                                  {/* ✅ 3. USE HELPER FUNCTION HERE */}
                                   <img 
                                     src={getProductImage(prodImage)}
                                     alt={item.product?.productName}
@@ -186,7 +191,7 @@ const OrderConfirmationPage = () => {
                    <div>
                       <p className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Status</p>
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                         order.payment?.pgStatus === "success" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                          order.payment?.pgStatus === "success" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
                       }`}>
                           {order.payment?.pgStatus?.toUpperCase() || "PENDING"}
                       </span>
@@ -208,7 +213,8 @@ const OrderConfirmationPage = () => {
                    <div>
                       <p className="text-xs text-gray-400 uppercase font-bold mb-1">Contact</p>
                       <div className="flex items-center gap-2 text-sm font-medium text-gray-800 break-all bg-gray-50 p-2 rounded border border-gray-100">
-                          <FaEnvelope className="text-gray-400"/> {order.email}
+                          {/* ✅ FIX 4: Ensure we use order email, fallback to 'N/A' if missing */}
+                          <FaEnvelope className="text-gray-400"/> {order.email || "N/A"}
                       </div>
                    </div>
                    <div>
@@ -236,6 +242,7 @@ const OrderConfirmationPage = () => {
                 <div className="p-6 space-y-3">
                    <div className="flex justify-between items-center text-gray-600 text-sm">
                       <span>Subtotal</span>
+                      {/* ✅ FIX 5: Use calculated rawSubtotal */}
                       <span>₹{rawSubtotal.toFixed(2)}</span>
                    </div>
                    <div className="flex justify-between items-center text-gray-600 text-sm">

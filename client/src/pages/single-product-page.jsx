@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Spinner from "../components/Spinner";
 import { toast } from "react-toastify";
-import { FaArrowLeft, FaArrowRight } from "react-icons/fa"; 
+import { FaArrowLeft, FaArrowRight, FaBolt, FaLeaf, FaBrain } from "react-icons/fa"; 
 import Questions from "../components/questions";
 import MateRitual from "../components/mateRitual";
 import CultureSection from "../components/CultureSection";
@@ -11,7 +11,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "../redux/slices/cartSlice";
 import { fetchProductDetails, createProductReview, resetReviewSuccess } from "../redux/slices/productSlice";
 
-// ✅ 1. DEFINE API URL
+// ✅ 1. DEFINE API URL (Crucial for Image Display)
 const API_BASE_URL = "https://matessa.in";
 
 const SingleProductPage = () => {
@@ -28,27 +28,31 @@ const SingleProductPage = () => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
 
-  // ✅ Force Fetch on Mount
+  // ✅ Force Fetch on Mount (Background Refresh Fix)
   useEffect(() => {
     if (id) {
         dispatch(fetchProductDetails(id));
-        setQuantity(1);
-        setCurrentImageIndex(0);
-        setSelectedVariant(null);
-    }
-  }, [dispatch, id]);
-
-  // ✅ Update Local State ONLY when the *Correct* Product Data Arrives
-  useEffect(() => {
-    // Check if product exists AND matches the URL ID
-    if (product && product.productId?.toString() === id?.toString()) {
-        if (product.variants?.length > 0) {
-            setSelectedVariant(product.variants[0]);
-        } else {
+        
+        // FIX: Only reset local state if we are actually loading a NEW product ID
+        // This prevents the image index resetting during a background refresh
+        if (product?.productId?.toString() !== id) {
+            setQuantity(1);
+            setCurrentImageIndex(0);
             setSelectedVariant(null);
         }
     }
-  }, [product, id]);
+  }, [dispatch, id]);
+
+  // ✅ Update Local State when Product Data Arrives
+  useEffect(() => {
+    if (product && product.productId?.toString() === id?.toString()) {
+        // FIX: Only set default variant if none is currently selected
+        // This prevents overriding user selection during background refresh
+        if (!selectedVariant && product.variants?.length > 0) {
+            setSelectedVariant(product.variants[0]);
+        }
+    }
+  }, [product, id, selectedVariant]);
 
   useEffect(() => {
     if (reviewSuccess) {
@@ -60,11 +64,11 @@ const SingleProductPage = () => {
     }
   }, [reviewSuccess, dispatch, id]);
 
-  // ✅ 2. Image Helper Function
+  // ✅ 2. Image Helper Function (Inline Fix)
   const getProductImage = (imageName) => {
     if (!imageName) return "/assets/placeholder.png";
     if (imageName.startsWith("http")) return imageName; 
-    return `${API_BASE_URL}/api/public/images/${imageName}`; // ✅ Added /api/public/ if needed, or just /images/
+    return `${API_BASE_URL}/images/${imageName}`;
   };
 
   const productImages = product 
@@ -75,7 +79,6 @@ const SingleProductPage = () => {
 
   const mainImage = productImages.length > 0 ? productImages[currentImageIndex] : "";
 
-  // ... (Handlers: handleNextImage, handlePrevImage, handleAddToCart, etc. remain the same) ...
   const handleNextImage = () => {
     if (productImages.length > 0) setCurrentImageIndex((prev) => (prev + 1) % productImages.length);
   };
@@ -85,6 +88,7 @@ const SingleProductPage = () => {
   };
 
   const handleFlavorClick = (targetProductId) => {
+    // Force navigation to the new ID
     if (targetProductId === product.productId) return;
     navigate(`/product/${targetProductId}`);
   };
@@ -92,6 +96,7 @@ const SingleProductPage = () => {
   const handleAddToCart = async () => {
     if (!product) return;
     if (product.variants && product.variants.length > 0 && !selectedVariant) return toast.error("Please select a size option");
+
     try {
       await dispatch(addToCart({
         productId: product.productId,
@@ -107,6 +112,7 @@ const SingleProductPage = () => {
   const handleBuyNow = async () => {
     if (!product) return;
     if (product.variants && product.variants.length > 0 && !selectedVariant) return toast.error("Please select a size option");
+
     try {
       await dispatch(addToCart({
         productId: product.productId,
@@ -127,20 +133,19 @@ const SingleProductPage = () => {
   };
 
   // ---------------------------------------------
-  // ✅ FIX 3: SMART LOADING LOGIC (The Core Fix)
+  // ✅ FIX: SMART LOADING LOGIC (Keeps Image Stable)
   // ---------------------------------------------
 
-  // Check if the data in Redux matches the URL ID
+  // 1. Check if we already have the correct data loaded
   const isDataLoaded = product && product.productId?.toString() === id?.toString();
 
-  // A. If Redux is loading, show Spinner
-  if (loading) return <Spinner />;
+  // 2. If loading AND we have NO data -> Show Spinner (Initial Load)
+  if (loading && !isDataLoaded) return <Spinner />;
 
-  // B. If NOT loading, but data is mismatched or missing (and no error), 
-  //    it means we are in the split-second "Transition State". Show Spinner!
+  // 3. If NOT loading, but data is missing/mismatched (Transition) -> Show Spinner
   if (!loading && !isDataLoaded && !error) return <Spinner />;
   
-  // C. Only show "Not Found" if we are done loading AND have an error or missing data
+  // 4. If done loading and still no data -> Not Found
   if (!isDataLoaded || error) return <div className="text-center py-20 text-xl font-bold text-gray-400">Product Not Found</div>;
   
   // ---------------------------------------------
@@ -169,12 +174,26 @@ const SingleProductPage = () => {
                   />
                 </div>
 
-                {/* PAGINATION CONTROL */}
+                {/* ✅ CUSTOM PAGINATION CONTROL (Kept as requested) */}
                 {productImages.length > 1 && (
                   <div className="mt-2 flex items-center justify-between bg-gray-100 rounded-full px-6 py-2 w-[100px] h-8 shadow-sm select-none">
-                    <button onClick={handlePrevImage} className="text-green hover:scale-110 transition-transform active:scale-95"><FaArrowLeft size={12} /></button>
-                    <span className="text-green font-bold font-mono text-lg tracking-wider">{currentImageIndex + 1}/{productImages.length}</span>
-                    <button onClick={handleNextImage} className="text-green hover:scale-110 transition-transform active:scale-95"><FaArrowRight size={12} /></button>
+                    <button 
+                      onClick={handlePrevImage} 
+                      className="text-green hover:scale-110 transition-transform active:scale-95"
+                    >
+                      <FaArrowLeft size={12} />
+                    </button>
+                    
+                    <span className="text-green font-bold font-mono text-lg tracking-wider">
+                      {currentImageIndex + 1}/{productImages.length}
+                    </span>
+                    
+                    <button 
+                      onClick={handleNextImage} 
+                      className="text-green hover:scale-110 transition-transform active:scale-95"
+                    >
+                      <FaArrowRight size={12} />
+                    </button>
                   </div>
                 )}
               </>
@@ -277,7 +296,20 @@ const SingleProductPage = () => {
             </div>
             
             {/* 7. HTML DESCRIPTION */}
-            <div className="pt-10 border-t border-gray-100 text-gray-600 font-body font-semibold text-base leading-7 break-words max-w-full whitespace-normal [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-[var(--color-darkgreen)] [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-3 [&_strong]:font-bold [&_strong]:text-gray-800 [&_p]:mb-6 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-6">
+            <div className="
+                pt-10 border-t border-gray-100
+                text-gray-600 
+                font-body
+                font-semibold
+                text-base
+                leading-7
+                break-words max-w-full whitespace-normal
+                [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-[var(--color-darkgreen)]
+                [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-3
+                [&_strong]:font-bold [&_strong]:text-gray-800
+                [&_p]:mb-6
+                [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-6
+            ">
                  <h3 className="font-bold text-2xl font-body py-6">Product Overview</h3>
                  {parse(product.description || "")}
             </div>

@@ -8,7 +8,8 @@ export const fetchCart = createAsyncThunk(
     'cart/fetchCart',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await api.get('/public/carts/users/cart');
+            // ✅ FIX 1: Add Timestamp (_t) to prevent browser caching of the GET request
+            const response = await api.get(`/public/carts/users/cart?_t=${new Date().getTime()}`);
             
             // ✅ Handle Empty Cart (204 No Content)
             if (response.status === 204 || !response.data) {
@@ -58,11 +59,13 @@ export const updateCartItem = createAsyncThunk(
     }
 );
 
-// 4. Remove Item (✅ FIXED Logic)
+// 4. Remove Item
 export const removeCartItem = createAsyncThunk(
     'cart/removeItem',
     async ({ cartId, productId, variant }, { rejectWithValue }) => {
         try {
+            if (!cartId) throw new Error("Cart ID is missing"); // Safety check
+
             const variantParam = variant ? `?variant=${encodeURIComponent(variant)}` : "";
             const response = await api.delete(`/public/carts/${cartId}/product/${productId}${variantParam}`);
             
@@ -78,7 +81,7 @@ export const removeCartItem = createAsyncThunk(
     }
 );
 
-// 5. Coupons
+// 5. Coupons (unchanged)
 export const applyCoupon = createAsyncThunk(
     'cart/applyCoupon',
     async ({ cartId, code }, { rejectWithValue }) => {
@@ -118,7 +121,6 @@ const cartSlice = createSlice({
         error: null,
     },
     reducers: {
-        // ✅ Ensure this nukes everything
         clearCart: (state) => {
             state.items = [];
             state.totalPrice = 0;
@@ -137,20 +139,27 @@ const cartSlice = createSlice({
             .addCase(fetchCart.fulfilled, (state, action) => {
                 state.loading = false;
                 const data = action.payload || {};
+                
                 state.cartId = data.cartId || null;
-                state.items = data.products || []; // Safe fallback
+                state.items = data.products || []; 
                 state.totalPrice = data.totalPrice || 0;
                 state.discount = data.discount || 0;
                 state.couponCode = data.couponCode || null;
+
+                // ✅ FIX 2: Consistency Check - If items array is empty, force price to 0
+                if (state.items.length === 0) {
+                    state.totalPrice = 0;
+                }
             })
             .addCase(fetchCart.rejected, (state) => {
                 state.loading = false;
-                state.items = []; // On error/404, assume empty
+                // On error/404, assume empty to prevent ghost items
+                state.items = []; 
                 state.totalPrice = 0;
+                state.cartId = null;
             })
 
             // --- ADD / UPDATE / REMOVE (Unified Handler) ---
-            // Since all these return the same CartDTO, we can use a helper or just repeat
             .addCase(addToCart.fulfilled, (state, action) => {
                 state.cartId = action.payload.cartId;
                 state.items = action.payload.products || [];
@@ -164,11 +173,15 @@ const cartSlice = createSlice({
                 state.discount = action.payload.discount || 0;
             })
             .addCase(removeCartItem.fulfilled, (state, action) => {
-                // ✅ Now safe because we return empty structure on 204
                 state.items = action.payload.products || []; 
                 state.totalPrice = action.payload.totalPrice || 0;
                 state.discount = action.payload.discount || 0;
                 state.cartId = action.payload.cartId || null;
+
+                // ✅ Consistency Check
+                if (state.items.length === 0) {
+                    state.totalPrice = 0;
+                }
             })
 
             // --- COUPONS ---

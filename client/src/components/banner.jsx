@@ -2,24 +2,24 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // --- Assets ---
-import bannerImg from "../assets/animationbg.png"; // Animation BG
-import bannerImg1 from "../assets/bannervibe1.png"; // PC Vibe
-import bannerImg3 from "../assets/Mobilebanner.png"; // Mobile Banner
+import bannerImg from "../assets/animationbg.png"; 
+import bannerImg1 from "../assets/bannervibe1.png"; 
+import bannerImg3 from "../assets/Mobilebanner.png"; 
 import brandName from "../assets/brandname.png"; 
 import logo from "../assets/full.logo.png";
 
-// --- Configuration: Define Slides here ---
+// --- Configuration ---
 const slideData = [
   {
     id: 0,
-    mobile: bannerImg,   // Animation BG (Both)
-    desktop: bannerImg,  // Animation BG (Both)
-    isAnimationSlide: true // Flag to trigger steam/logo effects
+    mobile: bannerImg,
+    desktop: bannerImg, 
+    isAnimationSlide: true 
   },
   {
     id: 1,
-    mobile: bannerImg3,  // Mobile Banner (Mobile Only)
-    desktop: bannerImg1, // Brand Vibe (PC Only)
+    mobile: bannerImg3, 
+    desktop: bannerImg1, 
     isAnimationSlide: false
   }
 ];
@@ -55,9 +55,17 @@ const SteamEffect = () => {
 export default function Banner() {
   const [current, setCurrent] = useState(0);
 
+  // ✅ FIX 1: Preload Images on Mount
+  useEffect(() => {
+    const images = [logo, brandName, bannerImg, bannerImg1, bannerImg3];
+    images.forEach((imageSrc) => {
+      const img = new Image();
+      img.src = imageSrc;
+    });
+  }, []);
+
   // --- Auto-slide logic ---
   useEffect(() => {
-    // 10 seconds for animation slide (index 0), 5 seconds for others
     const intervalTime = current === 0 ? 10000 : 5000;
     const timer = setTimeout(() => {
       setCurrent((prev) => (prev + 1) % slideData.length);
@@ -65,16 +73,13 @@ export default function Banner() {
     return () => clearTimeout(timer);
   }, [current]);
 
-  // --- Helper: Background Effects ---
   const getBackgroundStyle = (index) => {
-    // Only apply blur/pulse to the first slide (Animation BG)
     if (index === 0 && current === 0) {
       return "blur-[4px] scale-105 brightness-70 animate-pulseSlow";
     }
     return "blur-0 scale-100 brightness-100";
   };
 
-  // --- Calm Inner Glow Animation ---
   const calmGlowAnimation = {
     y: [0, -8, 0], 
     filter: [
@@ -95,40 +100,37 @@ export default function Banner() {
             index === current ? "opacity-100" : "opacity-0"
           } ${getBackgroundStyle(index)}`} 
         >
-          {/* LOGIC: Handle Different Images for Mobile vs Desktop */}
           {slide.mobile === slide.desktop ? (
-            // CASE A: Same image for both (Slide 0)
             <img
               src={slide.mobile}
               alt={`banner ${index + 1}`}
               className="w-full h-full object-cover object-center"
+              loading="eager" // ✅ FIX 2: Force eager loading
             />
           ) : (
-            // CASE B: Different images (Slide 1)
             <>
-              {/* Mobile Image (Hidden on MD+) */}
               <img
                 src={slide.mobile}
                 alt={`banner mobile ${index + 1}`}
                 className="w-full h-full object-cover object-center block md:hidden"
+                loading="eager"
               />
-              {/* Desktop Image (Hidden on Small Screens) */}
               <img
                 src={slide.desktop}
                 alt={`banner desktop ${index + 1}`}
                 className="w-full h-full object-cover object-center hidden md:block"
+                loading="eager"
               />
             </>
           )}
         </div>
       ))}
 
-      {/* 2. ANIMATED OVERLAY (Only shows on First Slide) */}
+      {/* 2. ANIMATED OVERLAY */}
       <AnimatePresence>
         {current === 0 && (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center pointer-events-none">
             
-            {/* LOGO CONTAINER */}
             <motion.div
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
@@ -142,6 +144,9 @@ export default function Banner() {
                 src={logo}
                 alt="Matessa Logo"
                 className="w-32 md:w-48 h-auto relative z-10 mt-8"
+                // ✅ FIX 3: Ensure animation doesn't start until visible
+                layout 
+                loading="eager"
                 animate={calmGlowAnimation} 
                 transition={{
                   duration: 8, 
@@ -154,6 +159,8 @@ export default function Banner() {
                 src={brandName}
                 alt="Matessa Brand"
                 className="w-48 md:w-80 h-auto -mt-8 relative z-10"
+                layout
+                loading="eager"
                 animate={calmGlowAnimation} 
                 transition={{
                   duration: 8, 

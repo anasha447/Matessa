@@ -153,7 +153,7 @@ const AfterBanner = () => {
         >
           {/* Primary Button */}
           <Link 
-            to="/product/1" 
+            to="/product/52" 
             className="w-full sm:w-auto font-bold font-body py-3 px-8 rounded-full transition-all duration-300 shadow-lg hover:shadow-orange-200 hover:-translate-y-1 active:scale-95"
             style={{ 
               backgroundColor: '#F26323', 
