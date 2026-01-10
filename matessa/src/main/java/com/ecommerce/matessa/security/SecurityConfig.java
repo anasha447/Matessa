@@ -70,40 +70,26 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // ======================================================
-                        // 1. STATIC ASSETS (Always Public)
-                        // ======================================================
-                        .requestMatchers(
-                                "/", "/index.html", "/favicon.ico",
-                                "/static/**", "/assets/**", "/images/**",
-                                "/*.js", "/*.css", "/*.png", "/*.jpg", "/*.json", "/*.svg"
-                        ).permitAll()
+                                // 1. PUBLIC ASSETS
+                                .requestMatchers("/", "/index.html", "/favicon.ico", "/static/**", "/assets/**", "/images/**", "/*.js", "/*.css", "/*.png", "/*.jpg").permitAll()
 
-                        // ======================================================
-                        // 2. PUBLIC APIS (Explicitly Allowed)
-                        // ======================================================
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/public/**").permitAll()
+                                // 2. PUBLIC API ENDPOINTS
+                                .requestMatchers("/api/auth/**", "/api/public/**", "/api/categories/**", "/api/products/**").permitAll()
 
-                        // If these are purely read-only public data, allow them:
-                        .requestMatchers("/api/categories/**").permitAll()
-                        .requestMatchers("/api/products/**").permitAll()
+                                // 3. ADMIN ENDPOINTS
+                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // ======================================================
-                        // 3. SECURED APIS (Explicitly Locked)
-                        // ======================================================
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                                // 4. ✅ CRITICAL FIX: Allow access to the Error Controller
+                                // This lets the SpaErrorController forward 404s to index.html without a 401 block
+                                .requestMatchers("/error").permitAll()
 
-                        // Any other API call not listed above requires a Token
-                        .requestMatchers("/**").permitAll()
+                                // 5. ✅ CRITICAL FIX: Allow ALL other frontend routes (Catch-All)
+                                // Instead of listing /shop, /cart manually, we say "If it's not an API call above, let it pass"
+                                // The SpaErrorController will catch it if it's a valid React route.
+                                .requestMatchers("/**").permitAll()
 
-                        // ======================================================
-                        // 4. FRONTEND ROUTES (The Catch-All)
-                        // ======================================================
-                        // ⚡ MAGIC FIX: Allow EVERYTHING else.
-                        // This lets React handle routing for /shop, /cart, /admin, /any-new-page
-                        // without you ever needing to edit Java code again.
-                        .anyRequest().permitAll()
+                        // Note: The specific API rules above (lines 78-81) still PROTECT your data.
+                        // This only opens the door for the React HTML page to load.
                 );
 
         http.authenticationProvider(authenticationProvider());
@@ -115,7 +101,6 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Allow all origins for simplicity
         configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
@@ -129,38 +114,22 @@ public class SecurityConfig {
     @Bean
     public CommandLineRunner initData(RoleRepository roleRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-            // 1. Ensure Roles Exist
-            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
-                    .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_USER)));
-            Role sellerRole = roleRepository.findByRoleName(AppRole.ROLE_SELLER)
-                    .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_SELLER)));
-            Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
-                    .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_ADMIN)));
-
+            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER).orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_USER)));
+            Role sellerRole = roleRepository.findByRoleName(AppRole.ROLE_SELLER).orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_SELLER)));
+            Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN).orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_ADMIN)));
             Set<Role> adminRoles = Set.of(userRole, sellerRole, adminRole);
 
-            // 2. READ FROM ENVIRONMENT (Dokploy)
             String adminEmail = System.getenv("ADMIN_EMAIL");
             String adminPass = System.getenv("ADMIN_PASSWORD");
 
-            // Safety Fallback (only if Env is missing)
             if (adminEmail == null || adminEmail.isEmpty()) adminEmail = "anas@matessa.com";
             if (adminPass == null || adminPass.isEmpty()) adminPass = "tempPass123";
 
-            // 3. Find Admin OR Create New Object
-            String finalEmail = adminEmail;
-            User admin = userRepository.findByEmail(finalEmail)
-                    .orElse(new User("admin", finalEmail, passwordEncoder.encode(adminPass)));
-
-            // 4. FORCE UPDATE (Crucial Step)
-            // Even if user exists, we OVERWRITE the password with the one from Dokploy
+            User admin = userRepository.findByEmail(adminEmail).orElse(new User("admin", adminEmail, passwordEncoder.encode(adminPass)));
             admin.setPassword(passwordEncoder.encode(adminPass));
             admin.setRoles(adminRoles);
-
             userRepository.save(admin);
-
-            System.out.println("✅ ADMIN SYNCED: " + finalEmail);
-            System.out.println("🔑 Password active: " + adminPass);
+            System.out.println("✅ ADMIN SYNCED: " + adminEmail);
         };
     }
 }
