@@ -16,22 +16,17 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 1. EXTERNAL IMAGES (Uploads)
-        // Keep caching these, they don't change often
+        // 1. External Images
         registry.addResourceHandler("/images/**")
                 .addResourceLocations("file:" + path + "/")
                 .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS));
 
-        // 2. ✅ CRITICAL FIX: INDEX.HTML (The Gatekeeper)
-        // Force the browser to NEVER cache this file.
-        // It must check the server every time to see if you deployed a new version.
+        // 2. Index.html (Explicit caching rules)
         registry.addResourceHandler("/index.html")
-                .addResourceLocations("classpath:/static/index.html")
+                .addResourceLocations("classpath:/static/") // Points to the FOLDER, not the file
                 .setCacheControl(CacheControl.noCache().noStore().mustRevalidate());
 
-        // 3. STATIC ASSETS (JS, CSS, Icons) - The rest of the React App
-        // These files have hashed names (e.g., main.a8b2c9.js), so it is safe
-        // and recommended to cache them forever.
+        // 3. All other static assets
         registry.addResourceHandler("/**")
                 .addResourceLocations("classpath:/static/")
                 .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS));
