@@ -1,25 +1,26 @@
 # ==========================================
 # STAGE 1: Frontend Build (React + Node 22)
 # ==========================================
+# ==========================================
 FROM node:22-alpine AS frontend
 
 WORKDIR /app/client
 
-# 1. Copy package files first (Optimization for caching)
-# We assume package.json is directly inside the 'client' folder
+# 1. Copy package files
 COPY client/package*.json ./
 
-# 2. Install dependencies (Clean install for Linux)
-# We do this BEFORE copying the rest of the code to save time on redeploys
+# 2. Install dependencies 
 RUN npm install --legacy-peer-deps
 
-# 3. Copy the rest of the source code
+# 3. Copy source code
 COPY client/ ./
 
-# 4. Build the React app
-# IMPORTANT: This creates a 'dist' folder (Vite) or 'build' folder (CRA)
-RUN npm run build
+# 🛡️ SAFETY NET: Force delete local node_modules if they were copied by mistake
+# This ensures we only use the Linux dependencies installed in Step 2
+RUN rm -rf node_modules && npm install --legacy-peer-deps
 
+# 4. Build the React app
+RUN npm run build
 
 # ==========================================
 # STAGE 2: Backend Build (Java 21 + Maven)
