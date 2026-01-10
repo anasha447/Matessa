@@ -70,85 +70,41 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // -----------------------------------------------------------
-                        // 1. STATIC ASSETS (React Build Files)
-                        // -----------------------------------------------------------
+                        // ======================================================
+                        // 1. STATIC ASSETS (Always Public)
+                        // ======================================================
                         .requestMatchers(
-                                "/",
-                                "/index.html",
-                                "/static/**",
-                                "/assets/**",
-                                "/*.ico",
-                                "/*.json",
-                                "/*.png",
-                                "/*.jpg",
-                                "/*.jpeg",
-                                "/*.svg",
-                                "/*.js",
-                                "/*.css"
+                                "/", "/index.html", "/favicon.ico",
+                                "/static/**", "/assets/**", "/images/**",
+                                "/*.js", "/*.css", "/*.png", "/*.jpg", "/*.json", "/*.svg"
                         ).permitAll()
 
-                        // -----------------------------------------------------------
-                        // 2. PUBLIC API ENDPOINTS (Backend Data)
-                        // -----------------------------------------------------------
+                        // ======================================================
+                        // 2. PUBLIC APIS (Explicitly Allowed)
+                        // ======================================================
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
+
+                        // If these are purely read-only public data, allow them:
                         .requestMatchers("/api/categories/**").permitAll()
                         .requestMatchers("/api/products/**").permitAll()
-                        .requestMatchers("/images/**").permitAll()
 
-                        // -----------------------------------------------------------
-                        // 3. FRONTEND ROUTES (React Pages)
-                        // -----------------------------------------------------------
-                        .requestMatchers(
-                                // Public Pages
-                                "/shop",
-                                "/what.is.mate",
-                                "/our_story",
-                                "/contact-us",
-                                "/privacy-policy",
-                                "/track-order",
-                                "/product/**",
-
-                                // Auth Pages
-                                "/login",
-                                "/register",
-                                "/resetpassword/**",
-
-                                // Cart & Checkout
-                                "/cart",
-                                "/checkoutpage",
-
-                                // User Pages
-                                "/profile",
-                                "/myorders",
-                                "/order/**",
-                                "/order-confirmation/**"
-                        ).permitAll()
-
-                        // Allow Admin Frontend & Error Pages (Prevents Redirect Loop)
-                        .requestMatchers("/admin", "/admin/**").permitAll()
-                        .requestMatchers("/error").permitAll()
-
-                        // -----------------------------------------------------------
-                        // 4. SWAGGER UI (API Documentation)
-                        // -----------------------------------------------------------
-                        .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html"
-                        ).permitAll()
-
-                        // -----------------------------------------------------------
-                        // 5. SECURE ADMIN ROUTES (Strictly Protected)
-                        // -----------------------------------------------------------
+                        // ======================================================
+                        // 3. SECURED APIS (Explicitly Locked)
+                        // ======================================================
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // -----------------------------------------------------------
-                        // 6. DEFAULT: Everything else needs a token (MUST BE LAST)
-                        // -----------------------------------------------------------
-                        .anyRequest().authenticated()
-                ); // <--- Closing parenthesis for authorizeHttpRequests
+                        // Any other API call not listed above requires a Token
+                        .requestMatchers("/api/**").authenticated()
+
+                        // ======================================================
+                        // 4. FRONTEND ROUTES (The Catch-All)
+                        // ======================================================
+                        // ⚡ MAGIC FIX: Allow EVERYTHING else.
+                        // This lets React handle routing for /shop, /cart, /admin, /any-new-page
+                        // without you ever needing to edit Java code again.
+                        .anyRequest().permitAll()
+                );
 
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
