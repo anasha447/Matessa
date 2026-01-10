@@ -95,7 +95,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // Any other API call not listed above requires a Token
-                        .requestMatchers("/api/**").authenticated()
+                        .requestMatchers("/**").permitAll()
 
                         // ======================================================
                         // 4. FRONTEND ROUTES (The Catch-All)
