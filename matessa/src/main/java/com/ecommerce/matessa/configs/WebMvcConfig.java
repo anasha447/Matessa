@@ -2,11 +2,11 @@ package com.ecommerce.matessa.configs;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.CacheControl; // ✅ Import 1
+import org.springframework.http.CacheControl;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.util.concurrent.TimeUnit; // ✅ Import 2
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
@@ -16,14 +16,24 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Logic: When URL matches "/images/**" -> Go look in the physical directory
+        // 1. EXTERNAL IMAGES (Uploads)
+        // Keep caching these, they don't change often
         registry.addResourceHandler("/images/**")
                 .addResourceLocations("file:" + path + "/")
-                // ✅ ADDED: Tell browser to cache this for 365 days
                 .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS));
 
+        // 2. ✅ CRITICAL FIX: INDEX.HTML (The Gatekeeper)
+        // Force the browser to NEVER cache this file.
+        // It must check the server every time to see if you deployed a new version.
+        registry.addResourceHandler("/index.html")
+                .addResourceLocations("classpath:/static/index.html")
+                .setCacheControl(CacheControl.noCache().noStore().mustRevalidate());
+
+        // 3. STATIC ASSETS (JS, CSS, Icons) - The rest of the React App
+        // These files have hashed names (e.g., main.a8b2c9.js), so it is safe
+        // and recommended to cache them forever.
         registry.addResourceHandler("/**")
-                .addResourceLocations("classpath:/static/", "classpath:/public/", "classpath:/resources/", "classpath:/META-INF/resources/")
+                .addResourceLocations("classpath:/static/")
                 .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS));
     }
 }

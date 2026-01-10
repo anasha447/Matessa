@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Spinner from "../components/Spinner";
 import { toast } from "react-toastify";
-import { FaArrowLeft, FaArrowRight, FaBolt, FaLeaf, FaBrain } from "react-icons/fa"; 
+import { FaArrowLeft, FaArrowRight } from "react-icons/fa"; 
 import Questions from "../components/questions";
 import MateRitual from "../components/mateRitual";
 import CultureSection from "../components/CultureSection";
@@ -11,7 +11,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "../redux/slices/cartSlice";
 import { fetchProductDetails, createProductReview, resetReviewSuccess } from "../redux/slices/productSlice";
 
-// ✅ 1. DEFINE API URL (Crucial for Image Display)
+// ✅ 1. DEFINE API URL
 const API_BASE_URL = "https://matessa.in";
 
 const SingleProductPage = () => {
@@ -28,13 +28,11 @@ const SingleProductPage = () => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
 
-  // ✅ Force Fetch on Mount (Background Refresh Fix)
+  // ✅ Force Fetch on Mount (Background Refresh)
   useEffect(() => {
     if (id) {
         dispatch(fetchProductDetails(id));
-        
-        // FIX: Only reset local state if we are actually loading a NEW product ID
-        // This prevents the image index resetting during a background refresh
+        // Reset state only if ID changes (New Product)
         if (product?.productId?.toString() !== id) {
             setQuantity(1);
             setCurrentImageIndex(0);
@@ -43,11 +41,9 @@ const SingleProductPage = () => {
     }
   }, [dispatch, id]);
 
-  // ✅ Update Local State when Product Data Arrives
+  // ✅ Sync Local State
   useEffect(() => {
     if (product && product.productId?.toString() === id?.toString()) {
-        // FIX: Only set default variant if none is currently selected
-        // This prevents overriding user selection during background refresh
         if (!selectedVariant && product.variants?.length > 0) {
             setSelectedVariant(product.variants[0]);
         }
@@ -64,7 +60,6 @@ const SingleProductPage = () => {
     }
   }, [reviewSuccess, dispatch, id]);
 
-  // ✅ 2. Image Helper Function (Inline Fix)
   const getProductImage = (imageName) => {
     if (!imageName) return "/assets/placeholder.png";
     if (imageName.startsWith("http")) return imageName; 
@@ -88,7 +83,6 @@ const SingleProductPage = () => {
   };
 
   const handleFlavorClick = (targetProductId) => {
-    // Force navigation to the new ID
     if (targetProductId === product.productId) return;
     navigate(`/product/${targetProductId}`);
   };
@@ -96,7 +90,6 @@ const SingleProductPage = () => {
   const handleAddToCart = async () => {
     if (!product) return;
     if (product.variants && product.variants.length > 0 && !selectedVariant) return toast.error("Please select a size option");
-
     try {
       await dispatch(addToCart({
         productId: product.productId,
@@ -112,7 +105,6 @@ const SingleProductPage = () => {
   const handleBuyNow = async () => {
     if (!product) return;
     if (product.variants && product.variants.length > 0 && !selectedVariant) return toast.error("Please select a size option");
-
     try {
       await dispatch(addToCart({
         productId: product.productId,
@@ -133,23 +125,14 @@ const SingleProductPage = () => {
   };
 
   // ---------------------------------------------
-  // ✅ FIX: SMART LOADING LOGIC (Keeps Image Stable)
+  // ✅ SMART LOADING LOGIC
   // ---------------------------------------------
-
-  // 1. Check if we already have the correct data loaded
   const isDataLoaded = product && product.productId?.toString() === id?.toString();
 
-  // 2. If loading AND we have NO data -> Show Spinner (Initial Load)
   if (loading && !isDataLoaded) return <Spinner />;
-
-  // 3. If NOT loading, but data is missing/mismatched (Transition) -> Show Spinner
   if (!loading && !isDataLoaded && !error) return <Spinner />;
-  
-  // 4. If done loading and still no data -> Not Found
   if (!isDataLoaded || error) return <div className="text-center py-20 text-xl font-bold text-gray-400">Product Not Found</div>;
   
-  // ---------------------------------------------
-
   const isFeatured = (product?.category?.categoryId === 1) || (product?.category?.id === 1) || (product?.categoryId === 1);           
   const displayPrice = selectedVariant ? selectedVariant.price : product.specialPrice;
 
@@ -160,11 +143,10 @@ const SingleProductPage = () => {
         {/* ✅ MAIN LAYOUT */}
         <div className="flex flex-col md:flex-row items-start relative gap-12 mb-16">
            
-          {/* --- LEFT COLUMN: STICKY IMAGE --- */}
+          {/* LEFT: IMAGE */}
           <div className="w-full md:w-1/2 flex flex-col items-center md:sticky md:top-24 self-start transition-all duration-300 z-10">
             {mainImage ? (
               <>
-                {/* IMAGE CONTAINER */}
                 <div className="w-full relative -mx-4 md:mx-0 flex justify-center items-center bg-white">
                   <img 
                     src={getProductImage(mainImage)} 
@@ -173,27 +155,11 @@ const SingleProductPage = () => {
                     onError={(e) => { e.target.src = "/assets/placeholder.png"; }} 
                   />
                 </div>
-
-                {/* ✅ CUSTOM PAGINATION CONTROL (Kept as requested) */}
                 {productImages.length > 1 && (
                   <div className="mt-2 flex items-center justify-between bg-gray-100 rounded-full px-6 py-2 w-[100px] h-8 shadow-sm select-none">
-                    <button 
-                      onClick={handlePrevImage} 
-                      className="text-green hover:scale-110 transition-transform active:scale-95"
-                    >
-                      <FaArrowLeft size={12} />
-                    </button>
-                    
-                    <span className="text-green font-bold font-mono text-lg tracking-wider">
-                      {currentImageIndex + 1}/{productImages.length}
-                    </span>
-                    
-                    <button 
-                      onClick={handleNextImage} 
-                      className="text-green hover:scale-110 transition-transform active:scale-95"
-                    >
-                      <FaArrowRight size={12} />
-                    </button>
+                    <button onClick={handlePrevImage} className="text-green hover:scale-110 transition-transform active:scale-95"><FaArrowLeft size={12} /></button>
+                    <span className="text-green font-bold font-mono text-lg tracking-wider">{currentImageIndex + 1}/{productImages.length}</span>
+                    <button onClick={handleNextImage} className="text-green hover:scale-110 transition-transform active:scale-95"><FaArrowRight size={12} /></button>
                   </div>
                 )}
               </>
@@ -202,10 +168,9 @@ const SingleProductPage = () => {
             )}
           </div>
 
-          {/* --- RIGHT COLUMN: PRODUCT STORY & ACTIONS --- */}
+          {/* RIGHT: STORY & ACTIONS */}
           <div className="w-full md:w-1/2 flex flex-col space-y-8 md:pt-12">
             
-            {/* 1. TITLE & STORY */}
             <div>
                 <h1 className="text-3xl md:text-4xl font-heading font-bold text-[var(--color-darkgreen)] leading-tight mb-4 text-center">
                     {product.productName}
@@ -217,7 +182,6 @@ const SingleProductPage = () => {
                 </p>
             </div>
 
-            {/* 3. PRICE */}
             <div>
                 <p className="text-gray-400 text-sm mt-1 font-semibold">Price</p>
                 <p className="text-[var(--color-green)] font-bold font-body text-3xl">
@@ -225,7 +189,7 @@ const SingleProductPage = () => {
                 </p>
             </div>
 
-            {/* 4. FLAVOR SELECTOR */}
+            {/* FLAVOR SELECTOR */}
             {isFeatured && product.flavors && product.flavors.length > 0 && (
                 <div>
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block">Flavor</label>
@@ -251,7 +215,7 @@ const SingleProductPage = () => {
                 </div>
             )}
 
-            {/* 5. WEIGHT & QTY */}
+            {/* WEIGHT & QTY */}
             <div className="flex flex-row gap-6 items-end">
                 {isFeatured && product.variants && product.variants.length > 0 && (
                     <div className="flex-1">
@@ -285,7 +249,7 @@ const SingleProductPage = () => {
                 </div>
             </div>
 
-            {/* 6. MAIN ACTIONS */}
+            {/* MAIN ACTIONS */}
             <div className="flex gap-4 pt-4">
                 <button onClick={handleBuyNow} className="flex-1 bg-[var(--color-orange)] text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-orange-100 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95">
                     Buy Now
@@ -295,21 +259,29 @@ const SingleProductPage = () => {
                 </button>
             </div>
             
-            {/* 7. HTML DESCRIPTION */}
-            <div className="
-                pt-10 border-t border-gray-100
-                text-gray-600 
-                font-body
-                font-semibold
-                text-base
-                leading-7
-                break-words max-w-full whitespace-normal
-                [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-[var(--color-darkgreen)]
-                [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-3
-                [&_strong]:font-bold [&_strong]:text-gray-800
-                [&_p]:mb-6
-                [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-6
-            ">
+            {/* 7. ✅ FIXED HTML DESCRIPTION */}
+            <div 
+                className="
+                    pt-10 border-t border-gray-100
+                    text-gray-600 
+                    font-body
+                    font-semibold
+                    text-base
+                    leading-7
+                    break-words whitespace-pre-wrap
+                    max-w-full
+                    [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-[var(--color-darkgreen)]
+                    [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-3
+                    [&_strong]:font-bold [&_strong]:text-gray-800
+                    [&_p]:mb-6
+                    [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-6
+                "
+                style={{ 
+                    wordBreak: 'normal', 
+                    overflowWrap: 'break-word', 
+                    hyphens: 'none' 
+                }}
+            >
                  <h3 className="font-bold text-2xl font-body py-6">Product Overview</h3>
                  {parse(product.description || "")}
             </div>
@@ -325,7 +297,6 @@ const SingleProductPage = () => {
             <MateRitual/>
         </div>
 
-        {/* --- BOTTOM SECTION --- */}
         <div className="mt-12 pt-2 border-t border-gray-200">
             <Questions />
         </div>

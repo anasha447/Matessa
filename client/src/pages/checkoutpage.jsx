@@ -14,9 +14,9 @@ import { clearCart, applyCoupon, removeCoupon } from "../redux/slices/cartSlice"
 
 // ✅ 1. DEFINE CONSTANTS
 const IMG_BASE_URL = "https://matessa.in";
-const API_URL = "https://matessa.in/api"; // Updated to production URL
+const API_URL = "https://matessa.in/api"; 
 
-// ✅ COMPONENT OUTSIDE to prevent typing focus loss
+// ✅ COMPONENT OUTSIDE
 const InputField = ({ label, name, type = "text", colSpan = "col-span-1", value, onChange }) => (
     <div className={colSpan}>
       <label className="block text-xs font-bold text-gray-500 uppercase mb-1 tracking-wide">{label}</label>
@@ -53,12 +53,22 @@ const CheckoutPage = () => {
     country: "India",
   });
 
-  // ✅ 2. HELPER FUNCTION FOR IMAGES (Internal Fix)
+  // ✅ 2. HELPER FUNCTION FOR IMAGES
   const getProductImage = (imageName) => {
     if (!imageName) return "/assets/placeholder.png";
     if (imageName.startsWith("http")) return imageName;
     return `${IMG_BASE_URL}/images/${imageName}`;
   };
+
+  // ✅ 3. RESTRICTION: Redirect if Cart is Empty
+  useEffect(() => {
+    // We check items.length directly. 
+    // Adding a small timeout ensures Redux has fully rehydrated (optional but safer)
+    if (!items || items.length === 0) {
+        toast.error("Your cart is empty. Please add items first.");
+        navigate("/shop"); // Redirect to shop or cart
+    }
+  }, [items, navigate]);
 
   // 1. Reset Coupon on Mount
   useEffect(() => {
@@ -236,6 +246,9 @@ const CheckoutPage = () => {
         toast.error(errMsg);
     }
   };
+
+  // If redirected, show nothing (or a spinner) while redirecting
+  if (!items || items.length === 0) return null;
 
   return (
     <div className="min-h-screen py-10 px-4 md:px-8 bg-[#F8F9FA] font-body">

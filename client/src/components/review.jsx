@@ -12,7 +12,7 @@ const reviews = [
     name: "Amit Sharma",
     photo: img1 ,
     stars: 5,
-    review: "Matessa mate with masala became favorite morning ritual drink every morning!",
+    review: "Matessa mate with masala became favorite ritual drink every morning",
   },
   {
     id: 2,
@@ -26,7 +26,7 @@ const reviews = [
     name: "Rahul Mehta",
     photo: img2,
     stars: 4,
-    review: "Great companion for work sessions, keeps me focused.",
+    review: "Great for work sessions, keeps me focused.",
   },
   
 ];
