@@ -4,7 +4,8 @@ import { toast } from "react-toastify";
 import axios from "axios"; 
 import { 
   FaLock, FaTruck, FaShieldAlt, FaCreditCard, 
-  FaMoneyBillWave, FaTag, FaTimesCircle, FaCheckCircle 
+  FaMoneyBillWave, FaTag, FaTimesCircle, FaCheckCircle,
+  FaGooglePay, FaCcVisa, FaCcMastercard
 } from "react-icons/fa";
 
 // Redux
@@ -17,6 +18,7 @@ const IMG_BASE_URL = "https://matessa.in";
 const API_URL = "https://matessa.in/api"; 
 
 // ✅ COMPONENT OUTSIDE
+// Update: Removed placeholder text
 const InputField = ({ label, name, type = "text", colSpan = "col-span-1", value, onChange }) => (
     <div className={colSpan}>
       <label className="block text-xs font-bold text-gray-500 uppercase mb-1 tracking-wide">{label}</label>
@@ -26,7 +28,7 @@ const InputField = ({ label, name, type = "text", colSpan = "col-span-1", value,
         value={value} 
         onChange={onChange} 
         className="w-full rounded-lg border-gray-200 bg-gray-50 border px-4 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-[var(--color-green)] focus:border-transparent transition-all outline-none"
-        placeholder={`Enter your ${label.toLowerCase()}`}
+        placeholder="" 
         required
       />
     </div>
@@ -46,7 +48,7 @@ const CheckoutPage = () => {
   const [localLoading, setLocalLoading] = useState(false);
   const [couponInput, setCouponInput] = useState(""); 
   
-  // ✅ FIX 1: Add a flag to track if order was successful
+  // Flag to track if order was successful (prevents redirect)
   const [isOrderSuccess, setIsOrderSuccess] = useState(false);
 
   // Form Data
@@ -56,35 +58,32 @@ const CheckoutPage = () => {
     country: "India",
   });
 
-  // ✅ 2. HELPER FUNCTION FOR IMAGES
+  // Helper for Images
   const getProductImage = (imageName) => {
     if (!imageName) return "/assets/placeholder.png";
     if (imageName.startsWith("http")) return imageName;
     return `${IMG_BASE_URL}/images/${imageName}`;
   };
 
-  // ✅ FIX 2: RESTRICTION: Redirect if Cart is Empty (BUT ignore if order was just placed)
+  // Redirect if Cart is Empty (ignored if order just succeeded)
   useEffect(() => {
-    // If the order was just successful, STOP here. Do not redirect to shop.
     if (isOrderSuccess) return;
 
     if (!items || items.length === 0) {
-        // Only show toast if we aren't loading (prevents flash on refresh)
         if (!orderLoading) {
-            toast.error("Your cart is empty. Please add items first.");
             navigate("/shop");
         }
     }
   }, [items, navigate, isOrderSuccess, orderLoading]);
 
-  // 1. Reset Coupon on Mount
+  // Reset Coupon on Mount
   useEffect(() => {
     if (cartId) {
         dispatch(removeCoupon(cartId));
     }
   }, [cartId, dispatch]);
 
-  // 2. Pre-fill Form
+  // Pre-fill Form
   useEffect(() => {
     if (userInfo) {
       setFormData((prev) => ({
@@ -103,7 +102,7 @@ const CheckoutPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 3. Calculation Logic
+  // Calculation Logic
   const finalTotal = totalPrice || 0;
   const discountAmount = discount || 0;
   const subtotal = finalTotal + discountAmount; 
@@ -136,7 +135,7 @@ const CheckoutPage = () => {
     }
   };
 
-  // 4. Payment Logic
+  // Payment Logic
   const handleRazorpayPayment = async () => {
     try {
         setLocalLoading(true);
@@ -210,8 +209,7 @@ const CheckoutPage = () => {
 
         if (!targetId) throw new Error("Order was placed, but ID is missing.");
 
-        // ✅ FIX 3: Set Success Flag BEFORE clearing cart
-        // This prevents the useEffect from kicking you out
+        // Set Success Flag BEFORE clearing cart
         setIsOrderSuccess(true);
         
         // Now clear the cart
@@ -219,7 +217,6 @@ const CheckoutPage = () => {
         
         toast.success("Order placed successfully!");
         
-        // Navigate with a tiny delay to ensure state updates (optional but safe)
         setTimeout(() => {
             navigate(`/order-confirmation/${targetId}`);
         }, 100);
@@ -227,7 +224,7 @@ const CheckoutPage = () => {
     } catch (error) {
         console.error("Order Failure:", error);
         toast.error(error.message || "Failed to place order");
-        setIsOrderSuccess(false); // Reset on failure
+        setIsOrderSuccess(false); 
     } finally {
         setLocalLoading(false);
     }
@@ -265,8 +262,6 @@ const CheckoutPage = () => {
     }
   };
 
-  // If redirected, show nothing (or a spinner) while redirecting
-  // ✅ FIX 4: Don't hide the component if we just succeeded
   if (!isOrderSuccess && (!items || items.length === 0)) return null;
 
   return (
@@ -310,7 +305,7 @@ const CheckoutPage = () => {
               </div>
             </div>
 
-            {/* Payment Method Card */}
+            {/* ✅ NEW DESIGN: Payment Method Card */}
             <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
               <div className="mb-6 border-b border-gray-100 pb-4">
                 <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -318,30 +313,99 @@ const CheckoutPage = () => {
                    Payment Method
                 </h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* ONLINE OPTION */}
-                <label className={`cursor-pointer border-2 rounded-xl p-4 flex items-center gap-4 transition-all relative overflow-hidden ${
-                  paymentMethod === "ONLINE" ? "border-[var(--color-green)] bg-green-50/30" : "border-gray-100 hover:border-green-100 hover:bg-gray-50"
+              
+              <div className="grid grid-cols-1 gap-4">
+                
+                {/* 💳 ONLINE OPTION (Designed as a card) */}
+                <label className={`relative flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 group ${
+                  paymentMethod === "ONLINE" 
+                  ? "border-[var(--color-green)] bg-[#F0FDF4] shadow-md scale-[1.01]" 
+                  : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                 }`}>
-                  <input type="radio" name="paymentMethod" value="ONLINE" checked={paymentMethod === "ONLINE"} onChange={(e) => setPaymentMethod(e.target.value)} className="w-5 h-5 accent-[var(--color-green)]" />
-                  <div>
-                    <div className="font-bold text-gray-800 flex items-center gap-2 text-sm"><FaCreditCard className="text-[var(--color-green)]"/> Online Payment</div>
-                    <p className="text-xs text-gray-500 mt-1">Razorpay, UPI, Cards, NetBanking</p>
+                  <input 
+                    type="radio" 
+                    name="paymentMethod" 
+                    value="ONLINE" 
+                    checked={paymentMethod === "ONLINE"} 
+                    onChange={(e) => setPaymentMethod(e.target.value)} 
+                    className="hidden" // Hidden input, handled by label click
+                  />
+                  
+                  <div className="flex items-center gap-4 w-full">
+                    {/* Icon Box */}
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shrink-0 transition-colors ${
+                       paymentMethod === "ONLINE" ? "bg-[var(--color-green)] text-white" : "bg-gray-100 text-gray-400 group-hover:bg-gray-200"
+                    }`}>
+                        <FaCreditCard />
+                    </div>
+
+                    {/* Text Details */}
+                    <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                            <h3 className={`font-bold text-sm md:text-base ${paymentMethod === "ONLINE" ? "text-gray-900" : "text-gray-600"}`}>
+                                Pay Online
+                            </h3>
+                            {/* Small Payment Logos (Icons) */}
+                            {paymentMethod === "ONLINE" && (
+                                <div className="hidden sm:flex gap-2 text-gray-400">
+                                    <FaGooglePay size={24} />
+                                    <FaCcVisa size={20} />
+                                    <FaCcMastercard size={20} />
+                                </div>
+                            )}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">Razorpay, UPI, Credit/Debit Cards</p>
+                    </div>
+
+                    {/* Checkmark Circle */}
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        paymentMethod === "ONLINE" ? "border-[var(--color-green)] bg-[var(--color-green)]" : "border-gray-300"
+                    }`}>
+                        {paymentMethod === "ONLINE" && <FaCheckCircle className="text-white text-xs" />}
+                    </div>
                   </div>
-                  {paymentMethod === "ONLINE" && <FaCheckCircle className="absolute top-4 right-4 text-[var(--color-green)]" />}
                 </label>
 
-                {/* COD OPTION */}
-                <label className={`cursor-pointer border-2 rounded-xl p-4 flex items-center gap-4 transition-all relative overflow-hidden ${
-                  paymentMethod === "COD" ? "border-[var(--color-green)] bg-green-50/30" : "border-gray-100 hover:border-green-100 hover:bg-gray-50"
+                {/* 💵 COD OPTION (Designed as a card) */}
+                <label className={`relative flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 group ${
+                  paymentMethod === "COD" 
+                  ? "border-[var(--color-green)] bg-[#F0FDF4] shadow-md scale-[1.01]" 
+                  : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                 }`}>
-                  <input type="radio" name="paymentMethod" value="COD" checked={paymentMethod === "COD"} onChange={(e) => setPaymentMethod(e.target.value)} className="w-5 h-5 accent-[var(--color-green)]" />
-                  <div>
-                    <div className="font-bold text-gray-800 flex items-center gap-2 text-sm"><FaMoneyBillWave className="text-[var(--color-green)]"/> Cash on Delivery</div>
-                    <p className="text-xs text-gray-500 mt-1">Pay with cash upon arrival</p>
+                  <input 
+                    type="radio" 
+                    name="paymentMethod" 
+                    value="COD" 
+                    checked={paymentMethod === "COD"} 
+                    onChange={(e) => setPaymentMethod(e.target.value)} 
+                    className="hidden" 
+                  />
+                  
+                  <div className="flex items-center gap-4 w-full">
+                    {/* Icon Box */}
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shrink-0 transition-colors ${
+                       paymentMethod === "COD" ? "bg-[var(--color-green)] text-white" : "bg-gray-100 text-gray-400 group-hover:bg-gray-200"
+                    }`}>
+                        <FaMoneyBillWave />
+                    </div>
+
+                    {/* Text Details */}
+                    <div className="flex-1">
+                        <h3 className={`font-bold text-sm md:text-base ${paymentMethod === "COD" ? "text-gray-900" : "text-gray-600"}`}>
+                            Cash on Delivery
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1">Pay with cash upon arrival</p>
+                    </div>
+
+                     {/* Checkmark Circle */}
+                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        paymentMethod === "COD" ? "border-[var(--color-green)] bg-[var(--color-green)]" : "border-gray-300"
+                    }`}>
+                        {paymentMethod === "COD" && <FaCheckCircle className="text-white text-xs" />}
+                    </div>
                   </div>
-                  {paymentMethod === "COD" && <FaCheckCircle className="absolute top-4 right-4 text-[var(--color-green)]" />}
                 </label>
+
               </div>
             </div>
           </div>
