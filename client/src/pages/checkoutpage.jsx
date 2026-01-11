@@ -46,6 +46,9 @@ const CheckoutPage = () => {
   const [localLoading, setLocalLoading] = useState(false);
   const [couponInput, setCouponInput] = useState(""); 
   
+  // ✅ FIX 1: Add a flag to track if order was successful
+  const [isOrderSuccess, setIsOrderSuccess] = useState(false);
+
   // Form Data
   const [formData, setFormData] = useState({
     name: "", email: "", phone: "",
@@ -60,15 +63,19 @@ const CheckoutPage = () => {
     return `${IMG_BASE_URL}/images/${imageName}`;
   };
 
-  // ✅ 3. RESTRICTION: Redirect if Cart is Empty
+  // ✅ FIX 2: RESTRICTION: Redirect if Cart is Empty (BUT ignore if order was just placed)
   useEffect(() => {
-    // We check items.length directly. 
-    // Adding a small timeout ensures Redux has fully rehydrated (optional but safer)
+    // If the order was just successful, STOP here. Do not redirect to shop.
+    if (isOrderSuccess) return;
+
     if (!items || items.length === 0) {
-        toast.error("Your cart is empty. Please add items first.");
-        navigate("/shop"); // Redirect to shop or cart
+        // Only show toast if we aren't loading (prevents flash on refresh)
+        if (!orderLoading) {
+            toast.error("Your cart is empty. Please add items first.");
+            navigate("/shop");
+        }
     }
-  }, [items, navigate]);
+  }, [items, navigate, isOrderSuccess, orderLoading]);
 
   // 1. Reset Coupon on Mount
   useEffect(() => {
@@ -77,7 +84,7 @@ const CheckoutPage = () => {
     }
   }, [cartId, dispatch]);
 
-  // 2. Pre-fill Form (Only if User Logged In)
+  // 2. Pre-fill Form
   useEffect(() => {
     if (userInfo) {
       setFormData((prev) => ({
@@ -203,13 +210,24 @@ const CheckoutPage = () => {
 
         if (!targetId) throw new Error("Order was placed, but ID is missing.");
 
+        // ✅ FIX 3: Set Success Flag BEFORE clearing cart
+        // This prevents the useEffect from kicking you out
+        setIsOrderSuccess(true);
+        
+        // Now clear the cart
         dispatch(clearCart());
+        
         toast.success("Order placed successfully!");
-        navigate(`/order-confirmation/${targetId}`);
+        
+        // Navigate with a tiny delay to ensure state updates (optional but safe)
+        setTimeout(() => {
+            navigate(`/order-confirmation/${targetId}`);
+        }, 100);
 
     } catch (error) {
         console.error("Order Failure:", error);
         toast.error(error.message || "Failed to place order");
+        setIsOrderSuccess(false); // Reset on failure
     } finally {
         setLocalLoading(false);
     }
@@ -248,7 +266,8 @@ const CheckoutPage = () => {
   };
 
   // If redirected, show nothing (or a spinner) while redirecting
-  if (!items || items.length === 0) return null;
+  // ✅ FIX 4: Don't hide the component if we just succeeded
+  if (!isOrderSuccess && (!items || items.length === 0)) return null;
 
   return (
     <div className="min-h-screen py-10 px-4 md:px-8 bg-[#F8F9FA] font-body">
@@ -344,7 +363,6 @@ const CheckoutPage = () => {
                     return (
                         <div key={index} className="flex gap-4 p-2 hover:bg-gray-50 rounded-lg transition-colors group">
                             <div className="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 relative">
-                                {/* ✅ USED NEW HELPER HERE */}
                                 <img
                                     src={getProductImage(item.images?.[0] || item.image)} 
                                     alt={item.productName}
