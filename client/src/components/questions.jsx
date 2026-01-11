@@ -138,7 +138,7 @@ const Questions = () => {
         
         <div className="text-center mt-10">
           <p className="text-gray-500 text-sm">
-            Still have questions? <a link="contact-us" className="text-[#1A4D2E] font-bold hover:text-[#D4AF37] transition-colors underline decoration-[#D4AF37]">Chat with us</a>
+            Still have questions? <Link to="/contact-us" className="text-[#1A4D2E] font-bold hover:text-[#D4AF37] transition-colors underline decoration-[#D4AF37]">Chat with us</Link>
           </p>
         </div>
       </div>

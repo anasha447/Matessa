@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { 
   FaCheckCircle, FaBox, FaMapMarkerAlt, FaCreditCard, 
   FaCalendarAlt, FaPhone, FaShoppingBag, 
-  FaTruck, FaQuestionCircle, FaPrint 
+  FaTruck, FaQuestionCircle
 } from "react-icons/fa";
 import { fetchOrderDetails } from "../redux/slices/orderSlice";
 import Spinner from "../components/Spinner";
@@ -34,22 +34,20 @@ const OrderConfirmationPage = () => {
   const { currentOrder, loading, error } = useSelector((state) => state.orders);
   const { userInfo } = useSelector((state) => state.auth); 
 
+  // ✅ FIX: Force fetch if ID matches but items are missing
   useEffect(() => {
     if (orderId && orderId !== "undefined") {
-       const isIdMismatch = !currentOrder || currentOrder.orderId?.toString() !== orderId.toString();
-       if (isIdMismatch) {
+       // Check if we need to fetch
+       const isDifferentOrder = !currentOrder || currentOrder.orderId?.toString() !== orderId.toString();
+       
+       // CRITICAL: Check if items are missing. If so, fetch again!
+       const isMissingItems = currentOrder && (!currentOrder.orderItems || currentOrder.orderItems.length === 0);
+
+       if (isDifferentOrder || isMissingItems) {
           dispatch(fetchOrderDetails(orderId));
        }
     }
   }, [dispatch, orderId, currentOrder]);
-
-  // ✅ DEBUGGING: Log the data to see what is missing
-  useEffect(() => {
-    if (currentOrder) {
-        console.log("🔥 DEBUG ORDER DATA:", currentOrder);
-        console.log("📦 Items found:", currentOrder.orderItems || currentOrder.order_items);
-    }
-  }, [currentOrder]);
 
   const getProductImage = (imageName) => {
     if (!imageName) return "https://via.placeholder.com/150";
@@ -84,16 +82,13 @@ const OrderConfirmationPage = () => {
   const order = currentOrder;
   const address = order.address || order.shippingAddress || {};
   
-  // ✅ FIX 1: Robust Items Detection (Checks camelCase AND snake_case)
-  // We DO NOT filter anymore. We display what we find.
+  // Robust Items Detection
   const rawItems = order.orderItems || order.order_items || [];
   
-  // ✅ FIX 2: Calculate Subtotal 
+  // Calculate Subtotal 
   const rawSubtotal = rawItems.reduce((acc, item) => acc + ((item.orderedProductPrice || item.price || 0) * (item.quantity || 1)), 0);
   const finalTotal = order.totalAmount > 0 ? order.totalAmount : rawSubtotal;
   const displaySubtotal = rawSubtotal > 0 ? rawSubtotal : finalTotal; 
-
-  const customerName = address.name || address.fullName || address.recipientName || userInfo?.username || "Valued Customer";
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] font-body pb-12">
@@ -108,8 +103,9 @@ const OrderConfirmationPage = () => {
              <h1 className="text-3xl md:text-5xl font-heading font-extrabold text-white mb-4 tracking-tight">
                  Order Confirmed!
              </h1>
+             {/* ✅ UPDATED TEXT */}
              <p className="text-green-100 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-                 Thank you, <span className="font-bold text-white">{customerName}</span>! 
+                 Thank you for your order from <span className="font-bold text-white">Matessa</span>! 
                  Your order <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white">#{order.orderCode || order.orderId}</span> has been placed.
              </p>
          </div>
@@ -128,12 +124,10 @@ const OrderConfirmationPage = () => {
                      </span>
                  </div>
              </div>
-             <div className="flex gap-3 w-full md:w-auto">
-                 <button onClick={() => window.print()} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 border-2 border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all">
-                    <FaPrint /> Print
-                 </button>
-                 <Link to="/shop" className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-[var(--color-orange)] text-white rounded-xl font-bold hover:bg-[#e05515] shadow-md hover:shadow-lg transition-all transform active:scale-95">
-                    <FaShoppingBag /> Shop More
+             {/* ✅ UPDATED BUTTONS: Removed Print, kept Shop */}
+             <div className="w-full md:w-auto">
+                 <Link to="/shop" className="flex items-center justify-center gap-2 px-8 py-3 bg-[var(--color-orange)] text-white rounded-xl font-bold hover:bg-[#e05515] shadow-md hover:shadow-lg transition-all transform active:scale-95 w-full md:w-auto">
+                    <FaShoppingBag /> Continue Shopping
                  </Link>
              </div>
         </div>
@@ -183,11 +177,10 @@ const OrderConfirmationPage = () => {
                 <div className="p-0">
                    {rawItems.length === 0 ? (
                        <div className="p-8 text-center text-gray-500 italic">
-                         <p>Items data is hidden but order is confirmed.</p>
+                         <p>Fetching item details...</p>
                        </div>
                    ) : (
                        rawItems.map((item, index) => {
-                          // ✅ FIX 3: Massive Fallback Strategy for Names and Images
                           const productName = item.product?.productName || item.product?.name || item.productName || item.product_name || "Unknown Product";
                           const prodImage = item.product?.images?.[0] || item.product?.image || item.image;
                           const price = item.orderedProductPrice || item.price || 0;
