@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom"; // ✅ Added missing import
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
@@ -96,7 +97,6 @@ const AccordionItem = ({ item, isOpen, onClick }) => {
             className="overflow-hidden"
           >
             <div className="px-4 md:px-6 pb-6 pt-0">
-              {/* UPDATED FONT STYLE HERE: font-body font-semibold */}
               <p className="text-gray-600 font-body font-semibold leading-relaxed text-[15px] md:text-[16px]">
                 {item.answer}
               </p>
@@ -122,7 +122,8 @@ const Questions = () => {
           <h2 className="text-3xl md:text-4xl font-bold font-heading text-[#1A4D2E] mb-4">
             Frequently Asked Questions
           </h2>
-          <div className="w-24 h-1 bg-yellow mx-auto rounded-full"></div>
+          {/* Replaced 'bg-yellow' with explicit color code since 'yellow' isn't standard Tailwind */}
+          <div className="w-24 h-1 bg-[#D4AF37] mx-auto rounded-full"></div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.05)] border border-gray-100 overflow-hidden">
