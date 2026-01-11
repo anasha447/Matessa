@@ -11,7 +11,6 @@ import Spinner from "../components/Spinner";
 
 const IMG_BASE_URL = "https://matessa.in";
 
-// --- HELPER: STATUS BADGE ---
 const StatusBadge = ({ status }) => {
   const styles = {
     PLACED: "bg-purple-100 text-purple-700 border-purple-200",
@@ -43,6 +42,14 @@ const OrderConfirmationPage = () => {
        }
     }
   }, [dispatch, orderId, currentOrder]);
+
+  // ✅ DEBUGGING: Log the data to see what is missing
+  useEffect(() => {
+    if (currentOrder) {
+        console.log("🔥 DEBUG ORDER DATA:", currentOrder);
+        console.log("📦 Items found:", currentOrder.orderItems || currentOrder.order_items);
+    }
+  }, [currentOrder]);
 
   const getProductImage = (imageName) => {
     if (!imageName) return "https://via.placeholder.com/150";
@@ -76,20 +83,16 @@ const OrderConfirmationPage = () => {
 
   const order = currentOrder;
   const address = order.address || order.shippingAddress || {};
-  const displayEmail = order.email || userInfo?.email || "N/A";
-
-  // 🚨 FIX 1: Filter Ghost Items
-  const validItems = (order.orderItems || []).filter(item => {
-     return (item.product && item.product.productName) || item.productName || item.product_name;
-  });
-
-  // 🚨 FIX 2: Calculate Subtotal 
-  const rawSubtotal = validItems.reduce((acc, item) => acc + (item.orderedProductPrice * item.quantity), 0);
+  
+  // ✅ FIX 1: Robust Items Detection (Checks camelCase AND snake_case)
+  // We DO NOT filter anymore. We display what we find.
+  const rawItems = order.orderItems || order.order_items || [];
+  
+  // ✅ FIX 2: Calculate Subtotal 
+  const rawSubtotal = rawItems.reduce((acc, item) => acc + ((item.orderedProductPrice || item.price || 0) * (item.quantity || 1)), 0);
   const finalTotal = order.totalAmount > 0 ? order.totalAmount : rawSubtotal;
   const displaySubtotal = rawSubtotal > 0 ? rawSubtotal : finalTotal; 
 
-  // ✅ NEW: GET NAME FROM ADDRESS FIRST
-  // This prioritizes the name entered in the Checkout Form
   const customerName = address.name || address.fullName || address.recipientName || userInfo?.username || "Valued Customer";
 
   return (
@@ -106,7 +109,6 @@ const OrderConfirmationPage = () => {
                  Order Confirmed!
              </h1>
              <p className="text-green-100 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-                 {/* ✅ UPDATED: Uses Checkout Name */}
                  Thank you, <span className="font-bold text-white">{customerName}</span>! 
                  Your order <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white">#{order.orderCode || order.orderId}</span> has been placed.
              </p>
@@ -174,18 +176,19 @@ const OrderConfirmationPage = () => {
                      <FaBox className="text-[var(--color-darkgreen)]" /> Order Items
                    </h2>
                    <span className="text-xs font-bold bg-white border border-gray-200 px-3 py-1 rounded-full text-gray-600">
-                      {validItems.length} Items
+                      {rawItems.length} Items
                    </span>
                 </div>
                 
                 <div className="p-0">
-                   {validItems.length === 0 ? (
+                   {rawItems.length === 0 ? (
                        <div className="p-8 text-center text-gray-500 italic">
                          <p>Items data is hidden but order is confirmed.</p>
                        </div>
                    ) : (
-                       validItems.map((item, index) => {
-                          const productName = item.product?.productName || item.productName || "Unknown Product";
+                       rawItems.map((item, index) => {
+                          // ✅ FIX 3: Massive Fallback Strategy for Names and Images
+                          const productName = item.product?.productName || item.product?.name || item.productName || item.product_name || "Unknown Product";
                           const prodImage = item.product?.images?.[0] || item.product?.image || item.image;
                           const price = item.orderedProductPrice || item.price || 0;
                           
@@ -203,11 +206,11 @@ const OrderConfirmationPage = () => {
                                
                                <div className="flex-1">
                                   <h4 className="font-bold text-gray-800 text-sm md:text-base mb-1">{productName}</h4>
-                                  <p className="text-xs text-gray-500">Unit: ₹{price.toFixed(2)}</p>
+                                  <p className="text-xs text-gray-500">Unit: ₹{Number(price).toFixed(2)}</p>
                                </div>
                                
                                <div className="text-right">
-                                  <p className="font-bold text-gray-900">₹{(price * item.quantity).toFixed(2)}</p>
+                                  <p className="font-bold text-gray-900">₹{(price * (item.quantity || 1)).toFixed(2)}</p>
                                </div>
                             </div>
                           );
@@ -227,7 +230,6 @@ const OrderConfirmationPage = () => {
                    </h2>
                 </div>
                 <div className="p-6">
-                   {/* Name in Address Card (Optional, if you want it here too) */}
                    <p className="font-bold text-gray-800 text-lg mb-1">{address.name || address.fullName || userInfo?.username || "Valued Customer"}</p>
                    
                    <p className="font-medium text-gray-600 text-sm mb-1">{address.addressLine1 || "Address"}</p>
