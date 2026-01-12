@@ -32,15 +32,11 @@ const OrderConfirmationPage = () => {
   const dispatch = useDispatch();
 
   const { currentOrder, loading, error } = useSelector((state) => state.orders);
-  const { userInfo } = useSelector((state) => state.auth); 
-
+  
   // ✅ FIX: Force fetch if ID matches but items are missing
   useEffect(() => {
     if (orderId && orderId !== "undefined") {
-       // Check if we need to fetch
        const isDifferentOrder = !currentOrder || currentOrder.orderId?.toString() !== orderId.toString();
-       
-       // CRITICAL: Check if items are missing. If so, fetch again!
        const isMissingItems = currentOrder && (!currentOrder.orderItems || currentOrder.orderItems.length === 0);
 
        if (isDifferentOrder || isMissingItems) {
@@ -53,6 +49,20 @@ const OrderConfirmationPage = () => {
     if (!imageName) return "https://via.placeholder.com/150";
     if (imageName.startsWith("http")) return imageName;
     return `${IMG_BASE_URL}/images/${imageName}`;
+  };
+
+  // ✅ HELPER: Format Date with Time
+  const formatDateTime = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleString("en-IN", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true, 
+    });
   };
 
   if (!orderId || orderId === "undefined") {
@@ -119,8 +129,9 @@ const OrderConfirmationPage = () => {
                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Order Status</span>
                  <div className="flex items-center gap-3 mt-1">
                      <StatusBadge status={order.orderStatus} />
-                     <span className="text-sm text-gray-500 flex items-center gap-1">
-                        <FaCalendarAlt size={12}/> {new Date(order.orderDate).toLocaleString()}
+                     {/* ✅ SHOWING DATE AND TIME HERE */}
+                     <span className="text-sm text-gray-500 flex items-center gap-1 font-mono">
+                        <FaCalendarAlt size={12}/> {formatDateTime(order.orderDate)}
                      </span>
                  </div>
              </div>
@@ -223,7 +234,7 @@ const OrderConfirmationPage = () => {
                    </h2>
                 </div>
                 <div className="p-6">
-                   <p className="font-bold text-gray-800 text-lg mb-1">{address.name || address.fullName || userInfo?.username || "Valued Customer"}</p>
+                   <p className="font-bold text-gray-800 text-lg mb-1">{address.name || address.fullName || "Valued Customer"}</p>
                    
                    <p className="font-medium text-gray-600 text-sm mb-1">{address.addressLine1 || "Address"}</p>
                    <p className="text-gray-600 text-sm">{address.city || ""}{address.state ? `, ${address.state}` : ""}</p>

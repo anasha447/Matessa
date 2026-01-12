@@ -40,6 +40,7 @@ import ContactPage from "./pages/ContactUsPage";
 import AdminInbox from "./pages/admin/AdminInbox";
 import SubscriberList from "./pages/admin/SubscriberList";
 import AdminCoupons from "./pages/admin/AdminCoupons";
+import AdminCartsPage from "./pages/admin/adminCartspage";
 
 
 // Components
@@ -131,6 +132,7 @@ const App = () => {
             <Route path="/admin/AdminInbox" element={<AdminInbox />} />
             <Route path="/admin/subscribers" element={<SubscriberList />} />
             <Route path="/admin/coupons" element={<AdminCoupons />} />
+            <Route path="/admin/carts" element={<AdminCartsPage />} />
           </Route>
 
         </Routes>

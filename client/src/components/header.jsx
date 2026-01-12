@@ -162,6 +162,7 @@ const Header = () => {
                       <Link to="/admin/orders" className="block px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Orders</Link>
                       <Link to="/admin/AdminInbox" className="block px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Inbox</Link>
                       <Link to="/admin/users" className="block px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Users</Link>
+                        <Link to="/admin/carts" className="block px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Carts</Link>
                       <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Logout</button>
                     </div>
                   )}

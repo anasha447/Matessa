@@ -105,6 +105,18 @@ export const removeCoupon = createAsyncThunk(
         }
     }
 );
+export const fetchAllCarts = createAsyncThunk(
+    'cart/fetchAllCarts',
+    async (_, { rejectWithValue }) => {
+        try {
+            // Matches: @GetMapping("/admin/carts")
+            const response = await api.get('/admin/carts');
+            return response.data; 
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Failed to fetch carts");
+        }
+    }
+);
 
 
 // --- B. THE SLICE ---
@@ -198,6 +210,18 @@ const cartSlice = createSlice({
                 state.totalPrice = action.payload.totalPrice;
                 state.discount = 0;
                 state.couponCode = null;
+            })
+            .addCase(fetchAllCarts.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchAllCarts.fulfilled, (state, action) => {
+                state.loading = false;
+                state.adminCarts = action.payload; // Populate admin list
+            })
+            .addCase(fetchAllCarts.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
             });
     },
 });

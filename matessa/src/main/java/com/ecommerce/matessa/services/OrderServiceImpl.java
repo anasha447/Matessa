@@ -12,6 +12,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Random;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ public class OrderServiceImpl implements OrderService {
     @Autowired ProductRepository productRepository;
     @Autowired UserRepository userRepository;
     @Autowired ModelMapper modelMapper;
+    @Autowired FirstPromoterService firstPromoterService;
 
     @Autowired CartItemRepository cartItemRepository;
 
@@ -58,7 +60,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = new Order();
         order.setOrderCode(generateOrderCode());
         order.setEmail(email);
-        order.setOrderDate(LocalDate.now());
+        order.setOrderDate(LocalDateTime.now());
         order.setOrderStatus(OrderStatus.PLACED);
         order.setAddress(address);
 
@@ -101,6 +103,8 @@ public class OrderServiceImpl implements OrderService {
         paymentRepository.save(payment);
         savedOrder.setPayment(payment);
         savedOrder = orderRepository.save(savedOrder);
+
+        firstPromoterService.trackSale(savedOrder, email);
 
         // --- 5. ORDER ITEMS ---
         List<OrderItem> orderItems = new ArrayList<>();

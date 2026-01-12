@@ -49,6 +49,20 @@ const SingleOrderPage = () => {
     return `${IMG_BASE_URL}/images/${imageName}`; // Use /api/public/images/ if needed
   };
 
+  // ✅ 3. HELPER: Format Exact Time
+  const formatFullTime = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit", // Exact seconds
+      hour12: true,
+    });
+  };
+
   if (loading) return <Spinner />;
   
   if (error || !currentOrder) return (
@@ -64,7 +78,7 @@ const SingleOrderPage = () => {
   // Handle address mapping (JSON returns 'address', not 'shippingAddress')
   const address = order.address || order.shippingAddress || {};
 
-  // ✅ FIX 1: Filter Ghost Items
+  // ✅ FIX 4: Filter Ghost Items
   const validItems = (order.orderItems || []).filter(item => 
       item.product && item.product.productName
   );
@@ -83,8 +97,9 @@ const SingleOrderPage = () => {
                 Order #{order.orderCode || order.orderId} 
                 <StatusBadge status={order.orderStatus} />
              </h1>
-             <p className="text-gray-500 text-sm mt-1 flex items-center gap-2">
-                <FaCalendarAlt /> Placed on {new Date(order.orderDate).toLocaleString()}
+             {/* ✅ UPDATED: Shows Exact Time */}
+             <p className="text-gray-500 text-sm mt-1 flex items-center gap-2 font-mono">
+                <FaCalendarAlt /> Placed on {formatFullTime(order.orderDate)}
              </p>
           </div>
         </div>
@@ -168,7 +183,7 @@ const SingleOrderPage = () => {
                 <div className="p-6 space-y-4">
                    <div>
                       <p className="text-xs text-gray-400 uppercase font-bold">Email</p>
-                      {/* ✅ FIX 2: Use Order Email */}
+                      {/* Use Order Email */}
                       <p className="text-sm font-medium text-gray-800 break-all">
                           <FaEnvelope className="inline mr-2 text-gray-400"/>
                           {order.email || "N/A"}
