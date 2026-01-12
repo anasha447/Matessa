@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 // --- Assets ---
 import bannerImg from "../assets/animationbg.png"; 
 import bannerImg1 from "../assets/bannervibe1.png"; 
-import bannerImg3 from "../assets/Mobilebanner.png"; 
+import bannerImg3 from "../assets/mobanner.png"; 
 import brandName from "../assets/brandname.png"; 
 import logo from "../assets/full.logo.png";
 

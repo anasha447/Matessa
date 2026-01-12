@@ -10,7 +10,7 @@ import img7 from "../assets/yani.jpg";
 import img8 from "../assets/maradona.jpg";
 import img9 from "../assets/unknown.jpg";
 import img10 from "../assets/chivara.jpg";
-import bgimg from "../assets/leaf-pattern4.png";
+import bgimg from "../assets/bgdemo.png";
 
 const DEFAULT_IMAGES = [
   { src: img2, alt: "Modern sculpture" },

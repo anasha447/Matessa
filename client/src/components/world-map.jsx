@@ -153,7 +153,7 @@ export default function LocalConsumptionMap() {
       <ComposableMap
         projectionConfig={viewConfig}
         style={{ width: "100%", height: "100%" }}
-        className="w-full h-[400px] md:h-[600px] transition-all duration-500 ease-in-out"
+        className="w-full h-[500px] md:h-[600px] transition-all duration-500 ease-in-out"
       >
         <Geographies geography={LocalMap}>
           {({ geographies }) =>

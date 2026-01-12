@@ -4,7 +4,7 @@ import indianmate from "../assets/matevibe1.png";
 
 export default function IndianMateStory() {
   return (
-    <section className="relative py-16 md:py-24 px-6 overflow-hidden">
+    <section className="relative py-16 md:py-16 px-6 overflow-hidden">
       
       {/* 1. BACKGROUND */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#F9F7F3] via-[#fffbf2] to-[#FFF7ED] z-0" />

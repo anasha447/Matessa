@@ -9,14 +9,14 @@ import StorySection from "../components/ourstory/StorySection";
 const sections = [
   {
     id: 1,
-    title: "The Mate Tradition",
-    text: "Mate was more than a drink, it's a daily ritual of connection with family and friends. This South American tradition, the native people call it drink of the gods, provides legendary clean energy. For centuries, Mate has been an ancient symbol of community and vitality, bringing people closer with every shared cup.",
+    title: "Rooted in Culture",
+    text: "In my community Yerba Mate was more than a source of energy drink, it's a daily ritual of connection with family and friends. In South American the native people call it drink of the gods, provides legendary clean energy. For centuries, Mate has been an ancient symbol of community and vitality, bringing people closer with every shared cup.",
     image: Matecup,
   },
   {
     id: 2,
     title: "The Beginning ",
-    text: "In my early twenties, traveling through India, I got impressed in the vibrant tradition of the magic Indian herbs. I realized these flavors were the perfect partner for the raw, powerful energy of South American Mate. It was time to bridge these two distinct worlds.",
+    text: "In my early twenties, traveling through India, a land of vibrant colors and ancient wisdom, I got immersed in the magic of Indian herbs, The depth of these flavors and the tradition behind them sparked something new in me",
     image: Masala,
   },
   {
