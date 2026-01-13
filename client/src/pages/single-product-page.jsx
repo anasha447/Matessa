@@ -177,8 +177,8 @@ const SingleProductPage = () => {
                 </h1>
                 <p className="text-gray-500 text-base leading-relaxed font-body font-semibold text-center">
                   <span className="font-bold text-[var(--color-green)]">Yerba Mate </span>  loose Leaf Imported from the farms of South America, our Yerba Mate offers the premium taste. 
-                  <br/> <span className="font-bold text-[var(--color-green)]">We hand-craft </span>every batch with mixing the ingredients to create a perfectly balanced and suitable Enargy . 
-                  Upgrade your daily routine with <span className="font-bold text-[var(--color-orange)]">MATESSA</span> blends.
+                  <br/> <span className="font-bold text-[var(--color-green)]">We hand-craft </span>every batch with mixing the ingredients to create a perfectly balanced and suitable Enargy . <br/>
+                  <span className="font-bold text-lg text-[var(--color-green)]">Upgrade your daily routine with</span> <span className="font-bold text-lg text-[var(--color-orange)]">MATESSA</span> blends.
                 </p>
             </div>
 

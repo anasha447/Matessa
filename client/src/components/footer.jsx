@@ -109,7 +109,7 @@ const AppFooter = () => {
              <ul className="space-y-4 text-sm text-gray-300">
                <li className="flex items-start gap-3">
                  <FaEnvelope className="text-[var(--color-orange)] mt-1 flex-shrink-0" />
-                 <a href="mailto:support@matessa.com" className="hover:text-white transition-colors">support@matessa.com</a>
+                 <a href="mailto:support@matessa.com" className="hover:text-white transition-colors">support@matessa.in</a>
                </li>
                <li className="flex items-start gap-3">
                  <FaPhoneAlt className="text-[var(--color-orange)] mt-1 flex-shrink-0" />

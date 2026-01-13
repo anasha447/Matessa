@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom"; 
 import { useDispatch, useSelector } from "react-redux";
 import { 
@@ -30,6 +30,9 @@ const StatusBadge = ({ status }) => {
 const OrderConfirmationPage = () => {
   const { orderId } = useParams(); 
   const dispatch = useDispatch();
+  
+  // Use a ref to ensure we only fire tracking once per mount
+  const trackingFired = useRef(false);
 
   const { currentOrder, loading, error } = useSelector((state) => state.orders);
   
@@ -44,6 +47,49 @@ const OrderConfirmationPage = () => {
        }
     }
   }, [dispatch, orderId, currentOrder]);
+
+  // ✅ TRACKING: FirstPromoter Sale Tracking
+  useEffect(() => {
+    // Only proceed if order is loaded and we haven't tracked this session yet
+    if (currentOrder && window.fpr && !trackingFired.current) {
+        
+        // Anti-Duplicate Check: Check session storage to see if this specific Order ID was already counted
+        const storageKey = `tracked_order_${currentOrder.orderId}`;
+        const alreadyTracked = sessionStorage.getItem(storageKey);
+
+        if (!alreadyTracked) {
+            console.log("🚀 Tracking Sale for FirstPromoter:", currentOrder.orderId);
+            
+            // 1. FirstPromoter Conversion
+            window.fpr("conversion", {
+                id: currentOrder.orderId,      // Unique Order ID
+                amount: currentOrder.totalAmount // Order Value
+            });
+
+            // 2. Google Analytics Purchase (Optional, if you want GA4 revenue)
+            if (window.gtag) {
+                window.gtag("event", "purchase", {
+                    transaction_id: currentOrder.orderId,
+                    value: currentOrder.totalAmount,
+                    currency: "INR",
+                    items: (currentOrder.orderItems || []).map(item => ({
+                        item_id: item.product?.productId,
+                        item_name: item.product?.productName,
+                        price: item.orderedProductPrice,
+                        quantity: item.quantity
+                    }))
+                });
+            }
+
+            // Mark as tracked so refresh doesn't count it again
+            sessionStorage.setItem(storageKey, "true");
+            trackingFired.current = true;
+        } else {
+            console.log("ℹ️ Order already tracked in this session.");
+        }
+    }
+  }, [currentOrder]);
+
 
   const getProductImage = (imageName) => {
     if (!imageName) return "https://via.placeholder.com/150";
@@ -113,7 +159,6 @@ const OrderConfirmationPage = () => {
              <h1 className="text-3xl md:text-5xl font-heading font-extrabold text-white mb-4 tracking-tight">
                  Order Confirmed!
              </h1>
-             {/* ✅ UPDATED TEXT */}
              <p className="text-green-100 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
                  Thank you for your order from <span className="font-bold text-white">Matessa</span>! 
                  Your order <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white">#{order.orderCode || order.orderId}</span> has been placed.
@@ -129,13 +174,11 @@ const OrderConfirmationPage = () => {
                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Order Status</span>
                  <div className="flex items-center gap-3 mt-1">
                      <StatusBadge status={order.orderStatus} />
-                     {/* ✅ SHOWING DATE AND TIME HERE */}
                      <span className="text-sm text-gray-500 flex items-center gap-1 font-mono">
                         <FaCalendarAlt size={12}/> {formatDateTime(order.orderDate)}
                      </span>
                  </div>
              </div>
-             {/* ✅ UPDATED BUTTONS: Removed Print, kept Shop */}
              <div className="w-full md:w-auto">
                  <Link to="/shop" className="flex items-center justify-center gap-2 px-8 py-3 bg-[var(--color-orange)] text-white rounded-xl font-bold hover:bg-[#e05515] shadow-md hover:shadow-lg transition-all transform active:scale-95 w-full md:w-auto">
                     <FaShoppingBag /> Continue Shopping

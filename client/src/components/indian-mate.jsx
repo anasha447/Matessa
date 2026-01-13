@@ -1,6 +1,6 @@
 // src/components/IndianMateStory.jsx
 import { motion } from "framer-motion";
-import indianmate from "../assets/matevibe1.png";
+import indianmate from "../assets/HARMONY.png";
 
 export default function IndianMateStory() {
   return (
@@ -9,7 +9,7 @@ export default function IndianMateStory() {
       {/* 1. BACKGROUND */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#F9F7F3] via-[#fffbf2] to-[#FFF7ED] z-0" />
       
-      <div className="relative max-w-3xl mx-auto flex flex-col items-center text-center z-10">
+      <div className="relative max-w-4xl mx-auto flex flex-col items-center text-center z-10">
         
         {/* --- PART 1: HEADING --- */}
         <motion.div 
@@ -24,7 +24,7 @@ export default function IndianMateStory() {
           </h2>
         </motion.div>
 
-        {/* --- PART 2: THE IMAGE --- */}
+        {/* --- PART 2: THE IMAGE (Updated for Width > Height) --- */}
         <motion.div 
           className="relative mb-8 md:mb-12"
           initial={{ opacity: 0, scale: 0.9 }}
@@ -43,8 +43,9 @@ export default function IndianMateStory() {
                 ease: "easeInOut" 
               }}
             >
-                {/* The Container Frame */}
-                <div className="relative w-64 md:w-96 aspect-square rounded-3xl overflow-hidden shadow-2xl border-4 border-white ring-1 ring-gray-200/50 bg-white z-20">
+                {/* The Container Frame - CHANGED HERE */}
+                {/* Changed aspect-square to aspect-video (16:9) and increased width */}
+                <div className="relative w-full max-w-lg md:max-w-3xl aspect-video rounded-3xl overflow-hidden shadow-2xl border-4 border-white ring-1 ring-gray-200/50 bg-white z-20">
                     <img 
                       src={indianmate}
                       alt="Indian Mate Fusion" 

@@ -103,7 +103,7 @@ export default function MateTimeline() {
     >
       <div className="text-center mb-16 px-6">
         <h2 className="text-4xl md:text-5xl font-heading font-bold text-[#2F3B28]">
-          Deep Cultural Roots
+          Mate Time Line
         </h2>
       </div>
 
