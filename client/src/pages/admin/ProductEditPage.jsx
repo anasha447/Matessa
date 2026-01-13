@@ -377,14 +377,14 @@ const ProductEditPage = () => {
     .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* ✅ FIX QUILL EDITOR STYLES */
+    /* ✅ FORCE EDITOR TO BEHAVE NORMALLY */
     .ql-container { min-height: 120px; font-size: 1rem; font-family: inherit; }
     .ql-editor {
-        white-space: normal !important; /* Force normal wrapping in editor */
-        overflow-wrap: break-word;
+        white-space: normal !important; 
+        word-break: normal !important;
+        overflow-wrap: break-word !important;
     }
     .ql-editor p { margin-bottom: 1em; }
-    .ql-editor strong { font-weight: 700; }
 `}</style>
     </div>
   );

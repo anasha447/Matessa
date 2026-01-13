@@ -260,34 +260,41 @@ const SingleProductPage = () => {
             </div>
             
            {/* 7. ✅ FIXED HTML DESCRIPTION */}
-            <div 
-             className="
-              pt-10 border-t border-gray-100
-              text-gray-600 
-              font-body
-              font-semibold
-              text-base
-              leading-7
-              max-w-full
-                        /* Use standard Tailwind classes for typography */
-                  prose prose-green prose-lg
-                  [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-[var(--color-darkgreen)]
-                  [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-3
-                  [&_strong]:font-bold [&_strong]:text-gray-800
-                  [&_p]:mb-6
-                  [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-6
-              "
-              style={{ 
-                  // 🚨 CRITICAL FIXES FOR WORD BREAKING 🚨
-                  wordBreak: 'normal',       // Don't break words arbitrarily
-                  overflowWrap: 'anywhere',  // Break long URLs, keep words intact
-                  whiteSpace: 'normal',      // Let text wrap naturally (override pre-wrap if needed)
-                  textAlign: 'left'          // Sometimes justify causes weird spacing
-              }}
-          >
+            {/* 7. ✅ ROOT FIX: FORCE WHOLE WORDS & CLEAN HIDDEN CHARS */}
+<div 
+    className="
+        pt-10 border-t border-gray-100
+        text-gray-600 
+        font-body
+        font-semibold
+        text-base
+        leading-7
+        max-w-full
+        /* Standard Typography */
+        [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-[var(--color-darkgreen)]
+        [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-3
+        [&_strong]:font-bold [&_strong]:text-gray-800
+        [&_p]:mb-6
+        [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-6
+    "
+    style={{ 
+        // 🚨 THE "KEEP WORDS TOGETHER" RULES 🚨
+        wordBreak: 'normal',       // Never break words arbitrarily
+        overflowWrap: 'break-word',// Only break if the word is wider than the screen
+        whiteSpace: 'normal',      // Collapse multiple spaces/enters into one
+        hyphens: 'none',           // Disable hyphenation (fresh-ness)
+        textAlign: 'left'
+    }}
+>
      <h3 className="font-bold text-2xl font-body py-6">Product Overview</h3>
-     {parse(product.description || "")}
-</div>
+     
+     {/* Clean the HTML before parsing to remove hidden splitters */}
+     {parse(
+        (product.description || "")
+        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces
+        .replace(/&nbsp;/g, ' ')               // Replace non-breaking spaces with normal spaces
+     )}
+      </div>
           </div>
         </div>
         
