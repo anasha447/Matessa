@@ -53,6 +53,7 @@ const SingleOrderPage = () => {
   const formatFullTime = (dateString) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
       day: "numeric",
       month: "short",
       year: "numeric",

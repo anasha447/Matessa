@@ -101,6 +101,7 @@ const OrderConfirmationPage = () => {
   const formatDateTime = (dateString) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
       year: "numeric",
       month: "short",
       day: "numeric",
