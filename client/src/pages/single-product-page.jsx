@@ -251,41 +251,43 @@ const SingleProductPage = () => {
 
             {/* MAIN ACTIONS */}
             <div className="flex gap-4 pt-4">
-                <button onClick={handleBuyNow} className="flex-1 bg-[var(--color-orange)] text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-orange-100 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95">
+                <button onClick={handleBuyNow} className="flex-1 bg-[var(--color-orange)] text-white py-3 rounded-xl font-bold font-body text-lg shadow-lg shadow-orange-100 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95">
                     Buy Now
                 </button>
-                <button onClick={handleAddToCart} className="flex-1 border-2 border-gray-200 text-gray-800 py-4 rounded-xl font-bold text-lg hover:border-[var(--color-darkgreen)] hover:text-[var(--color-darkgreen)] bg-white transition-all active:scale-95">
+                <button onClick={handleAddToCart} className="flex-1 border-2 border-gray-200 text-gray-800 py-3 rounded-xl font-bold font-body text-lg hover:border-[var(--color-darkgreen)] hover:text-[var(--color-darkgreen)] bg-white transition-all active:scale-95">
                     Add to Cart
                 </button>
             </div>
             
-            {/* 7. ✅ FIXED HTML DESCRIPTION */}
+           {/* 7. ✅ FIXED HTML DESCRIPTION */}
             <div 
-                className="
-                    pt-10 border-t border-gray-100
-                    text-gray-600 
-                    font-body
-                    font-semibold
-                    text-base
-                    leading-7
-                    break-words whitespace-pre-wrap
-                    max-w-full
-                    [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-[var(--color-darkgreen)]
-                    [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-3
-                    [&_strong]:font-bold [&_strong]:text-gray-800
-                    [&_p]:mb-6
-                    [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-6
-                "
-                style={{ 
-                    wordBreak: 'normal', 
-                    overflowWrap: 'break-word', 
-                    hyphens: 'none' 
-                }}
-            >
-                 <h3 className="font-bold text-2xl font-body py-6">Product Overview</h3>
-                 {parse(product.description || "")}
-            </div>
-
+             className="
+              pt-10 border-t border-gray-100
+              text-gray-600 
+              font-body
+              font-semibold
+              text-base
+              leading-7
+              max-w-full
+                        /* Use standard Tailwind classes for typography */
+                  prose prose-green prose-lg
+                  [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-[var(--color-darkgreen)]
+                  [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-3
+                  [&_strong]:font-bold [&_strong]:text-gray-800
+                  [&_p]:mb-6
+                  [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-6
+              "
+              style={{ 
+                  // 🚨 CRITICAL FIXES FOR WORD BREAKING 🚨
+                  wordBreak: 'normal',       // Don't break words arbitrarily
+                  overflowWrap: 'anywhere',  // Break long URLs, keep words intact
+                  whiteSpace: 'normal',      // Let text wrap naturally (override pre-wrap if needed)
+                  textAlign: 'left'          // Sometimes justify causes weird spacing
+              }}
+          >
+     <h3 className="font-bold text-2xl font-body py-6">Product Overview</h3>
+     {parse(product.description || "")}
+</div>
           </div>
         </div>
         

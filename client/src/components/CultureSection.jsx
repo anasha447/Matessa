@@ -21,7 +21,7 @@ const CultureSection = () => {
             
             <p className="text-lg leading-relaxed font-body text-white opacity-90">
               Long before energy drinks, there was Mate.  
-              For centuries, this has been a daily natural fuel for the Latin Nations, yet it remains a secret here in Asia. 
+              For centuries, this has been a daily natural fuel for the Latinan Nations, yet it remains a secret here in Asia. 
               Be the first to discover the forest’s ancient answer to lasting energy and focus.
             </p>
           </div>

@@ -368,20 +368,24 @@ const ProductEditPage = () => {
 
         </div>
       </div>
-      <style>{`
-        .label { display: block; font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.3rem; }
-        .sub-label { display: block; font-size: 0.75rem; font-weight: 600; color: #6B7280; margin-bottom: 0.25rem; }
-        .input-field { width: 100%; padding: 0.75rem 1rem; border: 1px solid #D1D5DB; border-radius: 0.5rem; outline: none; transition: all 0.2s; }
-        .mini-input { width: 100%; padding: 0.5rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem; outline: none; }
-        .input-field:focus, .mini-input:focus { border-color: var(--color-green); box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1); }
-        .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+     <style>{`
+    .label { display: block; font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.3rem; }
+    .sub-label { display: block; font-size: 0.75rem; font-weight: 600; color: #6B7280; margin-bottom: 0.25rem; }
+    .input-field { width: 100%; padding: 0.75rem 1rem; border: 1px solid #D1D5DB; border-radius: 0.5rem; outline: none; transition: all 0.2s; }
+    .mini-input { width: 100%; padding: 0.5rem; border: 1px solid #E5E7EB; border-radius: 0.375rem; font-size: 0.875rem; outline: none; }
+    .input-field:focus, .mini-input:focus { border-color: var(--color-green); box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1); }
+    .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .ql-container { min-height: 120px; font-size: 1rem; }
-        .ql-editor, .ql-editor * { word-break: normal !important; word-wrap: break-word !important; overflow-wrap: break-word !important; white-space: pre-wrap !important; }
-        .ql-editor p { margin-bottom: 0.5em; line-height: 1.5; width: 100%; }
-        .ql-editor li { word-break: normal !important; }
-      `}</style>
+    /* ✅ FIX QUILL EDITOR STYLES */
+    .ql-container { min-height: 120px; font-size: 1rem; font-family: inherit; }
+    .ql-editor {
+        white-space: normal !important; /* Force normal wrapping in editor */
+        overflow-wrap: break-word;
+    }
+    .ql-editor p { margin-bottom: 1em; }
+    .ql-editor strong { font-weight: 700; }
+`}</style>
     </div>
   );
 };
