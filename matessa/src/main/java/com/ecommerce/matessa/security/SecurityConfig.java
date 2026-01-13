@@ -118,8 +118,25 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+
+        // ✅ 1. ALLOW SPECIFIC ORIGINS (Add all domains you use)
+        // If you are testing from localhost, keep it.
+        // Ensure you include both 'http' and 'https' if needed.
+        configuration.setAllowedOrigins(List.of(
+                "https://matessa.in",       // Production Domain
+                "https://www.matessa.in",   // WWW Subdomain
+                "http://localhost:5173",    // Local React (Vite)
+                "http://localhost:3000"     // Local React (Create React App)
+        ));
+
+        // ✅ 2. ALLOW METHODS
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        // ✅ 3. ALLOW HEADERS
         configuration.setAllowedHeaders(List.of("*"));
+
+        // ✅ 4. ALLOW CREDENTIALS (Cookies)
+        // This requires setAllowedOrigins to be specific (cannot be "*")
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
