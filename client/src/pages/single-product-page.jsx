@@ -10,6 +10,7 @@ import parse from 'html-react-parser';
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "../redux/slices/cartSlice";
 import { fetchProductDetails, createProductReview, resetReviewSuccess } from "../redux/slices/productSlice";
+import { Helmet } from "react-helmet-async"; // ✅ ADDED: For SEO
 
 // ✅ 1. DEFINE API URL
 const API_BASE_URL = "https://matessa.in";
@@ -136,7 +137,59 @@ const SingleProductPage = () => {
   const isFeatured = (product?.category?.categoryId === 1) || (product?.category?.id === 1) || (product?.categoryId === 1);           
   const displayPrice = selectedVariant ? selectedVariant.price : product.specialPrice;
 
+  // ---------------------------------------------
+  // ✅ SEO OPTIMIZATION LOGIC START
+  // ---------------------------------------------
+  const seoTitle = product ? `${product.productName} | Matessa` : "Matessa Product";
+  const seoDesc = product?.description 
+    ? product.description.replace(/<[^>]*>?/gm, '').substring(0, 160) + "..." // Strip HTML & shorten
+    : "premium Yerba Mate Mixed With Indian Herbs Only From Matessa.";
+  const seoImage = mainImage ? getProductImage(mainImage) : "https://matessa.in/full.logo.png";
+  const productPrice = displayPrice || product?.specialPrice || 0;
+
+  // Google Rich Snippets Schema
+  const productSchema = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": product?.productName,
+    "image": [seoImage],
+    "description": seoDesc,
+    "brand": {
+      "@type": "Brand",
+      "name": "Matessa"
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": window.location.href,
+      "priceCurrency": "INR",
+      "price": productPrice,
+      "availability": (product?.quantity > 0 || (selectedVariant && selectedVariant.stock > 0)) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "itemCondition": "https://schema.org/NewCondition"
+    }
+  };
+  // ---------------------------------------------
+  // ✅ SEO LOGIC END
+  // ---------------------------------------------
+
   return (
+    <>
+    <Helmet>
+      {/* Visual Meta Tags */}
+      <title>{seoTitle}</title>
+      <meta name="description" content={seoDesc} />
+      
+      {/* Social Media Previews */}
+      <meta property="og:title" content={seoTitle} />
+      <meta property="og:description" content={seoDesc} />
+      <meta property="og:image" content={seoImage} />
+      <meta property="og:type" content="product" />
+      
+      {/* Google Rich Snippets Data */}
+      <script type="application/ld+json">
+        {JSON.stringify(productSchema)}
+      </script>
+    </Helmet>
+
     <div className="py-12 px-4 md:px-12 bg-white font-body">
       <div className="container mx-auto">
         
@@ -259,42 +312,42 @@ const SingleProductPage = () => {
                 </button>
             </div>
             
-           {/* 7. ✅ FIXED HTML DESCRIPTION */}
             {/* 7. ✅ ROOT FIX: FORCE WHOLE WORDS & CLEAN HIDDEN CHARS */}
-<div 
-    className="
-        pt-10 border-t border-gray-100
-        text-gray-600 
-        font-body
-        font-semibold
-        text-base
-        leading-7
-        max-w-full
-        /* Standard Typography */
-        [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-[var(--color-darkgreen)]
-        [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-3
-        [&_strong]:font-bold [&_strong]:text-gray-800
-        [&_p]:mb-6
-        [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-6
-    "
-    style={{ 
-        // 🚨 THE "KEEP WORDS TOGETHER" RULES 🚨
-        wordBreak: 'normal',       // Never break words arbitrarily
-        overflowWrap: 'break-word',// Only break if the word is wider than the screen
-        whiteSpace: 'normal',      // Collapse multiple spaces/enters into one
-        hyphens: 'none',           // Disable hyphenation (fresh-ness)
-        textAlign: 'left'
-    }}
->
-     <h3 className="font-bold text-2xl font-body py-6">Product Overview</h3>
-     
-     {/* Clean the HTML before parsing to remove hidden splitters */}
-     {parse(
-        (product.description || "")
-        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces
-        .replace(/&nbsp;/g, ' ')               // Replace non-breaking spaces with normal spaces
-     )}
-      </div>
+            <div 
+                className="
+                    pt-10 border-t border-gray-100
+                    text-gray-600 
+                    font-body
+                    font-semibold
+                    text-base
+                    leading-7
+                    max-w-full
+                    /* Standard Typography */
+                    [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-[var(--color-darkgreen)]
+                    [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-3
+                    [&_strong]:font-bold [&_strong]:text-gray-800
+                    [&_p]:mb-6
+                    [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-6
+                "
+                style={{ 
+                    // 🚨 THE "KEEP WORDS TOGETHER" RULES 🚨
+                    wordBreak: 'normal',       // Never break words arbitrarily
+                    overflowWrap: 'break-word',// Only break if the word is wider than the screen
+                    whiteSpace: 'normal',      // Collapse multiple spaces/enters into one
+                    hyphens: 'none',           // Disable hyphenation (fresh-ness)
+                    textAlign: 'left'
+                }}
+            >
+                 <h3 className="font-bold text-2xl font-body py-6">Product Overview</h3>
+                 
+                 {/* Clean the HTML before parsing to remove hidden splitters */}
+                 {parse(
+                    (product.description || "")
+                    .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces
+                    .replace(/&nbsp;/g, ' ')               // Replace non-breaking spaces with normal spaces
+                 )}
+            </div>
+
           </div>
         </div>
         
@@ -311,6 +364,7 @@ const SingleProductPage = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
