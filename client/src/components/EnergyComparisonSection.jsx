@@ -76,7 +76,7 @@ const EnergyChart = () => {
         </svg>
 
         {/* Legend */}
-        <div className="absolute top-0 right-0 bg-white/80 backdrop-blur-sm p-2 rounded-lg text-xs font-bold shadow-sm border border-green-100">
+        <div className="absolute top-[-15px] right-0 bg-white/80 backdrop-blur-sm p-2 rounded-lg text-xs font-bold shadow-sm border border-green-100">
            <div className="flex items-center gap-1 mb-1"><span className="w-2 h-2 rounded-full bg-[var(--color-green)]"></span> Mate</div>
            <div className="flex items-center gap-1 mb-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Coffee</div>
            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400"></span> Tea</div>

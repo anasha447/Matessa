@@ -239,7 +239,7 @@ const SingleProductPage = () => {
 
             <div>
                 <p className="text-gray-400 text-sm mt-1 font-semibold">Price</p>
-                <p className="text-[var(--color-green)] font-bold font-body text-3xl">
+                <p className="text-[var(--color-green)] font-bold font-body text-2xl">
                     ₹{displayPrice?.toFixed(2)}
                 </p>
             </div>
