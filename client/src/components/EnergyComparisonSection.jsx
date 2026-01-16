@@ -55,31 +55,41 @@ const EnergyChart = () => {
             d="M 20 280 C 50 150, 100 50, 120 80 C 140 110, 180 250, 320 275"
             fill="none" stroke="#EF4444" strokeWidth="3" strokeLinecap="round" strokeDasharray="5,5"
           />
-           <circle cx="20" cy="280" r="4" fill="#EF4444" />
-           <circle cx="120" cy="80" r="4" fill="#EF4444" />
+           {/* ✅ NEW POINT STYLE: White fill with Red Border */}
+           <circle cx="20" cy="280" r="5" fill="white" stroke="#EF4444" strokeWidth="2.5" />
+           <circle cx="120" cy="80" r="5" fill="white" stroke="#EF4444" strokeWidth="2.5" />
 
           {/* Tea (Yellow) */}
           <path
             d="M 20 280 C 60 220, 120 150, 160 150 C 200 150, 280 200, 350 230"
             fill="none" stroke="#FACC15" strokeWidth="3" strokeLinecap="round" strokeDasharray="8"
           />
-          <circle cx="20" cy="280" r="4" fill="#FACC15" />
-          <circle cx="160" cy="150" r="4" fill="#FACC15" />
+          {/* ✅ NEW POINT STYLE: White fill with Yellow Border */}
+          <circle cx="20" cy="280" r="5" fill="white" stroke="#FACC15" strokeWidth="2.5" />
+          <circle cx="160" cy="150" r="5" fill="white" stroke="#FACC15" strokeWidth="2.5" />
 
           {/* Yerba Mate (Green - Solid & Bold) */}
           <path
             d="M 20 280 C 50 200, 80 100, 140 100 L 260 100 C 300 100, 340 120, 380 150"
-            fill="none" stroke="var(--color-green)" strokeWidth="4" strokeLinecap="round"
+            fill="none" stroke="var(--color-green)" strokeWidth="3.5" strokeLinecap="round"
           />
-           <circle cx="20" cy="280" r="6" fill="var(--color-green)" stroke="white" strokeWidth="2" />
-           <circle cx="140" cy="100" r="6" fill="var(--color-green)" stroke="white" strokeWidth="2" />
+           {/* ✅ NEW POINT STYLE: Solid Green fill with White Border (Distinctive) */}
+           <circle cx="20" cy="280" r="6" fill="var(--color-green)" stroke="white" strokeWidth="3" />
+           <circle cx="140" cy="100" r="6" fill="var(--color-green)" stroke="white" strokeWidth="3" />
         </svg>
 
         {/* Legend */}
-        <div className="absolute top-[-15px] right-0 bg-white/80 backdrop-blur-sm p-2 rounded-lg text-xs font-bold shadow-sm border border-green-100">
-           <div className="flex items-center gap-1 mb-1"><span className="w-2 h-2 rounded-full bg-[var(--color-green)]"></span> Mate</div>
-           <div className="flex items-center gap-1 mb-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Coffee</div>
-           <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400"></span> Tea</div>
+        <div className="absolute top-[-20px] right-0 bg-white/80 backdrop-blur-sm p-2 rounded-lg text-xs font-bold shadow-sm border border-green-100">
+           {/* Updated legend dots to match graph style */}
+           <div className="flex items-center gap-1 mb-1">
+             <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-green)] border border-white shadow-sm"></span> Mate
+           </div>
+           <div className="flex items-center gap-1 mb-1">
+             <span className="w-2.5 h-2.5 rounded-full bg-white border-2 border-red-500"></span> Coffee
+           </div>
+           <div className="flex items-center gap-1">
+             <span className="w-2.5 h-2.5 rounded-full bg-white border-2 border-yellow-400"></span> Tea
+           </div>
         </div>
       </div>
     </div>
