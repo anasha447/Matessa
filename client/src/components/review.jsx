@@ -34,8 +34,8 @@ const reviews = [
 const CustomerReviews = () => {
   return (
     <section className="py-16 px-6 bg-white lg:mt-30 sm:mt-20 mt-10">
-      <h2 className="text-3xl font-bold font-heading text-center text-green  mb-5">
-        What Our Customers Says
+      <h2 className="text-3xl font-bold font-heading text-center mt-5 text-green  mb-5">
+       Customers Reviews
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

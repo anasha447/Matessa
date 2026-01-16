@@ -9,6 +9,7 @@ import CustomerReviews from "../components/review";
 import DomeGallery from "../components/demoGallery";
 import QuoteParallax from "../components/quotes.jsx";
 import AfterBanner from "../components/afterBanner";
+import EnergyComparisonSection from '../components/EnergyComparisonSection';
 // Removed MatessaJourney since it wasn't used in your JSX, add it back if needed
 
 const Home = () => {
@@ -43,6 +44,7 @@ const Home = () => {
         <Banner />
         <ScrollingBar />
         <AfterBanner />
+        <EnergyComparisonSection/>
         <FeaturedProducts />
         <YerbaMateBenefits />
         

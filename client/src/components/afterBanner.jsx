@@ -89,8 +89,7 @@ const FocusText = ({
 const AfterBanner = () => {
   return (
     <section 
-      className="relative py-16 px-6 md:px-20 overflow-hidden"
-      style={{ backgroundColor: '#F9F7F3' }}
+      className="relative py-16 px-6 md:px-20 bg-white overflow-hidden"
     >
       {/* Background Decor (Subtle Gradient) */}
       <div 

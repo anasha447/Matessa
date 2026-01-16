@@ -9,6 +9,8 @@ import CultureSection from "../components/CultureSection";
 import parse from 'html-react-parser';
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "../redux/slices/cartSlice";
+import EnergyComparisonSection from '../components/EnergyComparisonSection';
+
 import { fetchProductDetails, createProductReview, resetReviewSuccess } from "../redux/slices/productSlice";
 import { Helmet } from "react-helmet-async"; // ✅ ADDED: For SEO
 
@@ -353,6 +355,10 @@ const SingleProductPage = () => {
         
         <div className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] mt-12">
             <CultureSection />
+        </div>
+
+         <div className="w-full mt-10">
+            <EnergyComparisonSection/>
         </div>
 
         <div className="w-full mt-12">
