@@ -9,7 +9,10 @@ import com.ecommerce.matessa.repositories.*;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -208,11 +211,16 @@ public class CartServiceImpl implements CartService {
         recalculateCartTotal(cart);
     }
 
+    // ✅ CORRECT IMPLEMENTATION
     @Override
     public List<CartDTO> getAllCarts() {
+        // 1. Get all carts from Database
         List<Cart> carts = cartRepository.findAll();
-        if (carts.isEmpty()) throw new ApisExceptionHandler("No cart exists");
-        return carts.stream().map(this::mapToCartDTO).collect(Collectors.toList());
+
+        // 2. Convert them to DTOs using your mapper
+        return carts.stream()
+                .map(this::mapToCartDTO)
+                .collect(Collectors.toList());
     }
 
     @Override

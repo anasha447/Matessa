@@ -128,6 +128,7 @@ public class CartController {
         List<CartDTO> cartDTOs = cartService.getAllCarts();
         return new ResponseEntity<>(cartDTOs, HttpStatus.FOUND);
     }
+    
     @PostMapping("/public/carts/{cartId}/coupon/{code}")
     public ResponseEntity<CartDTO> applyCoupon(@PathVariable Long cartId, @PathVariable String code) {
         CartDTO cartDTO = cartService.applyCoupon(cartId, code);
