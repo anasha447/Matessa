@@ -6,7 +6,7 @@ import Spinner from "../../components/Spinner";
 
 const AdminCartsPage = () => {
   const dispatch = useDispatch();
-  const { adminCarts, loading, error } = useSelector((state) => state.cart);
+ const { adminCarts = [], loading, error } = useSelector((state) => state.cart);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {

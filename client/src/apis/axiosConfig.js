@@ -10,6 +10,25 @@ const api = axios.create({
     withCredentials: true 
 });
 
+// ✅ ADD THIS SECTION TO FIX THE REFRESH ISSUE
+api.interceptors.request.use(
+    (config) => {
+        // 1. Get the token from LocalStorage (where authSlice saved it)
+        const token = localStorage.getItem("token");
+
+        // 2. If token exists, attach it to the header
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+// ---------------------------------------------------------
+
 // Optional: Interceptor to handle errors globally
 api.interceptors.response.use(
     (response) => response,

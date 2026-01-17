@@ -131,6 +131,7 @@ const cartSlice = createSlice({
         couponCode: null,
         loading: false,
         error: null,
+        adminCarts: [], 
     },
     reducers: {
         clearCart: (state) => {

@@ -90,8 +90,8 @@ const HowToPrepare = () => {
             </h3>
             <ul className="space-y-6">
               <li className="flex flex-col">
-                <span className="font-bold text-gray-800 text-lg">Yerba Madre</span>
-                <span className="text-sm text-gray-500">Loose Leaf Tea</span>
+                <span className="font-bold text-gray-800 text-lg">Yerba Mate</span>
+                <span className="text-sm text-gray-500">Loose Leaf</span>
               </li>
               <li className="flex flex-col">
                 <span className="font-bold text-gray-800 text-lg">Gourd</span>
