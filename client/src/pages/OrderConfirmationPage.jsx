@@ -9,6 +9,9 @@ import {
 import { fetchOrderDetails } from "../redux/slices/orderSlice";
 import Spinner from "../components/Spinner";
 
+// ✅ 1. Import Analytics Helper
+import { trackEvent } from "../utils/analytics";
+
 const IMG_BASE_URL = "https://matessa.in";
 
 const StatusBadge = ({ status }) => {
@@ -48,38 +51,42 @@ const OrderConfirmationPage = () => {
     }
   }, [dispatch, orderId, currentOrder]);
 
-  // ✅ TRACKING: FirstPromoter Sale Tracking
+  // ✅ TRACKING: Google Analytics & FirstPromoter
   useEffect(() => {
     // Only proceed if order is loaded and we haven't tracked this session yet
-    if (currentOrder && window.fpr && !trackingFired.current) {
+    if (currentOrder && !trackingFired.current) {
         
-        // Anti-Duplicate Check: Check session storage to see if this specific Order ID was already counted
+        // Anti-Duplicate Check: Check session storage
         const storageKey = `tracked_order_${currentOrder.orderId}`;
         const alreadyTracked = sessionStorage.getItem(storageKey);
 
         if (!alreadyTracked) {
-            console.log("🚀 Tracking Sale for FirstPromoter:", currentOrder.orderId);
+            console.log("🚀 Tracking Sale for Order:", currentOrder.orderId);
             
-            // 1. FirstPromoter Conversion
-            window.fpr("conversion", {
-                id: currentOrder.orderId,      // Unique Order ID
-                amount: currentOrder.totalAmount // Order Value
-            });
+            // 1. FirstPromoter Conversion (Affiliate Tracking)
+            if (window.fpr) {
+                window.fpr("conversion", {
+                    id: currentOrder.orderId,
+                    amount: currentOrder.totalAmount
+                });
+            }
 
-            // 2. Google Analytics Purchase (Optional, if you want GA4 revenue)
-            if (window.gtag) {
-                window.gtag("event", "purchase", {
+            // 2. ✅ GOOGLE ANALYTICS PURCHASE EVENT (Using Helper)
+            trackEvent("purchase", {
+                ecommerce: {
                     transaction_id: currentOrder.orderId,
                     value: currentOrder.totalAmount,
                     currency: "INR",
+                    tax: 0,
+                    shipping: 0,
                     items: (currentOrder.orderItems || []).map(item => ({
                         item_id: item.product?.productId,
                         item_name: item.product?.productName,
                         price: item.orderedProductPrice,
                         quantity: item.quantity
                     }))
-                });
-            }
+                }
+            });
 
             // Mark as tracked so refresh doesn't count it again
             sessionStorage.setItem(storageKey, "true");
@@ -318,10 +325,10 @@ const OrderConfirmationPage = () => {
                    
                    <div className="pt-4 mt-2 border-t border-gray-100">
                       <div className="flex justify-between items-end">
-                         <span className="font-bold text-gray-800">Grand Total</span>
-                         <span className="text-2xl font-extrabold text-[var(--color-darkgreen)]">
-                             ₹{finalTotal.toFixed(2)}
-                         </span>
+                          <span className="font-bold text-gray-800">Grand Total</span>
+                          <span className="text-2xl font-extrabold text-[var(--color-darkgreen)]">
+                              ₹{finalTotal.toFixed(2)}
+                          </span>
                       </div>
                    </div>
                 </div>

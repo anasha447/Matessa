@@ -2,7 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
-// --- 1. The Animation Component (Unchanged logic, just style tweaks) ---
+// ✅ 1. Import Analytics Helper
+import { trackEvent } from '../utils/analytics';
+
+// --- Animation Component (Unchanged) ---
 const FocusText = ({ 
   sentence, 
   separator = '|', 
@@ -16,7 +19,7 @@ const FocusText = ({
   const [focusRect, setFocusRect] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
   const animationDuration = 0.5; 
-  const showTime = 1.5;         
+  const showTime = 1.5;        
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -75,7 +78,6 @@ const FocusText = ({
         }}
         transition={{ duration: animationDuration, ease: "easeInOut" }}
       >
-        {/* Corners styling */}
         <span className="absolute w-3 h-3 border-[2px] rounded-[3px] top-[-6px] left-[-8px] border-r-0 border-b-0" style={{ borderColor: color }}></span>
         <span className="absolute w-3 h-3 border-[2px] rounded-[3px] top-[-6px] right-[-8px] border-l-0 border-b-0" style={{ borderColor: color }}></span>
         <span className="absolute w-3 h-3 border-[2px] rounded-[3px] bottom-[-6px] left-[-8px] border-r-0 border-t-0" style={{ borderColor: color }}></span>
@@ -85,20 +87,17 @@ const FocusText = ({
   );
 };
 
-// --- 2. Main Component ---
+// --- Main Component ---
 const AfterBanner = () => {
   return (
     <section 
       className="relative py-16 px-6 md:px-20 bg-white overflow-hidden"
     >
-      {/* Background Decor (Subtle Gradient) */}
+      {/* Background Decor */}
       <div 
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] rounded-full opacity-30 blur-3xl pointer-events-none"
         style={{ background: 'radial-gradient(circle, #fde4d8 0%, transparent 70%)' }}
       ></div>
-
-      {/* Floating Decor Element (Abstract Leaf) */}
-      
 
       <div className="max-w-4xl mx-auto text-center font-body relative z-10">
         
@@ -109,7 +108,7 @@ const AfterBanner = () => {
           color="#F26323"
         />
         
-        {/* Main Heading with Entrance Animation */}
+        {/* Main Heading */}
         <motion.h2 
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -122,25 +121,25 @@ const AfterBanner = () => {
           <span style={{ color: '#F26323' }}>of Health</span>
         </motion.h2>
         
-        {/* Enhanced Description */}
+        {/* Description */}
         <motion.p 
-  initial={{ opacity: 0, y: 20 }}
-  whileInView={{ opacity: 1, y: 0 }}
-  viewport={{ once: true }}
-  transition={{ duration: 0.6, delay: 0.2 }}
-  className="text-lg md:text-xl font-medium mb-10 leading-relaxed max-w-2xl mx-auto font-body"
-  style={{ color: '#4A5545' }}
->
-  Experience <span className="text-gray-900 font-bold">
-    balanced <span className="text-orange">energy</span> & calm <span className="text-lightgreen">clarity, </span>
-  </span> 
-  <br className="hidden md:block" />
-  A clean, natural lift without the jitters,
-  <span className="text-gray-900 font-bold bg-orange-50 px-1 rounded mx-1">
-    elevating your well-being,
-  </span> 
-  every day.
-</motion.p>
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="text-lg md:text-xl font-medium mb-10 leading-relaxed max-w-2xl mx-auto font-body"
+          style={{ color: '#4A5545' }}
+        >
+          Experience <span className="text-gray-900 font-bold">
+            balanced <span className="text-orange-500">energy</span> & calm <span className="text-green-500">clarity, </span>
+          </span> 
+          <br className="hidden md:block" />
+          A clean, natural lift without the jitters,
+          <span className="text-gray-900 font-bold bg-orange-50 px-1 rounded mx-1">
+            elevating your well-being,
+          </span> 
+          every day.
+        </motion.p>
         
         {/* Buttons Container */}
         <motion.div 
@@ -150,9 +149,15 @@ const AfterBanner = () => {
            transition={{ duration: 0.5, delay: 0.4 }}
            className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6"
         >
-          {/* Primary Button */}
+          {/* Primary Button: Try Now */}
           <Link 
             to="/product/52" 
+            // ✅ ANALYTICS TRIGGER
+            onClick={() => trackEvent("button_click", {
+                button_name: "Try Now",
+                section: "AfterBanner_Home",
+                destination: "/product/52"
+            })}
             className="w-full sm:w-auto font-bold font-body py-3 px-8 rounded-full transition-all duration-300 shadow-lg hover:shadow-orange-200 hover:-translate-y-1 active:scale-95"
             style={{ 
               backgroundColor: '#F26323', 
@@ -162,23 +167,22 @@ const AfterBanner = () => {
             Try Now
           </Link>
 
-          {/* Secondary Button (Ghost/Outline style) */}
+          {/* Secondary Button: Learn More */}
           <Link 
             to="/what.is.mate" 
-            className="w-full sm:w-auto font-bold font-body py-3 px-8 rounded-full border-1 transition-all duration-300 hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2 group"
-            style={{ 
-              borderColor: '#2F3B28', 
-              color: '#2F3B28',
-              backgroundColor: 'transparent'
-            }}
+            // ✅ ANALYTICS TRIGGER
+            onClick={() => trackEvent("button_click", {
+                button_name: "Learn More",
+                section: "AfterBanner_Home",
+                destination: "/what.is.mate"
+            })}
+            className="w-full sm:w-auto font-bold font-body py-3 px-8 rounded-full border border-[#2F3B28] text-[#2F3B28] bg-transparent transition-all duration-300 hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2 group"
           >
             <span>Don't know Mate?!</span>
-            {/* Tiny arrow animation on hover */}
             <motion.span 
               className="inline-block"
               transition={{ repeat: Infinity, duration: 1 }}
             >
-             
             </motion.span>
           </Link>
         </motion.div>

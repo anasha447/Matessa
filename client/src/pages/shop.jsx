@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import ShopBanner from "../components/banner-shop";
-import { Helmet } from "react-helmet-async"; // ✅ 1. Import for SEO
+import { Helmet } from "react-helmet-async"; 
 
 // Redux Imports
 import { useDispatch, useSelector } from "react-redux";
@@ -11,6 +11,9 @@ import { addToCart } from "../redux/slices/cartSlice";
 
 // Icons
 import { Filter, SlidersHorizontal } from "lucide-react";
+
+// ✅ 1. Import Analytics Helper
+import { trackAddToCart } from "../utils/analytics"; 
 
 // ✅ 2. DEFINE API URL
 const API_BASE_URL = "https://matessa.in"; 
@@ -33,6 +36,13 @@ const ShopPage = () => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
+  // Image Helper Function
+  const getProductImage = (imageName) => {
+    if (!imageName) return "https://matessa.in/assets/placeholder.png"; 
+    if (imageName.startsWith("http")) return imageName;
+    return `${API_BASE_URL}/images/${imageName}`;
+  };
+
   // Filter Logic
   const processedProducts = useMemo(() => {
     const productList = Array.isArray(rawProducts) 
@@ -51,35 +61,50 @@ const ShopPage = () => {
     return result;
   }, [rawProducts, selectedCategoryId]);
 
-  // Image Helper Function
-  const getProductImage = (imageName) => {
-    if (!imageName) return "/assets/placeholder.png";
-    if (imageName.startsWith("http")) return imageName;
-    return `${API_BASE_URL}/images/${imageName}`;
-  };
-
   const handleAddToCart = (e, product) => {
     e.stopPropagation();
+    
+    // 1. Redux Action
     dispatch(addToCart({
       productId: product.productId,
       quantity: 1
     }));
+
+    // ✅ 2. Analytics Trigger
+    trackAddToCart(product);
   };
 
   // ---------------------------------------------
-  // ✅ SEO CONFIGURATION START
+  // ✅ SEO CONFIGURATION START (UPDATED)
   // ---------------------------------------------
   const seoTitle = "Shop Premium Yerba Mate & Accessories | Matessa India";
   const seoDesc = "Explore our collection of authentic Yerba Mate and traditional gourds, bombillas, and starter kits. imported from South America.";
   const seoUrl = "https://matessa.in/shop";
 
-  // Google Schema for a "CollectionPage" (The Store Catalog)
+  const productSchemaList = processedProducts.map((product, index) => ({
+    "@type": "ListItem",
+    "position": index + 1,
+    "url": `https://matessa.in/product/${product.productId}`,
+    "name": product.productName,
+    "image": getProductImage(product.image || product.images?.[0]),
+    "offers": {
+      "@type": "Offer",
+      "price": product.specialPrice || product.price,
+      "priceCurrency": "INR",
+      "availability": (product.quantity > 0) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+    }
+  }));
+
   const shopSchema = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     "name": "Matessa Shop",
     "url": seoUrl,
     "description": seoDesc,
+    "mainEntity": {
+      "@type": "ItemList",
+      "itemListElement": productSchemaList 
+    },
     "breadcrumb": {
       "@type": "BreadcrumbList",
       "itemListElement": [
@@ -113,18 +138,14 @@ const ShopPage = () => {
   return (
     <>
       <Helmet>
-        {/* Visual Meta Tags */}
         <title>{seoTitle}</title>
         <meta name="description" content={seoDesc} />
         <link rel="canonical" href={seoUrl} />
-        
-        {/* Social Media Previews */}
         <meta property="og:title" content={seoTitle} />
         <meta property="og:description" content={seoDesc} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={seoUrl} />
-        
-        {/* Google Schema Script */}
+        <meta property="og:image" content="https://matessa.in/full.logo.png" /> 
         <script type="application/ld+json">
           {JSON.stringify(shopSchema)}
         </script>
@@ -146,7 +167,6 @@ const ShopPage = () => {
               <div>
                 <h4 className="font-bold text-sm uppercase tracking-wider text-gray-400 mb-4">Categories</h4>
                 <ul className="space-y-3">
-                  {/* "All" Option */}
                   <li>
                     <button
                       onClick={() => setSelectedCategoryId("All")}
@@ -159,8 +179,6 @@ const ShopPage = () => {
                       All Products
                     </button>
                   </li>
-
-                  {/* Backend Categories */}
                   {categories.map((cat) => (
                     <li key={cat.categoryId}>
                       <button
@@ -183,7 +201,6 @@ const ShopPage = () => {
           {/* --- RIGHT SIDE (Product Grid) --- */}
           <div className="md:w-3/4">
             
-            {/* Top Bar */}
             <div className="flex flex-wrap justify-between items-center mb-10 gap-4">
               <p className="text-gray-500 font-medium">
                 Showing <span className="font-bold text-[var(--color-darkgreen)]">{processedProducts.length}</span> results
@@ -197,7 +214,6 @@ const ShopPage = () => {
               </button>
             </div>
 
-            {/* Product Grid */}
             {processedProducts.length === 0 ? (
               <div className="text-center py-24 bg-gray-50 rounded-[2rem] border border-dashed border-gray-200">
                 <p className="text-xl text-gray-400 mb-4">No products found here.</p>
@@ -217,7 +233,6 @@ const ShopPage = () => {
                     onClick={() => navigate(`/product/${product.productId}`)}
                   >
                     
-                    {/* PRODUCT CARD IMAGE */}
                     <div className="
                         relative w-full aspect-[1/1.1] bg-gray-50 rounded-[2rem] overflow-hidden 
                         border border-gray-400 transition-all duration-500 h-[200px] md:h-[340px]
@@ -230,7 +245,6 @@ const ShopPage = () => {
                         onError={(e) => { e.target.src = "/assets/placeholder.png"; }}
                       />
 
-                      {/* Quick Add Button */}
                       <button
                         onClick={(e) => handleAddToCart(e, product)}
                         className="
@@ -245,7 +259,6 @@ const ShopPage = () => {
                         Add to Cart
                       </button>
                       
-                      {/* Mobile Only Cart Icon */}
                       <button
                             onClick={(e) => handleAddToCart(e, product)}
                             className="md:hidden absolute bottom-3 right-3 bg-[var(--color-darkgreen)] text-white p-2 rounded-full shadow-md"
@@ -254,7 +267,6 @@ const ShopPage = () => {
                       </button>
                     </div>
 
-                    {/* PRODUCT INFO */}
                     <div className="mt-4 text-center px-1 w-full"> 
                       <h3 className="text-lg font-heading font-bold text-gray-800 group-hover:text-[var(--color-darkgreen)] transition-colors leading-tight">
                         {product.productName}

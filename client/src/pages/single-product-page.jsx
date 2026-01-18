@@ -11,10 +11,13 @@ import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "../redux/slices/cartSlice";
 import EnergyComparisonSection from '../components/EnergyComparisonSection';
 
-import { fetchProductDetails, createProductReview, resetReviewSuccess } from "../redux/slices/productSlice";
-import { Helmet } from "react-helmet-async"; // ✅ ADDED: For SEO
+// ✅ 1. Import BOTH Analytics Helpers
+import { trackViewItem, trackAddToCart } from "../utils/analytics"; 
 
-// ✅ 1. DEFINE API URL
+import { fetchProductDetails, createProductReview, resetReviewSuccess } from "../redux/slices/productSlice";
+import { Helmet } from "react-helmet-async"; 
+
+// ✅ 2. DEFINE API URL
 const API_BASE_URL = "https://matessa.in";
 
 const SingleProductPage = () => {
@@ -52,6 +55,13 @@ const SingleProductPage = () => {
         }
     }
   }, [product, id, selectedVariant]);
+
+  // ✅ Analytics: Track View Item (Window Shopper)
+  useEffect(() => {
+    if (product) {
+      trackViewItem(product);
+    }
+  }, [product]);
 
   useEffect(() => {
     if (reviewSuccess) {
@@ -93,12 +103,17 @@ const SingleProductPage = () => {
   const handleAddToCart = async () => {
     if (!product) return;
     if (product.variants && product.variants.length > 0 && !selectedVariant) return toast.error("Please select a size option");
+    
     try {
       await dispatch(addToCart({
         productId: product.productId,
         quantity: quantity,
         variantId: selectedVariant ? selectedVariant.variantId : null
       })).unwrap();
+
+      // ✅ ANALYTICS TRIGGER: ADD TO CART
+      trackAddToCart(product);
+
       toast.success("Added to cart!");
     } catch (err) {
       toast.error(err || "Failed to add to cart");
@@ -108,12 +123,17 @@ const SingleProductPage = () => {
   const handleBuyNow = async () => {
     if (!product) return;
     if (product.variants && product.variants.length > 0 && !selectedVariant) return toast.error("Please select a size option");
+    
     try {
       await dispatch(addToCart({
         productId: product.productId,
         quantity: quantity,
         variantId: selectedVariant ? selectedVariant.variantId : null
       })).unwrap();
+      
+      // ✅ ANALYTICS TRIGGER: BUY NOW (Counts as Add to Cart + Checkout)
+      trackAddToCart(product);
+
       navigate("/checkoutpage");
     } catch (err) {
       toast.error("Could not process Buy Now");
@@ -144,12 +164,11 @@ const SingleProductPage = () => {
   // ---------------------------------------------
   const seoTitle = product ? `${product.productName} | Matessa` : "Matessa Product";
   const seoDesc = product?.description 
-    ? product.description.replace(/<[^>]*>?/gm, '').substring(0, 160) + "..." // Strip HTML & shorten
+    ? product.description.replace(/<[^>]*>?/gm, '').substring(0, 160) + "..." 
     : "premium Yerba Mate Mixed With Indian Herbs Only From Matessa.";
   const seoImage = mainImage ? getProductImage(mainImage) : "https://matessa.in/full.logo.png";
   const productPrice = displayPrice || product?.specialPrice || 0;
 
-  // Google Rich Snippets Schema
   const productSchema = {
     "@context": "https://schema.org/",
     "@type": "Product",
@@ -340,14 +359,14 @@ const SingleProductPage = () => {
                     textAlign: 'left'
                 }}
             >
-                 <h3 className="font-bold text-2xl font-body py-6">Product Overview</h3>
-                 
-                 {/* Clean the HTML before parsing to remove hidden splitters */}
-                 {parse(
+                  <h3 className="font-bold text-2xl font-body py-6">Product Overview</h3>
+                  
+                  {/* Clean the HTML before parsing to remove hidden splitters */}
+                  {parse(
                     (product.description || "")
                     .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces
                     .replace(/&nbsp;/g, ' ')               // Replace non-breaking spaces with normal spaces
-                 )}
+                  )}
             </div>
 
           </div>

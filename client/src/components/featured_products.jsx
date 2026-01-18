@@ -5,10 +5,13 @@ import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { addToCart } from "../redux/slices/cartSlice";
 
+// ✅ 1. Import Analytics Helper
+import { trackAddToCart } from "../utils/analytics"; 
+
 // ⚠️ IMPORTANT: Change this ID if "5" is empty. Check your DB for the real ID.
 const FEATURED_CATEGORY_ID = 1; 
 
-// ✅ 1. DEFINE IMAGE BASE URL
+// ✅ 2. DEFINE IMAGE BASE URL
 const IMG_BASE_URL = "https://matessa.in";
 
 // Standardized API URL definition
@@ -25,7 +28,7 @@ const FeaturedProducts = () => {
   const navigate = useNavigate();
   const [startX, setStartX] = useState(null);
 
-  // ✅ 2. HELPER FUNCTION FOR IMAGES
+  // ✅ 3. HELPER FUNCTION FOR IMAGES
   const getProductImage = (imageName) => {
     if (!imageName) return "/assets/placeholder.png";
     if (imageName.startsWith("http")) return imageName;
@@ -60,6 +63,10 @@ const FeaturedProducts = () => {
         productId: product.productId, 
         quantity: 1
       })).unwrap();
+      
+      // ✅ 4. Analytics Trigger
+      trackAddToCart(product);
+
       toast.success(`Added ${product.productName} to cart`);
     } catch (err) {
       toast.error(err || "Could not add to cart");
@@ -118,7 +125,7 @@ const FeaturedProducts = () => {
                    border border-gray-500 transition-all duration-500 
                    group-hover:border-[var(--color-orange)] group-hover:shadow-lg
                 ">
-                  {/* ✅ 3. USE HELPER FUNCTION HERE */}
+                  {/* ✅ USE HELPER FUNCTION HERE */}
                   <img
                     src={getProductImage(displayImage)} 
                     alt={product.productName}

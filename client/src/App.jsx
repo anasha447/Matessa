@@ -1,10 +1,10 @@
 import React, { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom"; // ✅ Added useLocation
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 // ✅ Redux Imports
-import { useDispatch, useSelector } from "react-redux"; // <--- Added useSelector
+import { useDispatch, useSelector } from "react-redux";
 import { checkAuthStatus } from "./redux/slices/authSlice";
 import { fetchCart } from "./redux/slices/cartSlice";
 
@@ -50,11 +50,28 @@ import AppFooter from "./components/footer";
 import AdminRoute from "./components/AdminRoute"; 
 import ScrollToTop from "./components/ScrollToTop"; 
 
+// ✅ NEW: Helper Component to Track Page Views
+// We need this separate component because 'useLocation' only works INSIDE <Router>
+const AnalyticsTracker = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (window.dataLayer) {
+      window.dataLayer.push({
+        event: "page_view",
+        page_path: location.pathname,
+        page_title: document.title,
+      });
+    }
+  }, [location]); // Runs every time URL changes
+
+  return null; // It renders nothing visually
+};
+
 const App = () => {
   const dispatch = useDispatch();
   
   // ✅ 1. Get the loading/checking state from Redux
-  // Use 'isCheckingAuth' if you added it to your slice, otherwise use 'loading'
   const { isCheckingAuth } = useSelector((state) => state.auth); 
 
   useEffect(() => {
@@ -63,22 +80,22 @@ const App = () => {
   }, [dispatch]);
 
   // ✅ 2. THE GATEKEEPER
-  // If we are currently checking if the user is logged in, DO NOT render the router yet.
-  // This prevents the AdminRoute from kicking you out prematurely.
-  if (isCheckingAuth ) {
-     return (
-       <div className="flex items-center justify-center min-h-screen bg-[var(--color-craemy)]">
-         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-[var(--color-darkgreen)]"></div>
-       </div>
-     );
+  if (isCheckingAuth) {
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-[var(--color-craemy)]">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-[var(--color-darkgreen)]"></div>
+        </div>
+      );
   }
 
   return (
     <Router>
+      {/* ✅ 3. Activate Analytics inside the Router */}
+      <AnalyticsTracker />
+      
       <Header />
-
-
       <ScrollToTop />
+      
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -118,7 +135,6 @@ const App = () => {
           <Route path="/myorders" element={<OrderHistoryPage />} />
           
           {/* --- ADMIN ROUTES (PROTECTED) --- */}
-          {/* The AdminRoute will now work correctly because 'user' data is fully loaded */}
           <Route element={<AdminRoute />}>
             <Route path="/admin/dashboard" element={<Dashboard />} />
             <Route path="/admin/users" element={<UserListPage />} />

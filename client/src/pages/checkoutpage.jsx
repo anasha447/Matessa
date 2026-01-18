@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import axios from "axios"; 
@@ -13,13 +13,15 @@ import { useDispatch, useSelector } from "react-redux";
 import { placeOrder } from "../redux/slices/orderSlice";
 import { clearCart, applyCoupon, removeCoupon } from "../redux/slices/cartSlice"; 
 
-// ✅ 1. DEFINE CONSTANTS
+// ✅ 1. Import Analytics Helper
+import { trackEvent } from "../utils/analytics";
+
+// ✅ 2. DEFINE CONSTANTS
 const IMG_BASE_URL = "https://matessa.in";
 const API_URL = "https://matessa.in/api"; 
 
 // ✅ COMPONENT OUTSIDE
-// Update: Removed placeholder text
-const InputField = ({ label, name, type = "text", colSpan = "col-span-1", value, onChange }) => (
+const InputField = ({ label, name, type = "text", colSpan = "col-span-1", value, onChange, onBlur }) => (
     <div className={colSpan}>
       <label className="block text-xs font-bold text-gray-500 uppercase mb-1 tracking-wide">{label}</label>
       <input
@@ -27,6 +29,7 @@ const InputField = ({ label, name, type = "text", colSpan = "col-span-1", value,
         name={name}
         value={value} 
         onChange={onChange} 
+        onBlur={onBlur} // ✅ Added onBlur for tracking
         className="w-full rounded-lg border-gray-200 bg-gray-50 border px-4 py-3 text-sm focus:bg-white focus:ring-2 focus:ring-[var(--color-green)] focus:border-transparent transition-all outline-none"
         placeholder="" 
         required
@@ -47,9 +50,11 @@ const CheckoutPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [localLoading, setLocalLoading] = useState(false);
   const [couponInput, setCouponInput] = useState(""); 
-  
-  // Flag to track if order was successful (prevents redirect)
   const [isOrderSuccess, setIsOrderSuccess] = useState(false);
+
+  // Analytics Refs (to prevent duplicate events)
+  const hasTrackedShipping = useRef(false);
+  const hasTrackedPayment = useRef(false);
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -65,10 +70,9 @@ const CheckoutPage = () => {
     return `${IMG_BASE_URL}/images/${imageName}`;
   };
 
-  // Redirect if Cart is Empty (ignored if order just succeeded)
+  // Redirect if Cart is Empty
   useEffect(() => {
     if (isOrderSuccess) return;
-
     if (!items || items.length === 0) {
         if (!orderLoading) {
             navigate("/shop");
@@ -100,6 +104,46 @@ const CheckoutPage = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // ✅ ANALYTICS: Track Shipping Info (Once per session)
+  // We trigger this when user leaves a field (onBlur) to show they interacted
+  const handleInputBlur = () => {
+      if (!hasTrackedShipping.current && formData.name && formData.email) {
+          trackEvent("add_shipping_info", {
+              ecommerce: {
+                  currency: "INR",
+                  value: finalTotal,
+                  items: items.map(item => ({
+                      item_id: item.productId,
+                      item_name: item.productName,
+                      price: item.specialPrice || item.price,
+                      quantity: item.quantity
+                  }))
+              }
+          });
+          hasTrackedShipping.current = true;
+      }
+  };
+
+  // ✅ ANALYTICS: Track Payment Info Selection
+  const handlePaymentChange = (method) => {
+      setPaymentMethod(method);
+      
+      // Fire event immediately on selection
+      trackEvent("add_payment_info", {
+          ecommerce: {
+              currency: "INR",
+              value: finalTotal,
+              payment_type: method, // "COD" or "ONLINE"
+              items: items.map(item => ({
+                  item_id: item.productId,
+                  item_name: item.productName,
+                  price: item.specialPrice || item.price,
+                  quantity: item.quantity
+              }))
+          }
+      });
   };
 
   // Calculation Logic
@@ -209,12 +253,8 @@ const CheckoutPage = () => {
 
         if (!targetId) throw new Error("Order was placed, but ID is missing.");
 
-        // Set Success Flag BEFORE clearing cart
         setIsOrderSuccess(true);
-        
-        // Now clear the cart
         dispatch(clearCart());
-        
         toast.success("Order placed successfully!");
         
         setTimeout(() => {
@@ -290,13 +330,13 @@ const CheckoutPage = () => {
                 </h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Full Name" name="name" value={formData.name} onChange={handleInputChange} />
-                <InputField label="Email Address" name="email" type="email" value={formData.email} onChange={handleInputChange} />
-                <InputField label="Phone Number" name="phone" type="tel" colSpan="md:col-span-2" value={formData.phone} onChange={handleInputChange} />
-                <InputField label="Street Address" name="street" colSpan="md:col-span-2" value={formData.street} onChange={handleInputChange} />
-                <InputField label="State" name="state" value={formData.state} onChange={handleInputChange} />
-                <InputField label="City" name="city" value={formData.city} onChange={handleInputChange} />
-                <InputField label="Pincode" name="pincode" value={formData.pincode} onChange={handleInputChange} />
+                <InputField label="Full Name" name="name" value={formData.name} onChange={handleInputChange} onBlur={handleInputBlur} />
+                <InputField label="Email Address" name="email" type="email" value={formData.email} onChange={handleInputChange} onBlur={handleInputBlur} />
+                <InputField label="Phone Number" name="phone" type="tel" colSpan="md:col-span-2" value={formData.phone} onChange={handleInputChange} onBlur={handleInputBlur} />
+                <InputField label="Street Address" name="street" colSpan="md:col-span-2" value={formData.street} onChange={handleInputChange} onBlur={handleInputBlur} />
+                <InputField label="State" name="state" value={formData.state} onChange={handleInputChange} onBlur={handleInputBlur} />
+                <InputField label="City" name="city" value={formData.city} onChange={handleInputChange} onBlur={handleInputBlur} />
+                <InputField label="Pincode" name="pincode" value={formData.pincode} onChange={handleInputChange} onBlur={handleInputBlur} />
                 
                 <div className="col-span-1">
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1 tracking-wide">Country</label>
@@ -305,7 +345,7 @@ const CheckoutPage = () => {
               </div>
             </div>
 
-            {/* ✅ NEW DESIGN: Payment Method Card */}
+            {/* ✅ Payment Method Card */}
             <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
               <div className="mb-6 border-b border-gray-100 pb-4">
                 <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -316,7 +356,7 @@ const CheckoutPage = () => {
               
               <div className="grid grid-cols-1 gap-4">
                 
-                {/* 💳 ONLINE OPTION (Designed as a card) */}
+                {/* 💳 ONLINE OPTION */}
                 <label className={`relative flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 group ${
                   paymentMethod === "ONLINE" 
                   ? "border-[var(--color-green)] bg-[#F0FDF4] shadow-md scale-[1.01]" 
@@ -327,25 +367,22 @@ const CheckoutPage = () => {
                     name="paymentMethod" 
                     value="ONLINE" 
                     checked={paymentMethod === "ONLINE"} 
-                    onChange={(e) => setPaymentMethod(e.target.value)} 
-                    className="hidden" // Hidden input, handled by label click
+                    onChange={() => handlePaymentChange("ONLINE")} // ✅ UPDATED HANDLER
+                    className="hidden"
                   />
                   
                   <div className="flex items-center gap-4 w-full">
-                    {/* Icon Box */}
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shrink-0 transition-colors ${
                        paymentMethod === "ONLINE" ? "bg-[var(--color-green)] text-white" : "bg-gray-100 text-gray-400 group-hover:bg-gray-200"
                     }`}>
                         <FaCreditCard />
                     </div>
 
-                    {/* Text Details */}
                     <div className="flex-1">
                         <div className="flex items-center justify-between">
                             <h3 className={`font-bold text-sm md:text-base ${paymentMethod === "ONLINE" ? "text-gray-900" : "text-gray-600"}`}>
                                 Pay Online
                             </h3>
-                            {/* Small Payment Logos (Icons) */}
                             {paymentMethod === "ONLINE" && (
                                 <div className="hidden sm:flex gap-2 text-gray-400">
                                     <FaGooglePay size={24} />
@@ -357,7 +394,6 @@ const CheckoutPage = () => {
                         <p className="text-xs text-gray-500 mt-1">Razorpay, UPI, Credit/Debit Cards</p>
                     </div>
 
-                    {/* Checkmark Circle */}
                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
                         paymentMethod === "ONLINE" ? "border-[var(--color-green)] bg-[var(--color-green)]" : "border-gray-300"
                     }`}>
@@ -366,7 +402,7 @@ const CheckoutPage = () => {
                   </div>
                 </label>
 
-                {/* 💵 COD OPTION (Designed as a card) */}
+                {/* 💵 COD OPTION */}
                 <label className={`relative flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 group ${
                   paymentMethod === "COD" 
                   ? "border-[var(--color-green)] bg-[#F0FDF4] shadow-md scale-[1.01]" 
@@ -377,19 +413,17 @@ const CheckoutPage = () => {
                     name="paymentMethod" 
                     value="COD" 
                     checked={paymentMethod === "COD"} 
-                    onChange={(e) => setPaymentMethod(e.target.value)} 
+                    onChange={() => handlePaymentChange("COD")} // ✅ UPDATED HANDLER
                     className="hidden" 
                   />
                   
                   <div className="flex items-center gap-4 w-full">
-                    {/* Icon Box */}
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shrink-0 transition-colors ${
                        paymentMethod === "COD" ? "bg-[var(--color-green)] text-white" : "bg-gray-100 text-gray-400 group-hover:bg-gray-200"
                     }`}>
                         <FaMoneyBillWave />
                     </div>
 
-                    {/* Text Details */}
                     <div className="flex-1">
                         <h3 className={`font-bold text-sm md:text-base ${paymentMethod === "COD" ? "text-gray-900" : "text-gray-600"}`}>
                             Cash on Delivery
@@ -397,8 +431,7 @@ const CheckoutPage = () => {
                         <p className="text-xs text-gray-500 mt-1">Pay with cash upon arrival</p>
                     </div>
 
-                     {/* Checkmark Circle */}
-                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
                         paymentMethod === "COD" ? "border-[var(--color-green)] bg-[var(--color-green)]" : "border-gray-300"
                     }`}>
                         {paymentMethod === "COD" && <FaCheckCircle className="text-white text-xs" />}

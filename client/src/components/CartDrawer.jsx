@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, Trash2 } from "lucide-react";
+import { trackEvent } from "../utils/analytics"; // ✅ Imported
 
 // Redux Imports
 import { useDispatch, useSelector } from "react-redux";
@@ -28,15 +29,33 @@ const CartDrawer = ({ isOpen, onClose }) => {
   const getCartImage = (imageName) => {
     if (!imageName) return "/assets/placeholder.png";
     if (imageName.startsWith("http")) return imageName;
-    // Points to: https://matessa.in/images/your-file.jpg
     return `${IMG_BASE_URL}/images/${imageName}`;
   };
 
   // 5. Handlers
+
   const handleQtyChange = (productId, operation, currentQty, variantId) => {
     if (operation === 'decrease' && currentQty <= 1) {
         const item = items.find(i => i.productId === productId && i.variantId === variantId);
         if (window.confirm("Remove this item?")) {
+            
+            // ✅ ANALYTICS: Track Removal (via Quantity Decrease)
+            if (item) {
+                trackEvent("remove_from_cart", {
+                    ecommerce: {
+                        currency: "INR",
+                        value: item.specialPrice || item.price,
+                        items: [{
+                            item_id: item.productId,
+                            item_name: item.productName,
+                            price: item.specialPrice || item.price,
+                            quantity: item.quantity,
+                            item_variant: item.variant
+                        }]
+                    }
+                });
+            }
+
             dispatch(removeCartItem({ cartId, productId, variant: item?.variant }));
         }
     } else {
@@ -45,10 +64,46 @@ const CartDrawer = ({ isOpen, onClose }) => {
   };
 
   const handleRemove = (productId, variant) => {
+    // We need to find the item details BEFORE removing it to track it
+    const itemToRemove = items.find(i => i.productId === productId && (!variant || i.variant === variant));
+
+    if (itemToRemove) {
+        // ✅ ANALYTICS: Track Removal (via Trash Icon)
+        trackEvent("remove_from_cart", {
+            ecommerce: {
+                currency: "INR",
+                value: itemToRemove.specialPrice || itemToRemove.price,
+                items: [{
+                    item_id: itemToRemove.productId,
+                    item_name: itemToRemove.productName,
+                    price: itemToRemove.specialPrice || itemToRemove.price,
+                    quantity: itemToRemove.quantity,
+                    item_variant: itemToRemove.variant
+                }]
+            }
+        });
+    }
+
     dispatch(removeCartItem({ cartId, productId, variant }));
   };
 
   const handleCheckout = () => {
+    // ✅ ANALYTICS: Begin Checkout (The Funnel Starts!)
+    trackEvent("begin_checkout", {
+        ecommerce: {
+            currency: "INR",
+            value: totalPrice,
+            items: items.map(item => ({
+                item_id: item.productId,
+                item_name: item.productName,
+                price: item.specialPrice || item.price,
+                quantity: item.quantity,
+                item_category: item.categoryName || "General",
+                item_variant: item.variant
+            }))
+        }
+    });
+
     onClose();
     navigate('/checkoutpage');
   };
