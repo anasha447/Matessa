@@ -44,8 +44,8 @@ const Home = () => {
         <Banner />
         <ScrollingBar />
         <AfterBanner />
-        <EnergyComparisonSection/>
         <FeaturedProducts />
+        <EnergyComparisonSection/>
         <YerbaMateBenefits />
         
         <div style={{ width: '100vw', height: '80vh', backgroundImage: "linear-gradient(to bottom, #F9F7F3, #f2f2f2)" }}>
