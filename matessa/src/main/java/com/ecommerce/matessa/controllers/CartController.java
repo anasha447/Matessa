@@ -126,7 +126,7 @@ public class CartController {
     @GetMapping("/admin/carts")
     public ResponseEntity<List<CartDTO>> getCarts() {
         List<CartDTO> cartDTOs = cartService.getAllCarts();
-        return new ResponseEntity<>(cartDTOs, HttpStatus.FOUND);
+        return new ResponseEntity<>(cartDTOs, HttpStatus.OK);
     }
     
     @PostMapping("/public/carts/{cartId}/coupon/{code}")

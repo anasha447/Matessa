@@ -40,6 +40,11 @@ public class Order {
 
     private LocalDateTime orderDate;
 
+    @PrePersist
+    protected void onCreate() {
+        this.orderDate = LocalDateTime.now();
+    }
+
     @OneToOne
     @JoinColumn(name = "payment_id")
     private Payment payment;
