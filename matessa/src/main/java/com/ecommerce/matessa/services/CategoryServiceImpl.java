@@ -8,6 +8,8 @@ import com.ecommerce.matessa.payLoad.CategoryResponse;
 import com.ecommerce.matessa.repositories.CategoryRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -28,13 +30,16 @@ public class CategoryServiceImpl implements CategoryService {
         this.categoryRepository = categoryRepository;
     }
 
+    // ==========================================
+    // READ METHOD (Cached)
+    // ==========================================
+
     @Override
+    @Cacheable(value = "categories") // ✅ Saves the entire category list to Redis
     public CategoryResponse getAllCategories() {
         List<Category> categories = categoryRepository.findAll();
 
-        // ❌ DELETE THIS: if (categories.isEmpty()) throw ...
-
-        // ✅ ADD THIS: Handle empty list gracefully
+        // Handle empty list gracefully
         if (categories.isEmpty()) {
             CategoryResponse emptyResponse = new CategoryResponse();
             emptyResponse.setContent(new ArrayList<>());
@@ -50,7 +55,13 @@ public class CategoryServiceImpl implements CategoryService {
         return categoryResponse;
     }
 
+    // ==========================================
+    // WRITE METHODS (Evicts Cache)
+    // ==========================================
+
     @Override
+    // ✅ Wipes the category cache AND product caches to ensure names stay updated everywhere
+    @CacheEvict(value = {"categories", "allProducts", "categoryProducts"}, allEntries = true)
     public CategoryDTO createCategory(CategoryDTO categoryDTO) {
         Category category = modelMapper.map(categoryDTO, Category.class);
         Category categoryFromDB = categoryRepository.findByCategoryName(category.getCategoryName());
@@ -64,6 +75,8 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    // ✅ Wipes caches so deleted categories instantly disappear from the frontend
+    @CacheEvict(value = {"categories", "allProducts", "categoryProducts"}, allEntries = true)
     public CategoryDTO deleteCategory(Long categoryId) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceExceptionHandler("category", "categoryId", categoryId));
@@ -73,6 +86,8 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    // ✅ Wipes caches so updated category names instantly reflect on the frontend
+    @CacheEvict(value = {"categories", "allProducts", "categoryProducts"}, allEntries = true)
     public CategoryDTO updateCategory(Long categoryId, CategoryDTO categoryDTO) {
         Category existingCategory = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Category", "categoryId", categoryId));

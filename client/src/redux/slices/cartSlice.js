@@ -217,15 +217,18 @@ const cartSlice = createSlice({
                 state.error = null;
             })
             .addCase(fetchAllCarts.fulfilled, (state, action) => {
-                state.loading = false;
-                state.adminCarts = action.payload; // Populate admin list
+            state.loading = false;
+            // FIX: Fallback to an empty array if action.payload is undefined or null
+            state.adminCarts = action.payload || []; 
             })
-            .addCase(fetchAllCarts.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
-            });
-    },
-});
+        .addCase(fetchAllCarts.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        // FIX: Clear adminCarts on error to prevent the UI from trying to map over old/broken data
+        state.adminCarts = []; 
+        });
+        },
+        });
 
 export const { clearCart } = cartSlice.actions;
 export default cartSlice.reducer;

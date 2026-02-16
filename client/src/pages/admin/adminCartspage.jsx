@@ -6,18 +6,23 @@ import Spinner from "../../components/Spinner";
 
 const AdminCartsPage = () => {
   const dispatch = useDispatch();
- const { adminCarts = [], loading, error } = useSelector((state) => state.cart);
+  // Ensure adminCarts is always an array to avoid .filter or .map crashes
+  const { adminCarts = [], loading, error } = useSelector((state) => state.cart);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     dispatch(fetchAllCarts());
   }, [dispatch]);
 
-  // Filter logic (Search by Cart ID or User Email if available)
-  const filteredCarts = adminCarts.filter((cart) => 
-    cart.cartId?.toString().includes(searchTerm) || 
-    (cart.user?.email && cart.user.email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Defensive Filter logic: ensures cart and nested properties exist before calling methods
+  const filteredCarts = (adminCarts || []).filter((cart) => {
+    const searchLower = searchTerm.toLowerCase();
+    const cartIdMatch = cart?.cartId?.toString().includes(searchTerm);
+    const emailMatch = cart?.user?.email?.toLowerCase().includes(searchLower);
+    const usernameMatch = cart?.user?.username?.toLowerCase().includes(searchLower);
+    
+    return cartIdMatch || emailMatch || usernameMatch;
+  });
 
   if (loading) return <div className="flex justify-center items-center h-screen"><Spinner /></div>;
 
@@ -37,7 +42,7 @@ const AdminCartsPage = () => {
           <FaSearch className="absolute left-3 top-3 text-gray-400" />
           <input 
             type="text" 
-            placeholder="Search ID or Email..." 
+            placeholder="Search ID, Name or Email..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 w-full md:w-64"
@@ -89,25 +94,28 @@ const AdminCartsPage = () => {
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700">
+                        {/* Use optional chaining on products */}
                         <FaBoxOpen /> {cart.products?.length || 0} Items
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1 text-[var(--color-darkgreen)] font-bold">
-                        <FaMoneyBillWave /> ₹{cart.totalPrice?.toFixed(2) || "0.00"}
+                        <FaMoneyBillWave /> ₹{Number(cart.totalPrice || 0).toFixed(2)}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                        <div className="flex -space-x-2 overflow-hidden">
+                          {/* Ensure products is treated as an array before slice/map */}
                           {(cart.products || []).slice(0, 4).map((p, idx) => (
                              <img 
                                key={idx}
                                src={p.image ? `https://matessa.in/images/${p.image}` : "https://via.placeholder.com/40"} 
                                alt="Product"
                                className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover bg-gray-100"
-                               title={p.productName}
+                               title={p.productName || "Product"}
                              />
                           ))}
+                          {/* Defensive length check */}
                           {(cart.products?.length || 0) > 4 && (
                              <div className="flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-white bg-gray-200 text-xs font-bold text-gray-600">
                                 +{(cart.products.length - 4)}

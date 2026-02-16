@@ -77,7 +77,7 @@ const authSlice = createSlice({
     name: 'auth',
     initialState: {
         user: null,           
-        isAuthenticated: false,
+        isAuthenticated: !!localStorage.getItem("token"),
         loading: false,        // For buttons (Login/Register spinners)
         isCheckingAuth: true,  // ✅ NEW: Starts TRUE to hold the screen on load
         error: null,

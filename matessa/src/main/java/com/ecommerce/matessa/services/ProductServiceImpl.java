@@ -12,6 +12,8 @@ import com.ecommerce.matessa.repositories.ProductRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -55,6 +57,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"productDetails", "allProducts", "categoryProducts"}, allEntries = true)
     public ProductDTO addProduct(Long categoryId, ProductDTO productDTO) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Category", "categoryId", categoryId));
@@ -99,6 +102,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "allProducts", key = "#pageNumber + '-' + #pageSize + '-' + #sortBy + '-' + #sortDir")
     public ProductResponse getAllProducts(Integer pageNumber, Integer pageSize, String sortBy, String sortDir) {
         int defaultPage = Integer.parseInt(AppConstants.PAGE_NUMBER);
         int defaultSize = Integer.parseInt(AppConstants.PAGE_SIZE);
@@ -140,6 +144,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "categoryProducts", key = "#categoryId")
     public ProductResponse searchByCategory(Long categoryId) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Category", "categoryId", categoryId));
@@ -190,6 +195,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"productDetails", "allProducts", "categoryProducts"}, allEntries = true)
     public ProductDTO updateProduct(Long productId, ProductDTO productDTO) {
         // 1. Fetch existing product
         Product productFromDb = productRepository.findById(productId)
@@ -254,6 +260,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"productDetails", "allProducts", "categoryProducts"}, allEntries = true)
     public ProductDTO deleteProduct(Long productId) {
         // 1. Find Product or throw exception
         Product product = productRepository.findById(productId)
@@ -271,6 +278,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "productDetails", key = "#productId")
     public ProductDTO getProductById(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Product", "productId", productId));
@@ -306,6 +314,7 @@ public class ProductServiceImpl implements ProductService {
     // ==========================================
 
     @Override
+    @CacheEvict(value = {"productDetails", "allProducts", "categoryProducts"}, allEntries = true)
     public ProductDTO uploadImageProduct(Long productId, MultipartFile image) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Product", "productId", productId));
@@ -330,16 +339,19 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @CacheEvict(value = {"productDetails", "allProducts", "categoryProducts"}, allEntries = true)
     public ProductDTO updateImageProduct(Long productId, MultipartFile image) {
         return uploadImageProduct(productId, image);
     }
 
     @Override
+    @CacheEvict(value = {"productDetails", "allProducts", "categoryProducts"}, allEntries = true)
     public Object updateProductImage(Long productId, MultipartFile image) throws IOException {
         return uploadImageProduct(productId, image);
     }
 
     @Override
+    @CacheEvict(value = "productDetails", key = "#productId")
     public ProductDTO deleteProductImage(Long productId, String fileName) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Product", "productId", productId));
