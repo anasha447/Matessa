@@ -25,17 +25,4 @@ public class AppConfig {
         return modelMapper;
     }
 
-    @Configuration
-    @EnableCaching // <-- CRITICAL: This turns on Spring's caching engine
-    public static class RedisConfig {
-
-        @Bean
-        public RedisCacheConfiguration cacheConfiguration() {
-            return RedisCacheConfiguration.defaultCacheConfig()
-                    .entryTtl(Duration.ofMinutes(60)) // Cache expires after 60 mins
-                    .disableCachingNullValues()
-                    .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                    .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()));
-        }
-    }
 }
