@@ -24,6 +24,8 @@ export default function SingleProduct({ product }) {
             src={getImageUrl(product.images[0])}
             alt={product.name}
             className="w-full max-w-sm rounded-xl shadow-md"
+            fetchPriority="high"
+            loading="eager"
           />
         </div>
 

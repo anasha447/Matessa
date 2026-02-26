@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
 
 
 @RestController
@@ -105,8 +107,15 @@ public class ProductController {
             Resource resource = new UrlResource(filePath.toUri());
 
             if (resource.exists()) {
+                String contentType = "application/octet-stream";
+                String lowerName = fileName.toLowerCase();
+                if (lowerName.endsWith(".png")) contentType = "image/png";
+                else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) contentType = "image/jpeg";
+                else if (lowerName.endsWith(".webp")) contentType = "image/webp";
+
                 return ResponseEntity.ok()
-                        .contentType(MediaType.IMAGE_JPEG)
+                        .contentType(MediaType.parseMediaType(contentType))
+                        .cacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic())
                         .body(resource);
             } else {
                 return ResponseEntity.notFound().build();
