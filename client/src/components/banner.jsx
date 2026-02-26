@@ -105,7 +105,8 @@ export default function Banner() {
               src={slide.mobile}
               alt={`banner ${index + 1}`}
               className="w-full h-full object-cover object-center"
-              loading="eager" // ✅ FIX 2: Force eager loading
+              loading={index === 0 ? "eager" : "lazy"}
+              fetchPriority={index === 0 ? "high" : "auto"}
             />
           ) : (
             <>
@@ -113,13 +114,15 @@ export default function Banner() {
                 src={slide.mobile}
                 alt={`banner mobile ${index + 1}`}
                 className="w-full h-full object-cover object-center block md:hidden"
-                loading="eager"
+                loading={index === 0 ? "eager" : "lazy"}
+                fetchPriority={index === 0 ? "high" : "auto"}
               />
               <img
                 src={slide.desktop}
                 alt={`banner desktop ${index + 1}`}
                 className="w-full h-full object-cover object-center hidden md:block"
-                loading="eager"
+                loading={index === 0 ? "eager" : "lazy"}
+                fetchPriority={index === 0 ? "high" : "auto"}
               />
             </>
           )}

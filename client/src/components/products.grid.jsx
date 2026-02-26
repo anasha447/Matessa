@@ -51,6 +51,7 @@ const ProductGrid = ({ selectedCategory }) => {
                 src={getImageUrl(product.images[0])}
                 alt={product.name}
                 className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110"
+                loading="lazy"
               />
 
               {/* Hover Overlay */}
