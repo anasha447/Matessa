@@ -37,8 +37,9 @@ public class FileServiceImpl implements FileService {
                     .toFile(destinationFile);
 
             return fileName;
-        } catch (IOException e) {
-            throw new RuntimeException("Image upload failed: " + e.getMessage());
+        } catch (Exception e) {
+            // Throw a custom exception that the GlobalExceptionHandler can catch and return as a proper JSON/String response
+            throw new com.ecommerce.matessa.exceptionHandler.ApisExceptionHandler("Image upload/conversion failed: " + e.getMessage());
         }
     }
 }

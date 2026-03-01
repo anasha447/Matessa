@@ -23,11 +23,12 @@ const ProductGrid = ({ selectedCategory }) => {
     fetchData();
   }, []);
 
-  // Category filtering
+  // Category filtering (Ensure products is an array)
+  const safeProducts = Array.isArray(products) ? products : [];
   const filteredProducts =
     !selectedCategory || selectedCategory === "All"
-      ? products
-      : products.filter((p) => p.category === selectedCategory);
+      ? safeProducts
+      : safeProducts.filter((p) => p.category === selectedCategory);
 
   if (loading) {
     return <p className="text-center text-gray-500">Loading products...</p>;
@@ -48,10 +49,11 @@ const ProductGrid = ({ selectedCategory }) => {
             {/* Product Image */}
             <div className="relative overflow-hidden">
               <img
-                src={getImageUrl(product.images[0])}
-                alt={product.name}
+                src={getImageUrl(product?.images?.[0])}
+                alt={product?.name || "Product"}
                 className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110"
                 loading="lazy"
+                onError={(e) => { e.target.src = "https://via.placeholder.com/400?text=No+Image"; }}
               />
 
               {/* Hover Overlay */}

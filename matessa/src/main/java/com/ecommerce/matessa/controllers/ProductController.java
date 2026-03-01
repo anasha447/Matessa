@@ -77,13 +77,19 @@ public class ProductController {
     }
 
     @PostMapping(value = "/admin/products/{productId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ProductDTO> uploadProductImage(
+    public ResponseEntity<?> uploadProductImage(
             @PathVariable Long productId,
             @RequestParam("image") MultipartFile image) {
 
-        // Service logic now handles "Adding to list" (Max 5 checks)
-        ProductDTO updatedProduct = productService.uploadImageProduct(productId, image);
-        return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
+        try {
+            // Service logic now handles "Adding to list" (Max 5 checks)
+            ProductDTO updatedProduct = productService.uploadImageProduct(productId, image);
+            return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
+        } catch (Exception e) {
+            // Return a clean JSON error message instead of a 500 stack trace
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new com.ecommerce.matessa.payLoad.APIResponse(e.getMessage(), "error"));
+        }
     }
 
     // ✅ 2. DELETE IMAGE (Removes specific image from the list)
