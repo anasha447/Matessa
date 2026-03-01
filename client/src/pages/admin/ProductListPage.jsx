@@ -1,6 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FaEdit, FaTrash, FaPlus, FaBoxOpen, FaTags } from "react-icons/fa";
+import { FaEdit, FaTrash, FaPlus, FaBoxOpen, FaTags, FaSearch, FaSyncAlt } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 
@@ -8,138 +8,213 @@ import { toast } from "react-toastify";
 import { fetchAllProducts, deleteProduct } from "../../redux/slices/productSlice"; 
 import { fetchCategories } from "../../redux/slices/categorySlice"; 
 
+// ✅ FIX 1: Dynamic API URL based on environment
+// This prevents hardcoding production URL in development
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://matessa.in";
+
 const ProductListPage = () => {
   const dispatch = useDispatch();
 
-  // 1. Get State
-  const { items: products, loading, error } = useSelector((state) => state.products);
-  const { items: categories } = useSelector((state) => state.categories);
+  // Local State
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // 2. Fetch Data on Mount
+  // Redux State
+  const { items: products = [], loading, error } = useSelector((state) => state.products);
+  const { items: categories = [] } = useSelector((state) => state.categories);
+
+  // ✅ FIX 2: Robust Fetching Logic
+  // We fetch categories if missing. We force fetch products to ensure admin sees latest stock.
+  const loadData = async () => {
+    setIsRefreshing(true);
+    try {
+        await Promise.all([
+            dispatch(fetchAllProducts({ pageNumber: 0, pageSize: 100 })).unwrap(),
+            dispatch(fetchCategories()).unwrap()
+        ]);
+    } catch (err) {
+        console.error("Failed to load inventory:", err);
+        // Toast is handled by slice usually, but safe to log here
+    } finally {
+        setIsRefreshing(false);
+    }
+  };
+
   useEffect(() => {
-      // Fetch Products
-      dispatch(fetchAllProducts({ pageNumber: 0, pageSize: 100 }));
-      
-      // ✅ Fetch Categories (Crucial for mapping IDs to Names)
-      dispatch(fetchCategories());
+      loadData();
   }, [dispatch]);
 
   const handleDelete = async (id) => {
-    if (window.confirm("Delete this product?")) {
+    if (window.confirm("Are you sure you want to delete this product? This cannot be undone.")) {
       try {
-        await dispatch(deleteProduct(id)); 
+        await dispatch(deleteProduct(id)).unwrap(); 
         toast.success("Product deleted successfully");
-        dispatch(fetchAllProducts({ pageNumber: 0, pageSize: 100 })); 
       } catch (err) {
-        dispatch(fetchAllProducts({ pageNumber: 0, pageSize: 100 }));
+        toast.error("Failed to delete product. It might be in an active order.");
       }
     }
   };
 
-  // ✅ HELPER: Robust Category Name Lookup
   const getCategoryName = (product) => {
-      // 1. Try nested object from ProductDTO
-      if (product.category && product.category.categoryName) {
-          return product.category.categoryName;
-      }
-      // 2. Try looking up by ID in the categories list
-      // Using '==' to handle potential string/number mismatches
-      if (product.categoryId && categories.length > 0) {
-          const found = categories.find(cat => cat.categoryId == product.categoryId);
-          if (found) return found.categoryName;
-      }
-      return "Uncategorized";
+      if (product.category?.categoryName) return product.category.categoryName;
+      const found = categories.find(cat => cat.categoryId == product.categoryId);
+      return found ? found.categoryName : "Uncategorized";
   };
 
-  // ✅ HELPER: Image URL Builder
   const getImageUrl = (imageName) => {
       if (!imageName || imageName === "default.png") return null;
-      // Ensure this matches your Spring Boot port
-      return `http://localhost:8080/api/public/images/${imageName}`;
+      if (imageName.startsWith("http")) return imageName;
+      return `${API_BASE_URL}/api/public/images/${imageName}`;
   };
 
+  const filteredProducts = products.filter(product => 
+      product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.productId.toString().includes(searchTerm)
+  );
+
   return (
-    <div className="container mx-auto py-12 px-4 md:px-12 bg-gray-50 min-h-screen">
+    <div className="container mx-auto py-8 px-4 md:px-8 bg-gray-50 min-h-screen font-body">
       
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+      {/* --- HEADER --- */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <div>
-            <h1 className="text-3xl font-bold text-[var(--color-darkgreen)] font-heading">
-            Product Management
+            <h1 className="text-2xl md:text-3xl font-bold text-[var(--color-darkgreen)] font-heading flex items-center gap-3">
+               <FaBoxOpen className="text-[var(--color-orange)]" /> Product Inventory
             </h1>
-            <p className="text-gray-500 mt-1">Manage inventory, prices, and images</p>
+            <p className="text-gray-500 mt-1 text-sm">Manage your catalog, stock levels, and pricing.</p>
         </div>
         
-        <div className="flex gap-4 mt-4 md:mt-0">
-            <Link to="/admin/categories" className="bg-white border-2 border-[var(--color-orange)] text-[var(--color-orange)] py-2 px-5 rounded-full flex items-center gap-2 hover:bg-orange-50 font-bold transition-colors shadow-sm">
-              <FaTags /> Manage Categories
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+            {/* Search Input */}
+            <div className="relative flex-grow sm:flex-grow-0">
+                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input 
+                    type="text" 
+                    placeholder="Search by name or ID..." 
+                    className="w-full sm:w-64 pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--color-green)] transition-all"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+
+            {/* Refresh Button */}
+            <button 
+                onClick={loadData} 
+                disabled={loading || isRefreshing}
+                className="p-2.5 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
+                title="Refresh Data"
+            >
+                <FaSyncAlt className={`${(loading || isRefreshing) ? "animate-spin" : ""}`} />
+            </button>
+
+            {/* Actions */}
+            <Link to="/admin/categories" className="bg-white border border-gray-200 text-gray-700 py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 font-semibold transition-colors text-sm">
+              <FaTags className="text-[var(--color-orange)]" /> Categories
             </Link>
-            <Link to="/admin/product/create" className="bg-[var(--color-orange)] text-white py-2 px-5 rounded-full flex items-center gap-2 hover:opacity-90 shadow-md font-bold transition-transform active:scale-95">
-              <FaPlus /> Add New Product
+            <Link to="/admin/product/create" className="bg-[var(--color-orange)] text-white py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 hover:bg-[#e05515] shadow-md shadow-orange-100 font-bold transition-all transform active:scale-95 text-sm">
+              <FaPlus /> Add Product
             </Link>
         </div>
       </div>
 
-      {/* Table */}
-      {loading ? (
-        <div className="text-center py-20 text-gray-500 font-bold">Loading...</div>
+      {/* --- CONTENT --- */}
+      {loading && products.length === 0 ? (
+        // Skeleton Loader
+        <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+                <div key={i} className="h-20 bg-gray-200 rounded-xl animate-pulse"></div>
+            ))}
+        </div>
       ) : error ? (
-         <div className="text-center text-red-500 bg-red-50 p-4 rounded border border-red-200">{error}</div>
+         <div className="flex flex-col items-center justify-center py-12 bg-white rounded-2xl border border-red-100">
+            <div className="bg-red-50 p-4 rounded-full mb-3 text-red-500">⚠️</div>
+            <h3 className="text-lg font-bold text-gray-800">Failed to load products</h3>
+            <p className="text-gray-500 text-sm mb-4">{error}</p>
+            <button onClick={loadData} className="text-blue-600 hover:underline">Try Again</button>
+         </div>
       ) : (
-        <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-200">
+        <div className="bg-white shadow-sm rounded-2xl overflow-hidden border border-gray-100">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-[var(--color-darkgreen)] text-white">
+            <table className="min-w-full divide-y divide-gray-100">
+                <thead className="bg-gray-50">
                 <tr>
-                    <th className="py-4 px-6 text-left text-xs font-bold uppercase tracking-wider">Image</th>
-                    <th className="py-4 px-6 text-left text-xs font-bold uppercase tracking-wider">Name</th>
-                    <th className="py-4 px-6 text-left text-xs font-bold uppercase tracking-wider">Price</th>
-                    <th className="py-4 px-6 text-left text-xs font-bold uppercase tracking-wider">Category</th>
-                    <th className="py-4 px-6 text-right text-xs font-bold uppercase tracking-wider">Actions</th>
+                    <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-20">Img</th>
+                    <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Product Info</th>
+                    <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Price</th>
+                    <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Category</th>
+                    <th className="py-4 px-6 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                {products && products.map((product) => (
-                    <tr key={product.productId} className="hover:bg-gray-50 transition-colors">
+                <tbody className="bg-white divide-y divide-gray-100">
+                {filteredProducts.length > 0 ? filteredProducts.map((product) => (
+                    <tr key={product.productId} className="group hover:bg-gray-50/80 transition-colors">
                     <td className="py-4 px-6">
-                        <div className="h-12 w-12 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center">
-                            {product.image && product.image !== "" ? (
+                        <div className="h-12 w-12 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 relative">
+                            {product.images && product.images.length > 0 ? (
                                 <img 
-                                  src={getImageUrl(product.image)} 
+                                  src={getImageUrl(product.images[0])} 
                                   alt={product.productName} 
                                   className="w-full h-full object-cover"
-                                  onError={(e) => { e.target.src = "https://placehold.co/150?text=No+Img"; }} 
+                                  onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=No+Img"; }} 
                                 />
                             ) : (
-                                <FaBoxOpen className="text-gray-400" />
+                                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                    <FaBoxOpen size={20} />
+                                </div>
                             )}
                         </div>
                     </td>
                     <td className="py-4 px-6">
-                        <div className="text-sm font-bold text-gray-900">{product.productName}</div>
-                        <div className="text-xs text-gray-500">ID: {product.productId}</div>
+                        <div className="flex flex-col">
+                            <span className="font-bold text-gray-800 text-sm">{product.productName}</span>
+                            <span className="text-[10px] text-gray-400 font-mono mt-0.5">ID: {product.productId}</span>
+                        </div>
                     </td>
-                    <td className="py-4 px-6 text-sm font-semibold text-gray-700">₹{product.price.toFixed(2)}</td>
-                    <td className="py-4 px-6 text-sm text-gray-600">
-                        {/* ✅ Category Name Display */}
-                        <span className="bg-blue-100 text-blue-800 py-1 px-2 rounded-full text-xs font-bold">
+                    <td className="py-4 px-6">
+                        <span className="font-mono font-semibold text-gray-700 text-sm">₹{product.price.toFixed(2)}</span>
+                    </td>
+                    <td className="py-4 px-6">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
                             {getCategoryName(product)}
                         </span>
                     </td>
                     <td className="py-4 px-6 text-right">
-                        <div className="flex items-center justify-end gap-3">
-                            <Link to={`/admin/product/${product.productId}/edit`} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100"><FaEdit size={18} /></Link>
-                            <button onClick={() => handleDelete(product.productId)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"><FaTrash size={18} /></button>
+                        <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                            <Link 
+                                to={`/admin/product/${product.productId}/edit`} 
+                                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" 
+                                title="Edit Product"
+                            >
+                                <FaEdit size={15} />
+                            </Link>
+                            <button 
+                                onClick={() => handleDelete(product.productId)} 
+                                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" 
+                                title="Delete Product"
+                            >
+                                <FaTrash size={15} />
+                            </button>
                         </div>
                     </td>
                     </tr>
-                ))}
+                )) : (
+                    <tr>
+                        <td colSpan="5" className="py-16 text-center">
+                            <div className="flex flex-col items-center justify-center text-gray-400">
+                                <FaBoxOpen size={48} className="mb-3 opacity-20" />
+                                <p className="text-sm">No products match your search.</p>
+                                {searchTerm && (
+                                    <button onClick={() => setSearchTerm("")} className="mt-2 text-[var(--color-orange)] text-xs hover:underline">
+                                        Clear Search
+                                    </button>
+                                )}
+                            </div>
+                        </td>
+                    </tr>
+                )}
                 </tbody>
             </table>
           </div>
-          {products?.length === 0 && (
-              <div className="text-center py-10 text-gray-500">No products found. Start by adding one!</div>
-          )}
         </div>
       )}
     </div>

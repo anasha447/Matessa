@@ -1,4 +1,5 @@
 package com.ecommerce.matessa.payLoad;
+import com.ecommerce.matessa.payLoad.ProductFlavorDTO;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -22,7 +23,7 @@ public class ProductDTO {
     private String productName;
 
     @NotBlank
-    @Size(min = 10, max = 100)
+    @Size(min = 10, max = 4000)
     private String description;
 
     private List<String> images = new ArrayList<>();
@@ -39,10 +40,11 @@ public class ProductDTO {
     private Long categoryId;
     @PositiveOrZero
     private int quantity;
-
-    // ✅ NEW: Support for Weight Variants (100g, 200g)
+    private String variant;
+    private Long variantId;
     private List<ProductVariantDTO> variants = new ArrayList<>();
+    private List<ProductFlavorDTO> flavors = new ArrayList<>();
 
-    // ✅ NEW: Support for Flavor Links (Lemon, Mint)
-    private List<com.ecommerce.matessa.dtos.ProductFlavorDTO> flavors = new ArrayList<>();
+    public void setImage(Object image) {
+    }
 }

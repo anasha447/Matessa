@@ -5,9 +5,12 @@ import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import lombok.ToString;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +25,12 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long orderId;
 
+    @Column(unique = true) // Ensure no duplicates
+    private String orderCode;
+
+    public String getOrderCode() { return orderCode; }
+    public void setOrderCode(String orderCode) { this.orderCode = orderCode; }
+
     @Email
     @Column(nullable = false)
     private String email; // Stores email for BOTH Guests and Users
@@ -29,14 +38,18 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    private LocalDate orderDate;
+    private LocalDateTime orderDate;
+
+    @PrePersist
+    protected void onCreate() {
+        this.orderDate = LocalDateTime.now();
+    }
 
     @OneToOne
     @JoinColumn(name = "payment_id")
     private Payment payment;
 
     private Double totalAmount;
-    private String orderStatus;
 
     @ManyToOne
     @JoinColumn(name = "address_id")
@@ -44,8 +57,9 @@ public class Order {
 
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id",nullable = true )
     private User user;
 
-
+    @Enumerated(EnumType.STRING)
+    private OrderStatus orderStatus;
 }

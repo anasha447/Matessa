@@ -51,7 +51,6 @@ public class Address {
     @JoinColumn(name = "user_id")
     private User user;
 
-    // Constructor used for testing or manual creation
     public Address(String addressLine1, String addressLine2, String street, String buildingName,
                    String city, String state, String country, String pincode, String phoneNumber, User user) {
         this.addressLine1 = addressLine1;

@@ -1,8 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion'; // Or 'motion/react' depending on your version
+import { motion } from 'framer-motion';
 
-// --- 1. The Animation Component (Adapted from TrueFocus) ---
+// ✅ 1. Import Analytics Helper
+import { trackEvent } from '../utils/analytics';
+
+// --- Animation Component (Unchanged) ---
 const FocusText = ({ 
   sentence, 
   separator = '|', 
@@ -15,21 +18,17 @@ const FocusText = ({
   const wordRefs = useRef([]);
   const [focusRect, setFocusRect] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
-  // Animation Timing Configuration
-  const animationDuration = 0.5; // Transition speed
-  const showTime = 1.5;          // How long it stays visible (requested 1.5s)
+  const animationDuration = 0.5; 
+  const showTime = 1.5;        
 
   useEffect(() => {
-    // Cycle through words automatically
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % words.length);
     }, showTime * 1000);
-
     return () => clearInterval(interval);
   }, [words.length]);
 
   useEffect(() => {
-    // Calculate the position of the brackets
     if (currentIndex === null || currentIndex === -1) return;
     if (!wordRefs.current[currentIndex] || !containerRef.current) return;
 
@@ -47,7 +46,7 @@ const FocusText = ({
   return (
     <div
       ref={containerRef}
-      className="relative flex gap-3 md:gap-6 justify-center items-center flex-wrap mb-4"
+      className="relative flex gap-3 md:gap-6 justify-center items-center flex-wrap mb-6"
     >
       {words.map((word, index) => {
         const isActive = index === currentIndex;
@@ -59,7 +58,8 @@ const FocusText = ({
             style={{
               color: color,
               filter: isActive ? 'blur(0px)' : `blur(${blurAmount}px)`,
-              opacity: isActive ? 1 : 0.4, // Lower opacity for blurred items for better effect
+              opacity: isActive ? 1 : 0.4,
+              transform: isActive ? 'scale(1.05)' : 'scale(1)',
             }}
           >
             {word.trim()}
@@ -67,7 +67,6 @@ const FocusText = ({
         );
       })}
 
-      {/* The Brackets Animation */}
       <motion.div
         className="absolute top-0 left-0 pointer-events-none"
         animate={{
@@ -75,46 +74,34 @@ const FocusText = ({
           y: focusRect.y,
           width: focusRect.width,
           height: focusRect.height,
-          opacity: 1
+          opacity: 0.9
         }}
-        transition={{
-          duration: animationDuration,
-          ease: "easeInOut"
-        }}
+        transition={{ duration: animationDuration, ease: "easeInOut" }}
       >
-        {/* Corners styling - Matching the Brand Orange */}
-        <span
-          className="absolute w-3 h-3 border-[2px] rounded-[3px] top-[-6px] left-[-8px] border-r-0 border-b-0"
-          style={{ borderColor: color }}
-        ></span>
-        <span
-          className="absolute w-3 h-3 border-[2px] rounded-[3px] top-[-6px] right-[-8px] border-l-0 border-b-0"
-          style={{ borderColor: color }}
-        ></span>
-        <span
-          className="absolute w-3 h-3 border-[2px] rounded-[3px] bottom-[-6px] left-[-8px] border-r-0 border-t-0"
-          style={{ borderColor: color }}
-        ></span>
-        <span
-          className="absolute w-3 h-3 border-[2px] rounded-[3px] bottom-[-6px] right-[-8px] border-l-0 border-t-0"
-          style={{ borderColor: color }}
-        ></span>
+        <span className="absolute w-3 h-3 border-[2px] rounded-[3px] top-[-6px] left-[-8px] border-r-0 border-b-0" style={{ borderColor: color }}></span>
+        <span className="absolute w-3 h-3 border-[2px] rounded-[3px] top-[-6px] right-[-8px] border-l-0 border-b-0" style={{ borderColor: color }}></span>
+        <span className="absolute w-3 h-3 border-[2px] rounded-[3px] bottom-[-6px] left-[-8px] border-r-0 border-t-0" style={{ borderColor: color }}></span>
+        <span className="absolute w-3 h-3 border-[2px] rounded-[3px] bottom-[-6px] right-[-8px] border-l-0 border-t-0" style={{ borderColor: color }}></span>
       </motion.div>
     </div>
   );
 };
 
-
-// --- 2. Main Component ---
+// --- Main Component ---
 const AfterBanner = () => {
   return (
     <section 
-      className="py-10 px-6 md:px-20"
-      style={{ backgroundColor: '#F9F7F3' }}
+      className="relative py-16 px-6 md:px-20 bg-white overflow-hidden"
     >
-      <div className="max-w-4xl mx-auto text-center font-body">
+      {/* Background Decor */}
+      <div 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] rounded-full opacity-30 blur-3xl pointer-events-none"
+        style={{ background: 'radial-gradient(circle, #fde4d8 0%, transparent 70%)' }}
+      ></div>
+
+      <div className="max-w-4xl mx-auto text-center font-body relative z-10">
         
-        {/* REPLACED: Static H2 with Animated FocusText Component */}
+        {/* Animated Header */}
         <FocusText 
           sentence="ENERGY | FOCUS | GUT HEALTH | IMMUNITY"
           separator="|"
@@ -122,31 +109,83 @@ const AfterBanner = () => {
         />
         
         {/* Main Heading */}
-        <h2 
-          className="text-3xl md:text-5xl font-heading font-bold mb-6 leading-tight" 
+        <motion.h2 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-4xl md:text-6xl font-heading font-bold mb-6 leading-tight tracking-tight" 
           style={{ color: '#2F3B28' }}
         >
-          Covering All Aspects <br /> 
+          Covering All Aspects <br className="hidden md:block" /> 
           <span style={{ color: '#F26323' }}>of Health</span>
-        </h2>
+        </motion.h2>
         
-        {/* Descriptive Text */}
-        <p className="text-lg font font-semibold mb-10 leading-relaxed max-w-2xl mx-auto font-body"
-           style={{ color: '#121212' }}>
-          All-day energy & focus, no jitters or crash. Enjoy enhanced well-being every day.
-        </p>
-        
-        {/* Try Now Button */}
-        <Link 
-          to="/product/3" 
-          className="inline-block font-bold font-body py-3 px-12 rounded-full transition-transform duration-300 shadow-md hover:shadow-lg hover:-translate-y-1"
-          style={{ 
-            backgroundColor: '#F26323', 
-            color: '#F9F7F3' 
-          }}
+        {/* Description */}
+        <motion.p 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="text-lg md:text-xl font-medium mb-10 leading-relaxed max-w-2xl mx-auto font-body"
+          style={{ color: '#4A5545' }}
         >
-          Try Now
-        </Link>
+          Experience <span className="text-gray-900 font-bold">
+            balanced <span className="text-orange-500">energy</span> & calm <span className="text-green-500">clarity, </span>
+          </span> 
+          <br className="hidden md:block" />
+          A clean, natural lift without the jitters,
+          <span className="text-gray-900 font-bold bg-orange-50 px-1 rounded mx-1">
+            elevating your well-being,
+          </span> 
+          every day.
+        </motion.p>
+        
+        {/* Buttons Container */}
+        <motion.div 
+           initial={{ opacity: 0, scale: 0.95 }}
+           whileInView={{ opacity: 1, scale: 1 }}
+           viewport={{ once: true }}
+           transition={{ duration: 0.5, delay: 0.4 }}
+           className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6"
+        >
+          {/* Primary Button: Try Now */}
+          <Link 
+            to="/product/52" 
+            // ✅ ANALYTICS TRIGGER
+            onClick={() => trackEvent("button_click", {
+                button_name: "Try Now",
+                section: "AfterBanner_Home",
+                destination: "/product/52"
+            })}
+            className="w-full sm:w-auto font-bold font-body py-3 px-8 rounded-full transition-all duration-300 shadow-lg hover:shadow-orange-200 hover:-translate-y-1 active:scale-95"
+            style={{ 
+              backgroundColor: '#F26323', 
+              color: '#F9F7F3' 
+            }}
+          >
+            Try Now
+          </Link>
+
+          {/* Secondary Button: Learn More */}
+          <Link 
+            to="/what.is.mate" 
+            // ✅ ANALYTICS TRIGGER
+            onClick={() => trackEvent("button_click", {
+                button_name: "Learn More",
+                section: "AfterBanner_Home",
+                destination: "/what.is.mate"
+            })}
+            className="w-full sm:w-auto font-bold font-body py-3 px-8 rounded-full border border-[#2F3B28] text-[#2F3B28] bg-transparent transition-all duration-300 hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2 group"
+          >
+            <span>Don't know Mate?!</span>
+            <motion.span 
+              className="inline-block"
+              transition={{ repeat: Infinity, duration: 1 }}
+            >
+            </motion.span>
+          </Link>
+        </motion.div>
 
       </div>
     </section>

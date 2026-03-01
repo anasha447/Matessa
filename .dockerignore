@@ -1,0 +1,9 @@
+﻿node_modules
+build
+dist
+target
+.git
+.idea
+.vscode
+**/*.jar
+**/*.class

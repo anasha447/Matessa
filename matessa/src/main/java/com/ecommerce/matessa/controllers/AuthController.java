@@ -66,43 +66,59 @@ public class AuthController {
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest,
                                               HttpServletRequest request,
                                               HttpServletResponse response) {
-        Authentication authentication;
         try {
-            authentication = authenticationManager.authenticate(
+            // 1. Try to Authenticate
+            Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
-        } catch (AuthenticationException ex) {
-            logger.error("Authentication failed for email '{}': {}", loginRequest.getEmail(), ex.getMessage());
+
+            // 2. Set Context
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+            // 3. Generate Token (This is where I suspect it crashes!)
+            ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
+
+            List<String> roles = userDetails.getAuthorities().stream()
+                    .map(item -> item.getAuthority())
+                    .collect(Collectors.toList());
+
+            // 4. Merge Carts
+            String guestSessionId = cookieUtil.getGuestSessionId(request);
+            if (guestSessionId != null) {
+                try {
+                    cartService.mergeCarts(userDetails.getEmail(), guestSessionId);
+                    cookieUtil.deleteGuestCookie(response);
+                } catch (Exception e) {
+                    logger.error("Error merging carts: {}", e.getMessage());
+                }
+            }
+
+            UserInfoResponse userInfoResponse = new UserInfoResponse(userDetails.getUserId(),
+                    userDetails.getUsername(), roles, jwtCookie.getValue());
+
+            return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                    .body(userInfoResponse);
+
+        } catch (org.springframework.security.core.AuthenticationException e) {
+            // Expected error (Wrong Password)
+            logger.error("Authentication failed: {}", e.getMessage());
             Map<String, Object> map = new HashMap<>();
             map.put("message", "Bad credentials");
             map.put("status", false);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(map);
+
+        } catch (Exception e) {
+            // 🚨 THE CATCH-ALL TRAP 🚨
+            // This catches the 500 error and PRINTS it to you.
+            e.printStackTrace(); // Print to server logs
+
+            Map<String, String> errorMap = new HashMap<>();
+            errorMap.put("ERROR_TYPE", e.getClass().getName());
+            errorMap.put("ERROR_MESSAGE", e.getMessage());
+            errorMap.put("CRASH_LOCATION", e.getStackTrace()[0].toString()); // Tells you exactly which line failed!
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorMap);
         }
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
-
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(item -> item.getAuthority())
-                .collect(Collectors.toList());
-
-        // Merge Logic
-        String guestSessionId = cookieUtil.getGuestSessionId(request);
-        if (guestSessionId != null) {
-            try {
-                cartService.mergeCarts(userDetails.getEmail(), guestSessionId);
-                cookieUtil.deleteGuestCookie(response);
-            } catch (Exception e) {
-                logger.error("Error merging carts: {}", e.getMessage());
-            }
-        }
-
-        // We return standard UserInfoResponse for login (token set in cookie)
-        UserInfoResponse userInfoResponse = new UserInfoResponse(userDetails.getUserId(),
-                userDetails.getUsername(), roles, jwtCookie.toString());
-
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
-                .body(userInfoResponse);
     }
 
     @PostMapping("/signup")

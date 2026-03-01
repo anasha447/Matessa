@@ -1,5 +1,5 @@
 // src/components/Stack.jsx
-import { motion, useMotionValue, useTransform } from 'motion/react';
+import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
 function CardRotate({ children, onSendToBack, sensitivity, disableDrag = false }) {

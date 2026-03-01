@@ -1,43 +1,109 @@
 import React, { useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, Trash2 } from "lucide-react";
+import { trackEvent } from "../utils/analytics"; // ✅ Imported
 
 // Redux Imports
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCart, updateCartItem, removeCartItem } from "../redux/slices/cartSlice";
-import { getImageUrl } from "../utils/imageUrl"; 
+
+// ✅ 1. DEFINE IMAGE BASE URL
+const IMG_BASE_URL = "https://matessa.in";
 
 const CartDrawer = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // 1. Get Data from Redux
+  // 2. Get Data from Redux
   const { items = [], totalPrice = 0, cartId } = useSelector((state) => state.cart || {});
 
-  // 2. Fetch Cart on Mount (if open)
+  // 3. Fetch Cart on Mount (if open)
   useEffect(() => {
     if (isOpen) {
         dispatch(fetchCart());
     }
   }, [isOpen, dispatch]);
 
-  // 3. Handlers
-  const handleQtyChange = (productId, operation, currentQty) => {
+  // ✅ 4. HELPER FUNCTION FOR IMAGES
+  const getCartImage = (imageName) => {
+    if (!imageName) return "/assets/placeholder.png";
+    if (imageName.startsWith("http")) return imageName;
+    return `${IMG_BASE_URL}/images/${imageName}`;
+  };
+
+  // 5. Handlers
+
+  const handleQtyChange = (productId, operation, currentQty, variantId) => {
     if (operation === 'decrease' && currentQty <= 1) {
+        const item = items.find(i => i.productId === productId && i.variantId === variantId);
         if (window.confirm("Remove this item?")) {
-            dispatch(removeCartItem({ cartId, productId }));
+            
+            // ✅ ANALYTICS: Track Removal (via Quantity Decrease)
+            if (item) {
+                trackEvent("remove_from_cart", {
+                    ecommerce: {
+                        currency: "INR",
+                        value: item.specialPrice || item.price,
+                        items: [{
+                            item_id: item.productId,
+                            item_name: item.productName,
+                            price: item.specialPrice || item.price,
+                            quantity: item.quantity,
+                            item_variant: item.variant
+                        }]
+                    }
+                });
+            }
+
+            dispatch(removeCartItem({ cartId, productId, variant: item?.variant }));
         }
     } else {
-        dispatch(updateCartItem({ productId, operation }));
+        dispatch(updateCartItem({ productId, operation, variantId }));
     }
   };
 
-  const handleRemove = (productId) => {
-    dispatch(removeCartItem({ cartId, productId }));
+  const handleRemove = (productId, variant) => {
+    // We need to find the item details BEFORE removing it to track it
+    const itemToRemove = items.find(i => i.productId === productId && (!variant || i.variant === variant));
+
+    if (itemToRemove) {
+        // ✅ ANALYTICS: Track Removal (via Trash Icon)
+        trackEvent("remove_from_cart", {
+            ecommerce: {
+                currency: "INR",
+                value: itemToRemove.specialPrice || itemToRemove.price,
+                items: [{
+                    item_id: itemToRemove.productId,
+                    item_name: itemToRemove.productName,
+                    price: itemToRemove.specialPrice || itemToRemove.price,
+                    quantity: itemToRemove.quantity,
+                    item_variant: itemToRemove.variant
+                }]
+            }
+        });
+    }
+
+    dispatch(removeCartItem({ cartId, productId, variant }));
   };
 
   const handleCheckout = () => {
+    // ✅ ANALYTICS: Begin Checkout (The Funnel Starts!)
+    trackEvent("begin_checkout", {
+        ecommerce: {
+            currency: "INR",
+            value: totalPrice,
+            items: items.map(item => ({
+                item_id: item.productId,
+                item_name: item.productName,
+                price: item.specialPrice || item.price,
+                quantity: item.quantity,
+                item_category: item.categoryName || "General",
+                item_variant: item.variant
+            }))
+        }
+    });
+
     onClose();
     navigate('/checkoutpage');
   };
@@ -86,9 +152,10 @@ const CartDrawer = ({ isOpen, onClose }) => {
               </button>
             </div>
 
-            {/* Items List */}
+            {/* Items List OR Empty State */}
             <div className="flex-grow overflow-y-auto p-6 bg-[#F9F7F3]">
               {items.length === 0 ? (
+                // --- EMPTY STATE ---
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
                   <p className="text-gray-500 text-lg">Your cart is empty.</p>
                   <button 
@@ -99,55 +166,50 @@ const CartDrawer = ({ isOpen, onClose }) => {
                   </button>
                 </div>
               ) : (
+                // --- LIST OF ITEMS ---
                 <ul className="space-y-4">
-                  {items.map((item) => (
-                    <li key={item.productId} className="bg-white p-4 rounded-lg shadow-sm flex gap-4 border border-[#E6E0D2]">
-                      
-                      {/* Product Image */}
-                      <div className="w-20 h-20 flex-shrink-0 bg-gray-50 rounded-md overflow-hidden">
+                  {items.map((item, idx) => (
+                    <li key={`${item.productId}-${item.variantId || 'def'}-${idx}`} className="bg-white p-4 rounded-lg shadow-sm flex gap-4 border border-[#E6E0D2]">
+                      <div className="w-20 h-20 flex-shrink-0 bg-gray-50 rounded-md overflow-hidden border border-gray-100">
+                        {/* ✅ USED NEW HELPER HERE */}
                         <img
-                          // ✅ FIXED: Check 'images' array first, fallback to 'image'
-                          src={getImageUrl(item.images?.[0] || item.image)}
+                          src={getCartImage(item.images?.[0] || item.image)}
                           alt={item.productName}
                           className="w-full h-full object-contain"
+                          onError={(e) => { e.target.src = "/assets/placeholder.png"; }}
                         />
                       </div>
-
-                      {/* Details */}
                       <div className="flex-grow flex flex-col justify-between">
                         <div>
-                          <h3 className="font-semibold text-[#2F3B28] line-clamp-1">
-                            {item.productName}
-                          </h3>
+                          <h3 className="font-semibold text-[#2F3B28] line-clamp-1">{item.productName}</h3>
+                          {item.variant && (
+                              <span className="text-[10px] uppercase font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded border border-gray-200 block w-fit mt-1">
+                                {item.variant}
+                              </span>
+                          )}
                           <p className="text-sm text-[#F26323] font-bold mt-1">
-                             ₹ {item.specialPrice || item.price}
+                             ₹ {(item.specialPrice || item.price || 0).toFixed(2)}
                           </p>
                         </div>
-
-                        {/* Controls */}
                         <div className="flex items-center justify-between mt-2">
                           <div className="flex items-center border border-gray-300 rounded-md">
                             <button
-                              onClick={() => handleQtyChange(item.productId, 'decrease', item.quantity)}
+                              onClick={() => handleQtyChange(item.productId, 'decrease', item.quantity, item.variantId)}
                               className="p-1 px-2 hover:bg-gray-100 text-[#2F3B28]"
                             >
                               <Minus size={14} />
                             </button>
-                            <span className="px-2 text-sm font-medium w-8 text-center">
-                              {item.quantity}
-                            </span>
+                            <span className="px-2 text-sm font-medium w-8 text-center">{item.quantity}</span>
                             <button
-                              onClick={() => handleQtyChange(item.productId, 'increase', item.quantity)}
+                              onClick={() => handleQtyChange(item.productId, 'increase', item.quantity, item.variantId)}
                               className="p-1 px-2 hover:bg-gray-100 text-[#2F3B28]"
                             >
                               <Plus size={14} />
                             </button>
                           </div>
-
                           <button
-                            onClick={() => handleRemove(item.productId)}
+                            onClick={() => handleRemove(item.productId, item.variant)}
                             className="text-red-400 hover:text-red-600 p-1"
-                            title="Remove Item"
                           >
                             <Trash2 size={18} />
                           </button>
@@ -159,13 +221,13 @@ const CartDrawer = ({ isOpen, onClose }) => {
               )}
             </div>
 
-            {/* Footer */}
+            {/* Footer (Only if items exist) */}
             {items.length > 0 && (
               <div className="p-6 border-t border-gray-100 bg-white">
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-gray-600 font-medium">Subtotal</span>
                   <span className="text-2xl font-bold text-[#F26323]">
-                    ₹{totalPrice.toFixed(2)}
+                    ₹{Number(totalPrice).toFixed(2)}
                   </span>
                 </div>
                 

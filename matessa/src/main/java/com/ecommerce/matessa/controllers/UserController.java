@@ -45,4 +45,41 @@ public class UserController {
         String status = userService.deleteUser(userId);
         return new ResponseEntity<>(status, HttpStatus.OK);
     }
+    // ==========================================
+    // 4. UPDATE USER PROFILE
+    // Matches Frontend: authSlice -> updateUserProfile (PUT /api/users/profile)
+    // ==========================================
+    @PutMapping("/users/profile")
+    public ResponseEntity<UserDTO> updateUserProfile(@RequestBody UserDTO userDTO) {
+        // Since we are updating "me", we get ID from SecurityContext or ignore ID in DTO?
+        // Let's assume we get the logged-in user's ID
+        // But for simplicity/speed, if the frontend sends the ID in the body or we can get it from AuthUtil
+
+        // Let's use AuthUtil if available, otherwise assume basic Update Logic
+        // But wait, I don't have AuthUtil injected here. Let's inject it.
+        // Actually, let's keep it simple: pass userId in DTO or Path if needed?
+        // The slice calls `api.put('/users/profile', userData)`.
+
+        // I need the current user's ID.
+        // Let's rely on SecurityContextHolder in a Helper or manually here.
+        // Since I can't easily modify AuthUtil right now without reading it,
+        // I'll try to get Authentication object directly.
+
+        org.springframework.security.core.Authentication authentication =
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+
+        // Assuming your UserDetailsImpl has getUserId()
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        // Cast principal to UserDetailsImpl (assuming it exists based on AuthController code I saw earlier)
+        com.ecommerce.matessa.security.Services.UserDetailsImpl userDetails =
+                (com.ecommerce.matessa.security.Services.UserDetailsImpl) authentication.getPrincipal();
+
+        Long userId = userDetails.getUserId();
+
+        UserDTO updatedUser = userService.updateUser(userId, userDTO);
+        return new ResponseEntity<>(updatedUser, HttpStatus.OK);
+    }
 }

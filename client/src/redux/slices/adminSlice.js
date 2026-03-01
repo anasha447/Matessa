@@ -27,7 +27,7 @@ export const fetchAllUsers = createAsyncThunk(
       const response = await api.get('/admin/users');
       return response.data;
     } catch (error) {
-      return rejectWithValue("Failed to fetch users");
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch users");
     }
   }
 );
@@ -44,7 +44,6 @@ export const fetchUserDetails = createAsyncThunk(
   }
 );
 
-// ✅ NEW: Added Update User
 export const updateUser = createAsyncThunk(
   'admin/updateUser',
   async ({ userId, userData }, { rejectWithValue }) => {
@@ -64,7 +63,7 @@ export const deleteUser = createAsyncThunk(
       await api.delete(`/admin/users/${userId}`);
       return userId;
     } catch (error) {
-      return rejectWithValue("Failed to delete user");
+      return rejectWithValue(error.response?.data?.message || "Failed to delete user");
     }
   }
 );
@@ -77,7 +76,6 @@ export const createProduct = createAsyncThunk(
   'admin/createProduct',
   async ({ categoryId, productData }, { rejectWithValue }) => {
     try {
-      // Matches Controller: POST /admin/categories/{categoryId}/product
       const response = await api.post(`/admin/categories/${categoryId}/product`, productData);
       return response.data;
     } catch (error) {
@@ -103,14 +101,13 @@ export const deleteProduct = createAsyncThunk(
   async (productId, { rejectWithValue }) => {
     try {
       await api.delete(`/admin/products/${productId}`);
-      return productId; // ✅ Returns ID to filter it out from state
+      return productId; 
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Failed to delete product");
     }
   }
 );
 
-// ✅ FIX: Ensures Multipart File Upload works
 export const uploadProductImage = createAsyncThunk(
   'admin/uploadProductImage',
   async ({ productId, file }, { rejectWithValue }) => {
@@ -141,22 +138,6 @@ export const deleteProductImage = createAsyncThunk(
 );
 
 // ==========================================
-// 4. ORDER MANAGEMENT
-// ==========================================
-
-export const fetchAllOrders = createAsyncThunk(
-  'admin/fetchOrders',
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await api.get('/admin/orders');
-      return response.data;
-    } catch (error) {
-      return rejectWithValue("Failed to fetch orders");
-    }
-  }
-);
-
-// ==========================================
 // ADMIN SLICE LOGIC
 // ==========================================
 const adminSlice = createSlice({
@@ -164,8 +145,9 @@ const adminSlice = createSlice({
   initialState: {
     stats: null,
     users: [],
-    userDetails: null, // ✅ Added for Edit User Page
+    userDetails: null,
     orders: [],
+    products: [], // Ensure products are tracked if needed
     loading: false,
     error: null,
     successMessage: null,
@@ -173,7 +155,7 @@ const adminSlice = createSlice({
   reducers: {
     clearAdminError: (state) => { state.error = null; },
     clearSuccessMessage: (state) => { state.successMessage = null; },
-    clearUserDetails: (state) => { state.userDetails = null; } // ✅ Helper to reset form
+    clearUserDetails: (state) => { state.userDetails = null; } 
   },
   extraReducers: (builder) => {
     builder
@@ -182,28 +164,48 @@ const adminSlice = createSlice({
         state.stats = action.payload;
       })
 
-      // --- USERS ---
+      // --- USERS: FETCH ---
+      .addCase(fetchAllUsers.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(fetchAllUsers.fulfilled, (state, action) => {
-        state.users = action.payload;
+        state.loading = false;
+        // ✅ CRITICAL FIX: Handles both [Array] and { content: [Array] } (Pagination)
+        state.users = Array.isArray(action.payload) 
+          ? action.payload 
+          : (action.payload.content || []); 
       })
-      .addCase(fetchUserDetails.fulfilled, (state, action) => {
-        state.userDetails = action.payload;
+      .addCase(fetchAllUsers.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
-      .addCase(updateUser.fulfilled, (state) => {
-        state.successMessage = "User updated successfully";
-        state.userDetails = null;
-      })
+
+      // --- USERS: DELETE ---
       .addCase(deleteUser.fulfilled, (state, action) => {
         state.users = state.users.filter(u => u.userId !== action.payload);
         state.successMessage = "User deleted successfully";
       })
 
-      // --- ORDERS ---
-      .addCase(fetchAllOrders.fulfilled, (state, action) => {
-        state.orders = action.payload;
+      // --- USERS: FETCH DETAILS ---
+      .addCase(fetchUserDetails.fulfilled, (state, action) => {
+        state.userDetails = action.payload;
       })
 
-      // --- PRODUCTS (Admin Actions) ---
+      // --- USERS: UPDATE ---
+      .addCase(updateUser.fulfilled, (state, action) => {
+        state.loading = false;
+        state.successMessage = "User updated successfully";
+        state.userDetails = null; 
+        
+        // Optimistic UI Update
+        const index = state.users.findIndex(u => u.userId === action.payload.userId);
+        if (index !== -1) {
+          state.users[index] = action.payload;
+        }
+      })
+
+      // --- PRODUCTS ---
       .addCase(createProduct.fulfilled, (state) => {
         state.successMessage = "Product created successfully";
       })
@@ -217,7 +219,8 @@ const adminSlice = createSlice({
         state.successMessage = "Image uploaded successfully";
       })
 
-      // ✅ GLOBAL LOADING HANDLER
+      // --- GLOBAL LOADING HANDLER (Matchers) ---
+      // This handles loading/errors for ALL thunks automatically
       .addMatcher(
         (action) => action.type.startsWith('admin/') && action.type.endsWith('/pending'),
         (state) => { state.loading = true; state.error = null; }

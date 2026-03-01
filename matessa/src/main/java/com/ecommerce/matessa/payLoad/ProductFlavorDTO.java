@@ -1,4 +1,4 @@
-package com.ecommerce.matessa.dtos;
+package com.ecommerce.matessa.payLoad;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

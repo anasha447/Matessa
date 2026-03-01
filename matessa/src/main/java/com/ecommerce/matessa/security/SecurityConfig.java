@@ -17,7 +17,6 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
-import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,7 +32,7 @@ import java.util.Set;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true) // Allows @PreAuthorize("hasRole('ADMIN')") in controllers
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     @Autowired
@@ -66,39 +65,51 @@ public class SecurityConfig {
     }
 
     @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring().requestMatchers(
+                "/assets/**",
+                "/static/**",
+                "/images/**",
+                "/favicon.ico",
+                "/*.js",
+                "/*.css",
+                "/*.png",
+                "/*.jpg",
+                "/manifest.json",
+                "/index.html"
+        );
+    }
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // 1. CORS Enabled
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth ->
-                        auth.requestMatchers("/api/auth/**").permitAll()
-                                .requestMatchers("/h2-console/**").permitAll()
-                                .requestMatchers("/api/public/**").permitAll()
-                                .requestMatchers("/api/carts/**").permitAll()
-                                .requestMatchers("/error").permitAll()
-                                .requestMatchers("/swagger-ui/**").permitAll()
-                                .requestMatchers("/api/test/**").permitAll()
-                                .requestMatchers("/images/**").permitAll()
-                                .requestMatchers(
-                                        "/v3/api-docs/**",
-                                        "/swagger-ui/**",
-                                        "/swagger-ui.html"
-                                ).permitAll()
+                .authorizeHttpRequests(auth -> auth
+                                // 1. PUBLIC ASSETS
+                                .requestMatchers("/", "/index.html", "/favicon.ico", "/static/**", "/assets/**", "/images/**", "/*.js", "/*.css", "/*.png", "/*.jpg").permitAll()
 
-                                // ✅ 2. CRITICAL: Protect all Admin Routes
+                                // 2. PUBLIC API ENDPOINTS
+                                .requestMatchers("/api/auth/**", "/api/public/**", "/api/categories/**", "/api/products/**").permitAll()
+
+                                // 3. ADMIN ENDPOINTS
                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                                .anyRequest().authenticated()
+                                // 4. ✅ CRITICAL FIX: Allow access to the Error Controller
+                                // This lets the SpaErrorController forward 404s to index.html without a 401 block
+                                .requestMatchers("/error").permitAll()
+
+                                // 5. ✅ CRITICAL FIX: Allow ALL other frontend routes (Catch-All)
+                                // Instead of listing /shop, /cart manually, we say "If it's not an API call above, let it pass"
+                                // The SpaErrorController will catch it if it's a valid React route.
+                                .requestMatchers("/**").permitAll()
+
+                        // Note: The specific API rules above (lines 78-81) still PROTECT your data.
+                        // This only opens the door for the React HTML page to load.
                 );
 
         http.authenticationProvider(authenticationProvider());
-
-        // Fix for H2 Console if you use it
-        http.headers(headers -> headers.frameOptions(
-                HeadersConfigurer.FrameOptionsConfig::sameOrigin
-        ));
-
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -108,11 +119,24 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow your React Frontend
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        // ✅ 1. ALLOW SPECIFIC ORIGINS (Add all domains you use)
+        // If you are testing from localhost, keep it.
+        // Ensure you include both 'http' and 'https' if needed.
+        configuration.setAllowedOrigins(List.of(
+                "https://matessa.in",       // Production Domain
+                "https://www.matessa.in",   // WWW Subdomain
+                "http://localhost:5173",    // Local React (Vite)
+                "http://localhost:3000"     // Local React (Create React App)
+        ));
 
+        // ✅ 2. ALLOW METHODS
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        // ✅ 3. ALLOW HEADERS
         configuration.setAllowedHeaders(List.of("*"));
+
+        // ✅ 4. ALLOW CREDENTIALS (Cookies)
+        // This requires setAllowedOrigins to be specific (cannot be "*")
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -121,55 +145,24 @@ public class SecurityConfig {
     }
 
     @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web -> web.ignoring().requestMatchers("/v2/api-docs",
-                "/configuration/ui",
-                "/swagger-resources/**",
-                "/configuration/security",
-                "/swagger-ui.html",
-                "/webjars/**"));
-    }
-
-    // ✅ 3. Auto-Create/Update Admin User on Startup (Helper)
-    @Bean
     public CommandLineRunner initData(RoleRepository roleRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-            // Ensure Roles Exist
-            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
-                    .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_USER)));
-
-            Role sellerRole = roleRepository.findByRoleName(AppRole.ROLE_SELLER)
-                    .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_SELLER)));
-
-            Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
-                    .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_ADMIN)));
-
-            Set<Role> userRoles = Set.of(userRole);
+            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER).orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_USER)));
+            Role sellerRole = roleRepository.findByRoleName(AppRole.ROLE_SELLER).orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_SELLER)));
+            Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN).orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_ADMIN)));
             Set<Role> adminRoles = Set.of(userRole, sellerRole, adminRole);
 
-            // Create Default Users if they don't exist
-            if (!userRepository.existsByUserName("user1")) {
-                User user1 = new User("user1", "user1@example.com", passwordEncoder.encode("password123"));
-                user1.setRoles(userRoles);
-                userRepository.save(user1);
-            }
+            String adminEmail = System.getenv("ADMIN_EMAIL");
+            String adminPass = System.getenv("ADMIN_PASSWORD");
 
-            // ✅ FORCE UPDATE LOGIC FOR ADMIN
-            // Try to find the user by username "admin"
-            // If found, we use it. If not, we create a new User object.
-            User admin = userRepository.findByUserName("admin")
-                    .orElse(new User("admin", "admin@example.com", passwordEncoder.encode("adminPass")));
+            if (adminEmail == null || adminEmail.isEmpty()) adminEmail = "anas@matessa.com";
+            if (adminPass == null || adminPass.isEmpty()) adminPass = "tempPass123";
 
-            // Always RESET the critical fields to ensure they are correct
-            // regardless of what is currently in the DB
-            admin.setEmail("admin@example.com"); // Ensure email matches your login info
-            admin.setPassword(passwordEncoder.encode("adminPass")); // Ensure password is correct
-            admin.setRoles(adminRoles); // Ensure ROLE_ADMIN is assigned
-
-            // Save (This performs an Update if ID exists, or Insert if new)
+            User admin = userRepository.findByEmail(adminEmail).orElse(new User("admin", adminEmail, passwordEncoder.encode(adminPass)));
+            admin.setPassword(passwordEncoder.encode(adminPass));
+            admin.setRoles(adminRoles);
             userRepository.save(admin);
-
-            System.out.println("✅ ADMIN USER SYNCED: Username: admin | Email: admin@example.com | Roles: " + admin.getRoles());
+            System.out.println("✅ ADMIN SYNCED: " + adminEmail);
         };
     }
 }

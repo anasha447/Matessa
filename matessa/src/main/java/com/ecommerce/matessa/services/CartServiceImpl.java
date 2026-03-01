@@ -2,235 +2,196 @@ package com.ecommerce.matessa.services;
 
 import com.ecommerce.matessa.exceptionHandler.ApisExceptionHandler;
 import com.ecommerce.matessa.exceptionHandler.ResourceExceptionHandler;
-import com.ecommerce.matessa.models.Cart;
-import com.ecommerce.matessa.models.CartItem;
-import com.ecommerce.matessa.models.Product;
-import com.ecommerce.matessa.models.User;
+import com.ecommerce.matessa.models.*;
 import com.ecommerce.matessa.payLoad.CartDTO;
 import com.ecommerce.matessa.payLoad.ProductDTO;
-import com.ecommerce.matessa.repositories.CartItemRepository;
-import com.ecommerce.matessa.repositories.CartRepository;
-import com.ecommerce.matessa.repositories.ProductRepository;
-import com.ecommerce.matessa.repositories.UserRepository;
-import com.ecommerce.matessa.util.AuthUtil;
+import com.ecommerce.matessa.repositories.*;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 public class CartServiceImpl implements CartService {
 
-    @Autowired
-    private CartRepository cartRepository;
+    @Autowired private CartRepository cartRepository;
+    @Autowired private ProductRepository productRepository;
+    @Autowired private CartItemRepository cartItemRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private ModelMapper modelMapper;
+    @Autowired private ProductVariantRepository productVariantRepository;
+    @Autowired private CouponRepository couponRepository;
 
-    @Autowired
-    private ProductRepository productRepository;
-
-    @Autowired
-    private CartItemRepository cartItemRepository;
-
-    @Autowired
-    private UserRepository userRepository; // Added to fetch User entity if needed
-
-    @Autowired
-    private ModelMapper modelMapper;
+    // =====================================================================
+    // CORE CART OPERATIONS
+    // =====================================================================
 
     @Override
-    public CartDTO addProductToCart(Long productId, Integer quantity, String email, String sessionId) {
-        // 1. Find or Create the Cart based on Identity
+    @Transactional
+    public CartDTO addProductToCart(Long productId, Integer quantity, String email, String sessionId, Long variantId) {
+        // 1. Find or Create Cart
         Cart cart = getOrCreateCart(email, sessionId);
 
-        // 2. Locate the Product
+        // 2. Locate Product
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Product", "productId", productId));
 
-        // 3. Check if Item already exists in THIS specific cart
-        CartItem cartItem = cartItemRepository.findCartItemByProductIdAndCartId(cart.getCartId(), productId);
+        // 3. Determine Price, Stock & Variant
+
+        // ✅ FIX: Use getPrice() (Regular), NOT getSpecialPrice()
+        // We want to store the RAW price (e.g. 100) so the math works correctly later.
+        double priceToUse = product.getPrice();
+
+        int stockAvailable = product.getQuantity();
+        String variantName = null;
+
+        if (variantId != null && variantId != 0) {
+            ProductVariant variant = productVariantRepository.findById(variantId)
+                    .orElseThrow(() -> new ResourceExceptionHandler("Variant", "variantId", variantId));
+
+            if (!variant.getProduct().getProductId().equals(productId)) {
+                throw new ApisExceptionHandler("Variant does not match the product!");
+            }
+            // Ensure this returns the Regular Price of the variant
+            priceToUse = variant.getPrice();
+            stockAvailable = variant.getStock();
+            variantName = variant.getName();
+        }
+
+        // 4. Check if Item Exists
+        CartItem cartItem;
+        if (variantName != null) {
+            cartItem = cartItemRepository.findCartItemByProductIdAndVariantAndCartId(cart.getCartId(), productId, variantName);
+        } else {
+            cartItem = cartItemRepository.findCartItemByProductIdAndCartId(cart.getCartId(), productId);
+        }
 
         if (cartItem != null) {
-            throw new ApisExceptionHandler("Product " + product.getProductName() + " already exists in the cart");
-        }
-
-        // 4. Stock Validations
-        if (product.getQuantity() == 0) {
-            throw new ApisExceptionHandler(product.getProductName() + " is not available");
-        }
-
-        if (product.getQuantity() < quantity) {
-            throw new ApisExceptionHandler("Please, make an order of the " + product.getProductName()
-                    + " less than or equal to the quantity " + product.getQuantity() + ".");
-        }
-
-        // 5. Create new Cart Item
-        CartItem newCartItem = new CartItem();
-        newCartItem.setProduct(product);
-        newCartItem.setCart(cart);
-        newCartItem.setQuantity(quantity);
-        newCartItem.setDiscount(product.getDiscount());
-        newCartItem.setProductPrice(product.getSpecialPrice());
-
-        cartItemRepository.save(newCartItem);
-
-        // 6. Update Product Stock (Temporary Hold) & Cart Total
-        // Note: Usually we don't deduct stock until Order is placed, but keeping your logic:
-        product.setQuantity(product.getQuantity());
-
-        cart.setTotalPrice(cart.getTotalPrice() + (product.getSpecialPrice() * quantity));
-        cartRepository.save(cart);
-
-        // 7. Convert to DTO
-        return mapToCartDTO(cart);
-    }
-
-    /**
-     * HELPER: Logic to find a cart by Email OR Session, or create a new one.
-     */
-    private Cart getOrCreateCart(String email, String sessionId) {
-        Cart cart = null;
-
-        // A. Try finding by Email (User)
-        if (email != null) {
-            cart = cartRepository.findCartByEmail(email);
-        }
-
-        // B. If not found, try finding by Session (Guest)
-        if (cart == null && sessionId != null) {
-            cart = cartRepository.findBySessionId(sessionId);
-        }
-
-        // C. If still null, create new Cart
-        if (cart == null) {
-            cart = new Cart();
-            cart.setTotalPrice(0.00);
-
-            if (email != null) {
-                // Link to User
-                User user = userRepository.findByEmail(email)
-                        .orElseThrow(() -> new ResourceExceptionHandler("User", "email", email));
-                cart.setUser(user);
-            } else if (sessionId != null) {
-                // Link to Guest Session
-                cart.setSessionId(sessionId);
+            // Update Existing
+            int newQuantity = cartItem.getQuantity() + quantity;
+            if (stockAvailable < newQuantity) {
+                throw new ApisExceptionHandler("Only " + stockAvailable + " items left in stock.");
             }
+            cartItem.setQuantity(newQuantity);
+            cartItem.setProductPrice(priceToUse); // Update to Regular Price
+            cartItem.setDiscount(product.getDiscount());
+            cartItemRepository.save(cartItem);
+        } else {
+            // Create New
+            if (stockAvailable < quantity) {
+                throw new ApisExceptionHandler("Only " + stockAvailable + " items left in stock.");
+            }
+            cartItem = new CartItem();
+            cartItem.setProduct(product);
+            cartItem.setCart(cart);
+            cartItem.setQuantity(quantity);
+            cartItem.setDiscount(product.getDiscount());
 
-            cart = cartRepository.save(cart);
+            // ✅ Stores Regular Price (e.g. 100)
+            cartItem.setProductPrice(priceToUse);
+
+            cartItem.setVariant(variantName);
+            cartItemRepository.save(cartItem);
+            cart.getCartItems().add(cartItem);
         }
 
-        return cart;
-    }
-
-    @Override
-    public List<CartDTO> getAllCarts() {
-        List<Cart> carts = cartRepository.findAll();
-
-        if (carts.isEmpty()) {
-            throw new ApisExceptionHandler("No cart exists");
-        }
-
-        return carts.stream().map(this::mapToCartDTO).collect(Collectors.toList());
-    }
-
-    @Override
-    public CartDTO getCart(String email, String sessionId, Long cartId) {
-        // Logic: Try to find cart by Email, if not, try Session
-        Cart cart = null;
-
-        if (email != null) {
-            // If searching by Email, usually we don't strictly need cartId if OneToOne
-            // But adhering to your specific repo method:
-            // Note: You might need to adjust repo method to handle nulls if necessary
-            cart = cartRepository.findCartByEmailAndCartId(email, cartId);
-        }
-
-        if (cart == null && sessionId != null) {
-            // You need to add findBySessionIdAndCartId to Repository
-            // Or just findBySessionId(sessionId) since 1 session = 1 cart
-            cart = cartRepository.findBySessionId(sessionId);
-        }
-
-        if (cart == null) {
-            throw new ResourceExceptionHandler("Cart", "cartId", cartId);
-        }
-
+        // 5. Recalculate & Map (This applies the discount logic ONCE)
+        recalculateCartTotal(cart);
         return mapToCartDTO(cart);
     }
 
     @Transactional
     @Override
-    public CartDTO updateProductQuantityInCart(Long productId, Integer quantity, String email, String sessionId) {
-
-        // 1. Find the Cart (User or Guest)
+    public CartDTO updateProductQuantityInCart(Long productId, Integer quantity, String email, String sessionId, Long variantId) {
         Cart cart = getOrCreateCart(email, sessionId);
         Long cartId = cart.getCartId();
 
-        // 2. Find Product
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Product", "productId", productId));
 
-        if (product.getQuantity() == 0) {
-            throw new ApisExceptionHandler(product.getProductName() + " is not available");
-        }
-        if (product.getQuantity() < quantity) { // Note: Check logic here if quantity is additive or absolute
-            // Assuming logic is correct based on previous code
+        if (product.getQuantity() == 0) throw new ApisExceptionHandler("Product not available");
+
+        String variantName = null;
+        double priceToUse = product.getSpecialPrice();
+        int stockAvailable = product.getQuantity();
+
+        if (variantId != null && variantId != 0) {
+            ProductVariant pv = productVariantRepository.findById(variantId)
+                    .orElseThrow(() -> new ResourceExceptionHandler("Variant", "variantId", variantId));
+            variantName = pv.getName();
+            priceToUse = pv.getPrice();
+            stockAvailable = pv.getStock();
         }
 
-        // 3. Find Item
-        CartItem cartItem = cartItemRepository.findCartItemByProductIdAndCartId(cartId, productId);
-
-        if (cartItem == null) {
-            throw new ApisExceptionHandler("Product " + product.getProductName() + " not available in the cart!!!");
+        CartItem cartItem;
+        if (variantName != null) {
+            cartItem = cartItemRepository.findCartItemByProductIdAndVariantAndCartId(cartId, productId, variantName);
+        } else {
+            cartItem = cartItemRepository.findCartItemByProductIdAndCartId(cartId, productId);
         }
 
-        // 4. Calculate New Quantity
+        if (cartItem == null) throw new ApisExceptionHandler("Product not found in cart");
+
         int newQuantity = cartItem.getQuantity() + quantity;
 
-        if (newQuantity < 0) {
-            throw new ApisExceptionHandler("The resulting quantity cannot be negative.");
-        }
-
-        if (newQuantity == 0) {
-            deleteProductFromCart(cartId, productId);
-            // Re-fetch cart to get updated state after delete
-            cart = cartRepository.findById(cartId).orElse(cart);
+        if (newQuantity <= 0) {
+            deleteProductFromCart(cartId, productId, cartItem.getVariant());
+            cart = cartRepository.findById(cartId).orElse(cart); // Refresh
         } else {
-            cartItem.setProductPrice(product.getSpecialPrice());
+            if (stockAvailable < newQuantity) {
+                throw new ApisExceptionHandler("Stock limit reached: " + stockAvailable);
+            }
+            cartItem.setProductPrice(priceToUse);
             cartItem.setQuantity(newQuantity);
-            cartItem.setDiscount(product.getDiscount());
-
-            cart.setTotalPrice(cart.getTotalPrice() + (cartItem.getProductPrice() * quantity));
-
-            cartRepository.save(cart);
             cartItemRepository.save(cartItem);
+            recalculateCartTotal(cart);
         }
 
         return mapToCartDTO(cart);
     }
 
-    @Transactional
     @Override
-    public String deleteProductFromCart(Long cartId, Long productId) {
+    @Transactional
+    public CartDTO deleteProductFromCart(Long cartId, Long productId, String variant) {
         Cart cart = cartRepository.findById(cartId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Cart", "cartId", cartId));
 
-        CartItem cartItem = cartItemRepository.findCartItemByProductIdAndCartId(cartId, productId);
+        CartItem cartItem;
 
-        if (cartItem == null) {
-            throw new ResourceExceptionHandler("Product", "productId", productId);
+        // 1. Find and Delete the specific item
+        if (variant != null) {
+            cartItem = cartItemRepository.findCartItemByProductIdAndVariantAndCartId(cartId, productId, variant);
+            if (cartItem != null)
+                cartItemRepository.deleteCartItemByProductIdAndVariantAndCartId(cartId, productId, variant);
+        } else {
+            cartItem = cartItemRepository.findCartItemByProductIdAndCartId(cartId, productId);
+            if (cartItem != null)
+                cartItemRepository.deleteCartItemByProductIdAndCartId(cartId, productId);
         }
 
-        cart.setTotalPrice(cart.getTotalPrice() -
-                (cartItem.getProductPrice() * cartItem.getQuantity()));
+        if (cartItem == null) throw new ResourceExceptionHandler("CartItem", "productId", productId);
 
-        cartItemRepository.deleteCartItemByProductIdAndCartId(cartId, productId);
+        // 2. Remove from memory list so recalculation works immediately
+        cart.getCartItems().remove(cartItem);
 
-        return "Product " + cartItem.getProduct().getProductName() + " removed from the cart !!!";
+
+        if (cart.getCartItems().isEmpty()) {
+            cart.setCouponCode(null);
+            cart.setDiscountCoupon(0.0);
+        }
+        // 3. Recalculate Totals (Updates the price in DB)
+        recalculateCartTotal(cart);
+
+        // ✅ 4. Return the UPDATED Cart (This sends the new price to React)
+        // Was: return "Product removed";
+        return mapToCartDTO(cart);
     }
-
     @Override
     public void updateProductInCarts(Long cartId, Long productId) {
         Cart cart = cartRepository.findById(cartId)
@@ -245,96 +206,237 @@ public class CartServiceImpl implements CartService {
             throw new ApisExceptionHandler("Product " + product.getProductName() + " not available in the cart!!!");
         }
 
-        double cartPrice = cart.getTotalPrice()
-                - (cartItem.getProductPrice() * cartItem.getQuantity());
-
         cartItem.setProductPrice(product.getSpecialPrice());
-
-        cart.setTotalPrice(cartPrice
-                + (cartItem.getProductPrice() * cartItem.getQuantity()));
-
         cartItemRepository.save(cartItem);
+        recalculateCartTotal(cart);
     }
 
-    // Helper to avoid Code Duplication in mapping
-    private CartDTO mapToCartDTO(Cart cart) {
-        CartDTO cartDTO = modelMapper.map(cart, CartDTO.class);
+    // ✅ CORRECT IMPLEMENTATION
+    @Override
+    public List<CartDTO> getAllCarts() {
+        // 1. Get all carts from Database
+        List<Cart> carts = cartRepository.findAll();
 
-        List<ProductDTO> products = cart.getCartItems().stream().map(item -> {
-            ProductDTO pDto = modelMapper.map(item.getProduct(), ProductDTO.class);
-            pDto.setQuantity(item.getQuantity()); // IMPORTANT: Set Cart Item Quantity, not Stock Quantity
-            return pDto;
-        }).collect(Collectors.toList());
+        // 2. Convert them to DTOs using your mapper
+        return carts.stream()
+                .map(this::mapToCartDTO)
+                .collect(Collectors.toList());
+    }
 
-        cartDTO.setProducts(products);
-        return cartDTO;
+    @Override
+    public CartDTO getCart(String email, String sessionId, Long cartId) {
+        Cart cart = null;
+        if (email != null) cart = cartRepository.findCartByEmailAndCartId(email, cartId);
+        if (cart == null && sessionId != null) cart = cartRepository.findBySessionId(sessionId);
+
+        if (cart == null) throw new ResourceExceptionHandler("Cart", "cartId", cartId);
+
+        // Optional: Recalculate on fetch to ensure coupon validity
+        // recalculateCartTotal(cart);
+
+        return mapToCartDTO(cart);
     }
 
     @Override
     @Transactional
     public void mergeCarts(String email, String sessionId) {
-        // 1. Check if a Guest Cart even exists
         if (sessionId == null) return;
         Cart guestCart = cartRepository.findBySessionId(sessionId);
         if (guestCart == null) return;
 
-        // 2. Check if the User already has a Cart
         Cart userCart = cartRepository.findCartByEmail(email);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceExceptionHandler("User", "email", email));
 
         if (userCart == null) {
-            // SCENARIO A: User has no cart. Easy switch!
-            guestCart.setSessionId(null); // No longer a guest cart
-            guestCart.setUser(user);      // Now it belongs to the user
+            guestCart.setSessionId(null);
+            guestCart.setUser(user);
             cartRepository.save(guestCart);
         } else {
-            // SCENARIO B: User already has a cart. We must merge items.
-
             List<CartItem> guestItems = guestCart.getCartItems();
-
             for (CartItem guestItem : guestItems) {
                 Product product = guestItem.getProduct();
-
-                // Does User already have this product?
                 CartItem existingUserItem = cartItemRepository.findCartItemByProductIdAndCartId(userCart.getCartId(), product.getProductId());
 
                 if (existingUserItem != null) {
-                    // Update Quantity: User had 2, Guest had 3 -> Now User has 5
                     existingUserItem.setQuantity(existingUserItem.getQuantity() + guestItem.getQuantity());
-                    // Update Price based on new quantity
                     existingUserItem.setProductPrice(product.getSpecialPrice());
                 } else {
-                    // Move Item: User didn't have this. Create a new entry for User.
                     CartItem newItem = new CartItem();
                     newItem.setProduct(product);
-                    newItem.setCart(userCart); // Parent is now User Cart
+                    newItem.setCart(userCart);
                     newItem.setQuantity(guestItem.getQuantity());
                     newItem.setDiscount(product.getDiscount());
                     newItem.setProductPrice(product.getSpecialPrice());
-
                     cartItemRepository.save(newItem);
+                    userCart.getCartItems().add(newItem);
                 }
             }
-
-            // Recalculate Total Price for User Cart
-            double total = 0.0;
-            // We need to fetch fresh items to calculate total correctly
-            // But for simplicity, we can do a quick sum logic or save and fetch
-            // Let's assume we trigger a recalculate or do it manually here:
-            // (Ideally, create a helper method calculateCartTotal(Cart cart))
-
-            // Cleanup: Delete the old Guest Cart
-            cartItemRepository.deleteAll(guestCart.getCartItems()); // Clear guest items
-            cartRepository.delete(guestCart); // Delete guest cart object
-
-            // Recalculate User Cart Total (Simple loop)
-            userCart = cartRepository.findById(userCart.getCartId()).get(); // Refresh
-            double newTotal = userCart.getCartItems().stream()
-                    .mapToDouble(item -> item.getProductPrice() * item.getQuantity())
-                    .sum();
-            userCart.setTotalPrice(newTotal);
-            cartRepository.save(userCart);
+            cartItemRepository.deleteAll(guestCart.getCartItems());
+            cartRepository.delete(guestCart);
+            recalculateCartTotal(userCart);
         }
     }
+
+    // =====================================================================
+    // COUPON LOGIC
+    // =====================================================================
+
+    @Override
+    @Transactional
+    public CartDTO applyCoupon(Long cartId, String code) {
+        Cart cart = cartRepository.findById(cartId)
+                .orElseThrow(() -> new ResourceExceptionHandler("Cart", "cartId", cartId));
+
+        Coupon coupon = couponRepository.findByCode(code)
+                .orElseThrow(() -> new ApisExceptionHandler("Invalid Coupon Code!"));
+
+        if (!coupon.isActive()) {
+            throw new ApisExceptionHandler("Coupon is expired or inactive.");
+        }
+
+        cart.setCouponCode(coupon.getCode());
+
+        // Use the unified calculation logic
+        recalculateCartTotal(cart);
+
+        Cart savedCart = cartRepository.save(cart);
+        return mapToCartDTO(savedCart);
+    }
+
+    // =====================================================================
+    // 🧮 UNIFIED CALCULATION LOGIC
+    // =====================================================================
+
+    // This is the SINGLE math engine for the whole service.
+    // It handles Variants, Base Price Ratios, and Coupons all in one go.
+    private void recalculateCartTotal(Cart cart) {
+        // 1. Calculate Subtotal (Simple Sum: Price * Quantity)
+        double subtotal = cart.getCartItems().stream()
+                .mapToDouble(item -> {
+                    // ✅ FIX: Use the raw price directly.
+                    // We removed the complex "Base Product vs Special Price" ratio logic.
+                    // Now, if the item says 200, the total is 200 * Qty.
+                    return item.getProductPrice() * item.getQuantity();
+                })
+                .sum();
+
+        // 2. Calculate Coupon Discount
+        // (This remains valid as it is an explicit discount the user applies)
+        double discountAmount = 0.0;
+        if (cart.getCouponCode() != null && !cart.getCouponCode().isEmpty()) {
+            Coupon coupon = couponRepository.findByCode(cart.getCouponCode()).orElse(null);
+
+            if (coupon != null && coupon.isActive()) {
+                discountAmount = subtotal * (coupon.getDiscountPercentage() / 100.0);
+            } else {
+                cart.setCouponCode(null); // Remove invalid coupon if it expired
+            }
+        }
+
+        // 3. Update Cart with Final Values
+        cart.setDiscountCoupon(discountAmount);
+
+        double finalTotal = subtotal - discountAmount;
+        cart.setTotalPrice(finalTotal > 0 ? finalTotal : 0.0);
+
+        // Save changes to Database
+        cartRepository.save(cart);
+    }
+
+    // =====================================================================
+    // 🗺️ HELPERS
+    // =====================================================================
+
+    private Cart getOrCreateCart(String email, String sessionId) {
+        Cart cart = null;
+        if (email != null) {
+            cart = cartRepository.findCartByEmail(email);
+            if (cart != null && cart.getSessionId() != null) {
+                cart.setSessionId(null);
+                cartRepository.save(cart);
+            }
+        }
+        if (cart == null && sessionId != null) {
+            cart = cartRepository.findBySessionId(sessionId);
+        }
+        if (cart == null) {
+            cart = new Cart();
+            cart.setTotalPrice(0.00);
+            if (email != null) {
+                User user = userRepository.findByEmail(email)
+                        .orElseThrow(() -> new ResourceExceptionHandler("User", "email", email));
+                cart.setUser(user);
+                cart.setSessionId(null);
+            } else if (sessionId != null) {
+                cart.setSessionId(sessionId);
+            }
+            cart = cartRepository.save(cart);
+        }
+        return cart;
+    }
+
+    private CartDTO mapToCartDTO(Cart cart) {
+        CartDTO cartDTO = new CartDTO();
+        cartDTO.setCartId(cart.getCartId());
+        cartDTO.setTotalPrice(cart.getTotalPrice());
+        cartDTO.setDiscount(cart.getDiscountCoupon());
+        cartDTO.setCouponCode(cart.getCouponCode());
+
+        List<ProductDTO> productDTOs = cart.getCartItems().stream()
+                .map(this::mapToItemDTO)
+                .collect(Collectors.toList());
+
+        cartDTO.setProducts(productDTOs);
+        return cartDTO;
+    }
+
+    private ProductDTO mapToItemDTO(CartItem item) {
+        ProductDTO dto = modelMapper.map(item, ProductDTO.class);
+
+        if (item.getProduct() != null) {
+            dto.setProductId(item.getProduct().getProductId());
+            dto.setProductName(item.getProduct().getProductName());
+
+            // Ensure Product entity has 'image' field for this to work
+            dto.setImages(item.getProduct().getImages());
+            // Price Logic for Display
+            dto.setPrice(item.getProductPrice()); // Variant Price
+
+            double basePrice = item.getProduct().getPrice();
+            double baseSpecial = item.getProduct().getSpecialPrice();
+
+            if (baseSpecial > 0 && basePrice > 0) {
+                double ratio = baseSpecial / basePrice;
+                dto.setSpecialPrice(item.getProductPrice() * ratio);
+            } else {
+                dto.setSpecialPrice(0.0);
+            }
+
+            dto.setDiscount(item.getProduct().getDiscount());
+
+            // Explicitly set quantity and variant from CartItem
+            dto.setQuantity(item.getQuantity());
+            dto.setVariant(item.getVariant());
+        }
+        return dto;
+    }
+    @Override
+    @Transactional
+    public CartDTO removeCoupon(Long cartId) {
+        Cart cart = cartRepository.findById(cartId)
+                .orElseThrow(() -> new ResourceExceptionHandler("Cart", "cartId", cartId));
+
+        // 1. Clear the Code
+        // Setting this to null tells recalculateCartTotal to remove the discount logic
+        cart.setCouponCode(null);
+
+        // 2. Recalculate & Save
+        // This calculates the new total (without discount) AND saves to DB
+        recalculateCartTotal(cart);
+
+        // 3. Return Mapped DTO
+        return mapToCartDTO(cart);
+    }
+
 }

@@ -5,17 +5,20 @@ import com.ecommerce.matessa.exceptionHandler.ApisExceptionHandler;
 import com.ecommerce.matessa.exceptionHandler.ResourceExceptionHandler;
 import com.ecommerce.matessa.models.*;
 import com.ecommerce.matessa.payLoad.*;
+import com.ecommerce.matessa.repositories.CartItemRepository;
 import com.ecommerce.matessa.repositories.CartRepository;
 import com.ecommerce.matessa.repositories.CategoryRepository;
 import com.ecommerce.matessa.repositories.ProductRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.transaction.annotation.Transactional;
-
+import  com.ecommerce.matessa.payLoad.ProductFlavorDTO;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +45,9 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private CartService cartService;
 
+    @Autowired
+    private CartItemRepository cartItemRepository;
+
     @Value("${project.image:images/}")
     private String path;
 
@@ -51,6 +57,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"productDetails", "allProducts", "categoryProducts"}, allEntries = true)
     public ProductDTO addProduct(Long categoryId, ProductDTO productDTO) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Category", "categoryId", categoryId));
@@ -95,6 +102,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "allProducts", key = "#pageNumber + '-' + #pageSize + '-' + #sortBy + '-' + #sortDir")
     public ProductResponse getAllProducts(Integer pageNumber, Integer pageSize, String sortBy, String sortDir) {
         int defaultPage = Integer.parseInt(AppConstants.PAGE_NUMBER);
         int defaultSize = Integer.parseInt(AppConstants.PAGE_SIZE);
@@ -136,6 +144,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "categoryProducts", key = "#categoryId")
     public ProductResponse searchByCategory(Long categoryId) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Category", "categoryId", categoryId));
@@ -186,77 +195,117 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"productDetails", "allProducts", "categoryProducts"}, allEntries = true)
     public ProductDTO updateProduct(Long productId, ProductDTO productDTO) {
+        // 1. Fetch existing product
         Product productFromDb = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Product", "productId", productId));
 
+        // 2. Update Core Fields
         productFromDb.setProductName(productDTO.getProductName());
         productFromDb.setDescription(productDTO.getDescription());
         productFromDb.setPrice(productDTO.getPrice());
         productFromDb.setDiscount(productDTO.getDiscount());
         productFromDb.setQuantity(productDTO.getQuantity());
 
-        if (productFromDb.getPrice() != null && productFromDb.getDiscount() != null) {
-            double specialPrice = productFromDb.getPrice() - ((productFromDb.getDiscount() * 0.01) * productFromDb.getPrice());
-            productFromDb.setSpecialPrice(specialPrice);
+        // ---------------------------------------------------------
+        // 3. UPDATE VARIANTS (Weight Options)
+        // ---------------------------------------------------------
+        // Step A: Clear existing list (triggers delete for removed items)
+        productFromDb.getVariants().clear();
+
+        // Step B: Add new items from DTO
+        if (productDTO.getVariants() != null) {
+            for (ProductVariantDTO variantDTO : productDTO.getVariants()) {
+                ProductVariant variant = modelMapper.map(variantDTO, ProductVariant.class);
+
+                // ⚠️ CRITICAL: Link child back to parent
+                variant.setProduct(productFromDb);
+
+                productFromDb.getVariants().add(variant);
+            }
         }
 
-        productFromDb.getVariants().clear();
+        // ---------------------------------------------------------
+        // 4. UPDATE FLAVORS (Links to other products)
+        // ---------------------------------------------------------
+        // Step A: Clear existing list
         productFromDb.getFlavors().clear();
 
-        if (productDTO.getVariants() != null) {
-            List<ProductVariant> newVariants = productDTO.getVariants().stream()
-                    .map(v -> modelMapper.map(v, ProductVariant.class))
-                    .collect(Collectors.toList());
-            newVariants.forEach(v -> v.setProduct(productFromDb));
-            productFromDb.getVariants().addAll(newVariants);
-        }
-
+        // Step B: Add new items from DTO
         if (productDTO.getFlavors() != null) {
-            List<ProductFlavor> newFlavors = productDTO.getFlavors().stream()
-                    .map(f -> modelMapper.map(f, ProductFlavor.class))
-                    .collect(Collectors.toList());
-            newFlavors.forEach(f -> f.setProduct(productFromDb));
-            productFromDb.getFlavors().addAll(newFlavors);
+            for (ProductFlavorDTO flavorDTO : productDTO.getFlavors()) {
+                ProductFlavor flavor = modelMapper.map(flavorDTO, ProductFlavor.class);
+
+                // ⚠️ CRITICAL: Link child back to parent
+                flavor.setProduct(productFromDb);
+
+                productFromDb.getFlavors().add(flavor);
+            }
         }
 
+        // 5. Recalculate Special Price logic
+        double specialPrice = productDTO.getPrice() - ((productDTO.getDiscount() * 0.01) * productDTO.getPrice());
+        productFromDb.setSpecialPrice(specialPrice);
+
+        // 6. Save the product (Cascade will handle Variants/Flavors automatically)
         Product savedProduct = productRepository.save(productFromDb);
 
+        // 7. Update price in all Carts
         List<Cart> carts = cartRepository.findCartsByProductId(productId);
-        List<CartDTO> cartDTOs = carts.stream().map(cart -> {
-            CartDTO cartDTO = modelMapper.map(cart, CartDTO.class);
-            List<ProductDTO> products = cart.getCartItems().stream()
-                    .map(p -> modelMapper.map(p.getProduct(), ProductDTO.class)).collect(Collectors.toList());
-            cartDTO.setProducts(products);
-            return cartDTO;
-        }).collect(Collectors.toList());
-        cartDTOs.forEach(cart -> cartService.updateProductInCarts(cart.getCartId(), productId));
+        carts.forEach(cart -> cartService.updateProductInCarts(cart.getCartId(), productId));
 
         return modelMapper.map(savedProduct, ProductDTO.class);
     }
 
     @Override
+    @Transactional
+    @CacheEvict(value = {"productDetails", "allProducts", "categoryProducts"}, allEntries = true)
     public ProductDTO deleteProduct(Long productId) {
-        Product productFromDb = productRepository.findById(productId)
+        // 1. Find Product or throw exception
+        Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Product", "productId", productId));
 
-        List<Cart> carts = cartRepository.findCartsByProductId(productId);
-        carts.forEach(cart -> cartService.deleteProductFromCart(cart.getCartId(), productId));
+        // 2. REMOVE FROM ALL CARTS (Crucial Step)
+        // This deletes every instance of this product (any variant) from cart_items table
+        cartItemRepository.deleteByProductProductId(productId);
 
-        productRepository.delete(productFromDb);
-        return modelMapper.map(productFromDb, ProductDTO.class);
+        // 3. Delete the Product from DB
+        productRepository.delete(product);
+
+        // 4. Return the deleted product data
+        return modelMapper.map(product, ProductDTO.class);
     }
 
     @Override
+    @Cacheable(value = "productDetails", key = "#productId")
     public ProductDTO getProductById(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Product", "productId", productId));
 
-        // ✅ FIX: Manually map Category ID
         ProductDTO dto = modelMapper.map(product, ProductDTO.class);
+
+        // ✅ Ensure Category ID is set
         if (product.getCategory() != null) {
             dto.setCategoryId(product.getCategory().getCategoryId());
         }
+
+        // ✅ Ensure Variants are mapped (ModelMapper usually does this, but manual check is safer)
+        if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+            List<ProductVariantDTO> variantDTOs = product.getVariants().stream()
+                    .map(v -> modelMapper.map(v, ProductVariantDTO.class))
+                    .collect(Collectors.toList());
+            dto.setVariants(variantDTOs);
+        }
+        // 3. ✅ Map Flavors (This makes the buttons appear)
+        if (product.getFlavors() != null && !product.getFlavors().isEmpty()) {
+            List<ProductFlavorDTO> flavorDTOs = product.getFlavors().stream()
+                    .map(f -> modelMapper.map(f, ProductFlavorDTO.class))
+                    .collect(Collectors.toList());
+            dto.setFlavors(flavorDTOs);
+        }
+
+
         return dto;
     }
 
@@ -265,6 +314,7 @@ public class ProductServiceImpl implements ProductService {
     // ==========================================
 
     @Override
+    @CacheEvict(value = {"productDetails", "allProducts", "categoryProducts"}, allEntries = true)
     public ProductDTO uploadImageProduct(Long productId, MultipartFile image) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Product", "productId", productId));
@@ -289,16 +339,19 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @CacheEvict(value = {"productDetails", "allProducts", "categoryProducts"}, allEntries = true)
     public ProductDTO updateImageProduct(Long productId, MultipartFile image) {
         return uploadImageProduct(productId, image);
     }
 
     @Override
+    @CacheEvict(value = {"productDetails", "allProducts", "categoryProducts"}, allEntries = true)
     public Object updateProductImage(Long productId, MultipartFile image) throws IOException {
         return uploadImageProduct(productId, image);
     }
 
     @Override
+    @CacheEvict(value = "productDetails", key = "#productId")
     public ProductDTO deleteProductImage(Long productId, String fileName) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceExceptionHandler("Product", "productId", productId));

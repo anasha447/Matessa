@@ -1,9 +1,9 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
-import img1 from "../assets/review1.jpg";
-import img2 from "../assets/review2.jpg";
-import img3 from "../assets/review3.jpg";
+import img1 from "../assets/custmer1.png";
+import img2 from "../assets/customer2.png";
+import img3 from "../assets/customer3.jpeg";
 
 
 const reviews = [
@@ -12,50 +12,30 @@ const reviews = [
     name: "Amit Sharma",
     photo: img1 ,
     stars: 5,
-    review: "Matessa mate with masala is my go-to energy drink every morning!",
+    review: "Matessa mate with masala became favorite ritual drink every morning",
   },
   {
     id: 2,
-    name: "Priya Verma",
-    photo: img2 ,
-    stars: 4,
+    name: "Ghoro Vishal",
+    photo: img3 ,
+    stars: 5,
     review: "Love the refreshing taste of mate and Indian spices together.",
   },
   {
     id: 3,
     name: "Rahul Mehta",
-    photo: img3,
-    stars: 5,
-    review: "Great companion for late-night work sessions, keeps me focused.",
-  },
-  {
-    id: 4,
-    name: "Neha Singh",
-    photo: "/images/customers/customer4.jpg",
+    photo: img2,
     stars: 4,
-    review: "Healthy and energizing alternative to coffee.",
+    review: "Great for work sessions, keeps me focused.",
   },
-  {
-    id: 5,
-    name: "Arjun Patel",
-    photo: "/images/customers/customer5.jpg",
-    stars: 5,
-    review: "Absolutely love the aroma and taste, highly recommend!",
-  },
-  {
-    id: 6,
-    name: "Sneha Gupta",
-    photo: "/images/customers/customer6.jpg",
-    stars: 5,
-    review: "Best discovery for my fitness lifestyle, keeps me active!",
-  },
+  
 ];
 
 const CustomerReviews = () => {
   return (
     <section className="py-16 px-6 bg-white lg:mt-30 sm:mt-20 mt-10">
-      <h2 className="text-3xl font-bold font-heading text-center text-green  mb-5">
-        What Our Customers Says
+      <h2 className="text-3xl font-bold font-heading text-center mt-5 text-green  mb-5">
+       Customers Reviews
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -69,7 +49,7 @@ const CustomerReviews = () => {
             <img
               src={review.photo}
               alt={review.name}
-              className="mx-auto mb-4 h-[300px] w-full object-cover rounded-lg shadow-md"
+              className="mx-auto mb-4 h-[400px] w-full object-cover rounded-lg shadow-md"
             />
 
             {/* Name */}

@@ -23,7 +23,7 @@ const AdminRoute = () => {
   }
 
   // 4. Check Role using Helper
-  return isAdminUser(user) ? <Outlet /> : <Navigate to="/profile" replace />;
+  return isAdminUser(user) ? <Outlet /> : <Navigate to="/home" replace />;
 };
 
 export default AdminRoute;

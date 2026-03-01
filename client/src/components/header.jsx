@@ -5,7 +5,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import md5 from "md5";
 import logo from "../assets/logob.png";
 import MobileMenu from "./mobileMenu";
-import CartDrawer from "./CartDrawer"; // ✅ Import the Drawer
+import CartDrawer from "./CartDrawer";
 
 // ✅ Redux Imports
 import { useSelector, useDispatch } from "react-redux";
@@ -16,7 +16,7 @@ const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false); // ✅ State for Cart Drawer
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const userMenuTimeout = useRef(null);
   const navigate = useNavigate();
@@ -35,9 +35,9 @@ const Header = () => {
   // ✅ 4. Handle Logout
   const handleLogout = async () => {
     try {
-      await dispatch(logoutUser()).unwrap(); 
-      dispatch(clearCart()); 
-      navigate("/login"); 
+      await dispatch(logoutUser()).unwrap();
+      dispatch(clearCart());
+      navigate("/login");
     } catch (error) {
       console.error("Logout failed", error);
     }
@@ -75,10 +75,10 @@ const Header = () => {
   }, []);
 
   const navLinks = [
-    { name: "Home", path: "/" },
     { name: "Shop", path: "/shop" },
     { name: "What is mate?!", path: "/what.is.mate" },
     { name: "Our Story", path: "/our_story" },
+    { name: "Contact Us", path: "/contact-us" },
   ];
 
   return (
@@ -89,31 +89,42 @@ const Header = () => {
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20 relative">
+          <div className="flex items-center justify-between h-14 lg:h-20  relative">
             
             {/* Left: Nav & Mobile Toggle */}
             <div className="flex items-center">
-              <nav className="hidden md:block">
-                <ul className="flex gap-8 font-body font-bold text-base lg:text-lg">
-                  {navLinks.map((item) => (
-                    <li key={item.path}>
-                      <NavLink
-                        to={item.path}
-                        className={({ isActive }) =>
-                          `text-[#EADBA2] hover:text-[#E85D1F] transition-colors ${
-                            isActive ? "text-[#E85D1F]" : ""
-                          }`
-                        }
-                      >
-                        {item.name}
-                      </NavLink>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
+              
+              {/* CHANGE 1 & 2: 
+                 - Hide Desktop Nav if isAdmin is true.
+                 - Changed breakpoint from 'md:block' to 'lg:block' for iPad support.
+              */}
+              {!isAdmin && (
+                <nav className="hidden lg:block">
+                  <ul className="flex gap-8 font-body font-bold text-base lg:text-lg">
+                    {navLinks.map((item) => (
+                      <li key={item.path}>
+                        <NavLink
+                          to={item.path}
+                          className={({ isActive }) =>
+                            `text-[#EADBA2] hover:text-[#E85D1F] transition-colors ${
+                              isActive ? "text-[#E85D1F]" : ""
+                            }`
+                          }
+                        >
+                          {item.name}
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              )}
 
+              {/* CHANGE 3: 
+                 - If isAdmin: Button is always 'block' (visible).
+                 - If User: Button is 'lg:hidden' (Visible on Mobile/iPad, Hidden on Desktop).
+              */}
               <button
-                className="md:hidden text-[#EADBA2]"
+                className={`text-[#EADBA2] ${isAdmin ? "block" : "lg:hidden"}`}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label="Toggle menu"
               >
@@ -127,7 +138,7 @@ const Header = () => {
                 <img
                   src={logo}
                   alt="Matessa Logo"
-                  className="h-12 md:h-18 lg:h-16 object-contain transition-transform duration-500 hover:scale-105"
+                  className="h-10 md:h-15 lg:h-15 object-contain transition-transform duration-500 hover:scale-105"
                 />
               </Link>
             </div>
@@ -135,7 +146,6 @@ const Header = () => {
             {/* Right: Cart + User */}
             <div className="flex items-center gap-4">
               
-              {/* Logic: If Admin, show Admin Menu. Else show Cart + User */}
               {isAdmin ? (
                 <div
                   className="relative"
@@ -150,14 +160,16 @@ const Header = () => {
                       <Link to="/admin/dashboard" className="block px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Dashboard</Link>
                       <Link to="/admin/products" className="block px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Products</Link>
                       <Link to="/admin/orders" className="block px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Orders</Link>
+                      <Link to="/admin/AdminInbox" className="block px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Inbox</Link>
                       <Link to="/admin/users" className="block px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Users</Link>
+                        <Link to="/admin/carts" className="block px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Carts</Link>
                       <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-[#EADBA2] hover:bg-[#4A5C40]">Logout</button>
                     </div>
                   )}
                 </div>
               ) : (
                 <>
-                  {/* ✅ Cart Icon Button (Triggers Drawer) */}
+                  {/* Cart Icon */}
                   <button
                     onClick={() => setIsDrawerOpen(true)}
                     aria-label="Open Cart"
@@ -174,9 +186,9 @@ const Header = () => {
                     )}
                   </button>
 
-                  {/* User Dropdown */}
+                  {/* User Dropdown - CHANGE 4: Updated breakpoint to lg:block for iPad */}
                   <div
-                    className="relative hidden md:block"
+                    className="relative hidden lg:block"
                     onMouseEnter={handleUserMenuEnter}
                     onMouseLeave={handleUserMenuLeave}
                   >
@@ -216,17 +228,18 @@ const Header = () => {
           </div>
         </div>
 
+        {/* CHANGE 5: Pass isAdmin prop to MobileMenu so it can show admin links */}
         <MobileMenu
           isOpen={mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)}
           navLinks={navLinks}
-          userInfo={user} 
+          userInfo={user}
+          isAdmin={isAdmin} 
           handleLogout={handleLogout}
           getGravatarURL={getGravatarURL}
         />
       </header>
 
-      {/* ✅ Render the Cart Drawer Component here */}
       <CartDrawer 
         isOpen={isDrawerOpen} 
         onClose={() => setIsDrawerOpen(false)} 
