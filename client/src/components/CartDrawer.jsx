@@ -16,7 +16,8 @@ const CartDrawer = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
 
   // 2. Get Data from Redux
-  const { items = [], totalPrice = 0, cartId } = useSelector((state) => state.cart || {});
+  const { items: rawItems = [], totalPrice = 0, cartId } = useSelector((state) => state.cart || {});
+  const items = Array.isArray(rawItems) ? rawItems : [];
 
   // 3. Fetch Cart on Mount (if open)
   useEffect(() => {

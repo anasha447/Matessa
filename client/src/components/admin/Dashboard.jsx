@@ -85,10 +85,12 @@ const Dashboard = () => {
   }, [dispatch]);
 
   const dashboardData = useMemo(() => {
-    const totalOrders = orders.length;
-    const pendingOrders = orders.filter((o) => o.orderStatus === "Pending").length;
-    const deliveredOrders = orders.filter((o) => o.orderStatus === "Delivered").length;
-    const lowStockCount = products.filter((p) => (p.quantity || 0) < 10).length;
+    const safeOrders = Array.isArray(orders) ? orders : [];
+    const safeProducts = Array.isArray(products) ? products : [];
+    const totalOrders = safeOrders.length;
+    const pendingOrders = safeOrders.filter((o) => o.orderStatus === "Pending").length;
+    const deliveredOrders = safeOrders.filter((o) => o.orderStatus === "Delivered").length;
+    const lowStockCount = safeProducts.filter((p) => (p.quantity || 0) < 10).length;
 
     // Mock trend data for the area chart based on real counts
     const chartData = [
@@ -147,7 +149,7 @@ const Dashboard = () => {
         />
         <StatCard 
           title="Customers" 
-          value={users.length} 
+          value={Array.isArray(users) ? users.length : 0}
           icon={Users} 
           trend="Active now"
           colorClass="bg-emerald-50 text-emerald-600" 

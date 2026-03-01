@@ -43,7 +43,8 @@ const CheckoutPage = () => {
 
   // Redux State
   const { userInfo } = useSelector((state) => state.auth);
-  const { items, totalPrice, discount, couponCode: appliedCode, cartId } = useSelector((state) => state.cart);
+  const { items: rawItems, totalPrice, discount, couponCode: appliedCode, cartId } = useSelector((state) => state.cart);
+  const items = React.useMemo(() => Array.isArray(rawItems) ? rawItems : [], [rawItems]);
   const { loading: orderLoading } = useSelector((state) => state.orders);
 
   // Local State

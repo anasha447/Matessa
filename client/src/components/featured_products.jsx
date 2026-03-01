@@ -83,7 +83,7 @@ const FeaturedProducts = () => {
   if (loading) return <div className="text-center py-12 text-gray-500">Loading Featured Items...</div>;
 
   // 🚨 DEBUG MODE
-  if (products.length === 0) {
+  if (!products || products.length === 0) {
       return (
           <section className="py-12 bg-gray-100 text-center border-2 border-red-500 m-4 rounded-xl">
               <h2 className="text-2xl font-bold text-red-600">⚠️ Debug Mode: No Products Found</h2>

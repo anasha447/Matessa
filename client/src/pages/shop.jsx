@@ -49,7 +49,7 @@ const ShopPage = () => {
         ? rawProducts 
         : (rawProducts?.content || []);
 
-    let result = [...productList];
+    let result = Array.isArray(productList) ? [...productList] : [];
 
     if (selectedCategoryId !== "All") {
       result = result.filter((p) => {
