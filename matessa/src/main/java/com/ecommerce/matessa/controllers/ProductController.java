@@ -76,7 +76,7 @@ public class ProductController {
         return new ResponseEntity<>(deleteProductDTO, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/admin/products/{productId}/image", method = RequestMethod.POST, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping("/admin/products/{productId}/image")
     public ResponseEntity<?> uploadProductImage(
             @PathVariable Long productId,
             @RequestParam("image") MultipartFile image) {
