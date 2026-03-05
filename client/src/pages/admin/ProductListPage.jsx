@@ -67,9 +67,10 @@ const ProductListPage = () => {
       return `${API_BASE_URL}/api/public/images/${imageName}`;
   };
 
-  const filteredProducts = products.filter(product => 
-      product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.productId.toString().includes(searchTerm)
+  const safeProducts = Array.isArray(products) ? products : [];
+  const filteredProducts = safeProducts.filter(product =>
+      product?.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product?.productId?.toString().includes(searchTerm)
   );
 
   return (
@@ -118,7 +119,7 @@ const ProductListPage = () => {
       </div>
 
       {/* --- CONTENT --- */}
-      {loading && products.length === 0 ? (
+      {loading && safeProducts.length === 0 ? (
         // Skeleton Loader
         <div className="space-y-4">
             {[1, 2, 3].map(i => (

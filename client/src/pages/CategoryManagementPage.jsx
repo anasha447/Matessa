@@ -135,7 +135,7 @@ const CategoryManagementPage = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {categories && categories.length > 0 ? categories.map((cat) => (
+                {Array.isArray(categories) && categories.length > 0 ? categories.map((cat) => (
                   <tr key={cat.categoryId} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{cat.categoryId}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">{cat.categoryName}</td>

@@ -109,8 +109,25 @@ public class ProductController {
             // ⚠️ This "images/" must match the path in your application.properties
             String path = "images/";
 
+            // 1. Try exact requested file
             Path filePath = Paths.get(path).resolve(fileName).normalize();
             Resource resource = new UrlResource(filePath.toUri());
+
+            // 2. Fallback: If original doesn't exist, check for WebP version
+            if (!resource.exists()) {
+                int lastDotIndex = fileName.lastIndexOf('.');
+                if (lastDotIndex > 0) {
+                    String nameWithoutExtension = fileName.substring(0, lastDotIndex);
+                    String webpFileName = nameWithoutExtension + ".webp";
+                    Path webpPath = Paths.get(path).resolve(webpFileName).normalize();
+                    Resource webpResource = new UrlResource(webpPath.toUri());
+
+                    if (webpResource.exists()) {
+                        resource = webpResource;
+                        fileName = webpFileName; // update fileName for contentType check
+                    }
+                }
+            }
 
             if (resource.exists()) {
                 String contentType = "application/octet-stream";

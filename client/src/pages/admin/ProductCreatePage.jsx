@@ -207,7 +207,7 @@ const ProductCreatePage = () => {
                         <div>
                              <label className="label">Category</label>
                              <select className="input-field bg-white" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} disabled={loadingCats}>
-                                {categories.map(cat => <option key={cat.categoryId} value={cat.categoryId}>{cat.categoryName}</option>)}
+                                {Array.isArray(categories) && categories.map(cat => <option key={cat.categoryId} value={cat.categoryId}>{cat.categoryName}</option>)}
                              </select>
                         </div>
                     </div>
@@ -327,7 +327,7 @@ const ProductCreatePage = () => {
                 {/* Submit Button */}
                 <button
                  type="submit"
-                 disabled={loading || categories.length === 0}
+                 disabled={loading || !Array.isArray(categories) || categories.length === 0}
                  className="w-full bg-[var(--color-darkgreen)] hover:bg-green-900 text-white font-bold py-4 px-4 rounded-xl shadow-lg transform transition hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
                 >
                   {loading ? "Creating..." : "Publish Product"}
