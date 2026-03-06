@@ -12,15 +12,7 @@ export const uploadProductImage = createAsyncThunk(
       // "image" key must match @RequestParam("image") in your Spring Controller
       formData.append("image", file); 
 
-      const response = await api.put(
-        `/admin/products/${productId}/image`, 
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data", // Crucial for file uploads
-          },
-        }
-      );
+      const response = await api.post(`/admin/products/${productId}/image`, formData);
       
       // Returns the updated ProductDTO from backend
       return response.data; 

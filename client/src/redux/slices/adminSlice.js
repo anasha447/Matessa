@@ -101,7 +101,7 @@ export const deleteProduct = createAsyncThunk(
   async (productId, { rejectWithValue }) => {
     try {
       await api.delete(`/admin/products/${productId}`);
-      return productId; 
+      return productId;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Failed to delete product");
     }
@@ -115,9 +115,7 @@ export const uploadProductImage = createAsyncThunk(
       const formData = new FormData();
       formData.append("image", file);
 
-      const response = await api.post(`/admin/products/${productId}/image`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const response = await api.post(`/admin/products/${productId}/image`, formData);
       return { productId, data: response.data };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Failed to upload image");
@@ -155,7 +153,7 @@ const adminSlice = createSlice({
   reducers: {
     clearAdminError: (state) => { state.error = null; },
     clearSuccessMessage: (state) => { state.successMessage = null; },
-    clearUserDetails: (state) => { state.userDetails = null; } 
+    clearUserDetails: (state) => { state.userDetails = null; }
   },
   extraReducers: (builder) => {
     builder
@@ -172,9 +170,9 @@ const adminSlice = createSlice({
       .addCase(fetchAllUsers.fulfilled, (state, action) => {
         state.loading = false;
         // ✅ CRITICAL FIX: Handles both [Array] and { content: [Array] } (Pagination)
-        state.users = Array.isArray(action.payload) 
-          ? action.payload 
-          : (action.payload.content || []); 
+        state.users = Array.isArray(action.payload)
+          ? action.payload
+          : (action.payload.content || []);
       })
       .addCase(fetchAllUsers.rejected, (state, action) => {
         state.loading = false;
@@ -196,8 +194,8 @@ const adminSlice = createSlice({
       .addCase(updateUser.fulfilled, (state, action) => {
         state.loading = false;
         state.successMessage = "User updated successfully";
-        state.userDetails = null; 
-        
+        state.userDetails = null;
+
         // Optimistic UI Update
         const index = state.users.findIndex(u => u.userId === action.payload.userId);
         if (index !== -1) {
