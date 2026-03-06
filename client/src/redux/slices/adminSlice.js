@@ -115,9 +115,7 @@ export const uploadProductImage = createAsyncThunk(
       const formData = new FormData();
       formData.append("image", file);
 
-      const response = await api.put(`/admin/products/${productId}/image`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const response = await api.post(`/admin/products/${productId}/image`, formData);
       return { productId, data: response.data };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Failed to upload image");
