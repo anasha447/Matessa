@@ -130,14 +130,15 @@ const ProductCreatePage = () => {
          try {
              await dispatch(uploadProductImage({ productId: newProduct.productId, file: imageFile })).unwrap();
          } catch (imgErr) {
-             toast.warning("Product created, but image upload failed.");
+             const warningMsg = typeof imgErr === 'string' ? imgErr : (imgErr?.message || "Product created, but image upload failed.");
+             toast.warning(warningMsg);
          }
       }
 
       toast.success("Product created successfully!");
       navigate("/admin/products");
     } catch (error) {
-      const errMsg = error?.response?.data?.message || error?.message || "Failed to create product";
+      const errMsg = typeof error === 'string' ? error : (error?.response?.data?.message || error?.message || "Failed to create product");
       toast.error(errMsg);
     }
   };

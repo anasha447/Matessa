@@ -140,7 +140,8 @@ const ProductEditPage = () => {
       setImagePreview(null);
       dispatch(fetchProductDetails(productId)); 
     } catch (error) {
-      toast.error("Failed to upload image");
+      const errMsg = typeof error === 'string' ? error : (error?.message || "Failed to upload image");
+      toast.error(errMsg);
     } finally {
       setUploading(false);
     }

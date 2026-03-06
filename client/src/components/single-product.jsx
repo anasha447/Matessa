@@ -21,11 +21,12 @@ export default function SingleProduct({ product }) {
         {/* Product Image */}
         <div className="flex justify-center">
           <img
-            src={getImageUrl(product.images[0])}
-            alt={product.name}
+            src={getImageUrl(product?.images?.[0])}
+            alt={product?.name || "Product Image"}
             className="w-full max-w-sm rounded-xl shadow-md"
             fetchPriority="high"
             loading="eager"
+            onError={(e) => { e.target.src = "https://via.placeholder.com/400?text=No+Image"; }}
           />
         </div>
 
