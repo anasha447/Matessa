@@ -12,12 +12,11 @@ export const uploadProductImage = createAsyncThunk(
       // "image" key must match @RequestParam("image") in your Spring Controller
       formData.append("image", file); 
 
-      const response = await api.put(
+      const response = await api.post(
         `/admin/products/${productId}/image`, 
         formData,
         {
           headers: {
-            "Content-Type": "multipart/form-data", // Crucial for file uploads
           },
         }
       );
