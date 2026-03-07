@@ -14,9 +14,9 @@ public class FileServiceImpl implements FileService {
     @Override
     public String uploadImage(String path, MultipartFile image) {
         try {
-            // Generate a unique filename with .webp extension
+            // ✅ FIX 1: Change to .jpg extension
             String randomId = UUID.randomUUID().toString();
-            String fileName = randomId + ".webp";
+            String fileName = randomId + ".jpg";
 
             // Ensure directory exists
             File dir = new File(path);
@@ -28,12 +28,13 @@ public class FileServiceImpl implements FileService {
             String filePath = path + File.separator + fileName;
             File destinationFile = new File(filePath);
 
-            // Compress and convert to WebP
-            // Using scale(1.0) to maintain dimensions but change format
+            // Compress and convert to JPG
+            // Using scale(1.0) to maintain dimensions
             Thumbnails.of(image.getInputStream())
                     .scale(1.0)
                     .outputQuality(0.80) // 80% quality is a good balance
-                    .outputFormat("webp")
+                    // ✅ FIX 2: Tell Java to output as a standard jpg
+                    .outputFormat("jpg")
                     .toFile(destinationFile);
 
             return fileName;
