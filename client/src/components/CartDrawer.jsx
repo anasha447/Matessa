@@ -172,22 +172,12 @@ const CartDrawer = ({ isOpen, onClose }) => {
                     <li key={`${item.productId}-${item.variantId || 'def'}-${idx}`} className="bg-white p-4 rounded-lg shadow-sm flex gap-4 border border-[#E6E0D2]">
                       <div className="w-20 h-20 flex-shrink-0 bg-gray-50 rounded-md overflow-hidden border border-gray-100">
                         {/* ✅ USED NEW HELPER HERE */}
-                        {/* YOUR NEW, FAST CODE */}
-                        <picture>
-                          {/* 1. Browser tries to load the WebP version first */}
-                          <source 
-                            srcSet={getImageUrl(product.image).replace(/\.(jpg|jpeg|png)$/i, '.webp')} 
-                            type="image/webp" 
-                          />
-
-                          {/* 2. If the browser is old or the WebP is missing, it falls back to the JPG */}
-                          <img 
-                            src={getImageUrl(product.image)} 
-                            alt={product.productName} 
-                            loading="lazy" 
-                            className="w-full h-full object-cover transition-opacity duration-300"
-                          />
-                        </picture>
+                        <img
+                          src={getCartImage(item.images?.[0] || item.image)}
+                          alt={item.productName}
+                          className="w-full h-full object-contain"
+                          onError={(e) => { e.target.src = "/assets/placeholder.png"; }}
+                        />
                       </div>
                       <div className="flex-grow flex flex-col justify-between">
                         <div>
