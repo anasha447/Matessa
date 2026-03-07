@@ -108,33 +108,6 @@ export const deleteProduct = createAsyncThunk(
   }
 );
 
-export const uploadProductImage = createAsyncThunk(
-  'admin/uploadProductImage',
-  async ({ productId, file }, { rejectWithValue }) => {
-    try {
-      const formData = new FormData();
-      formData.append("image", file);
-
-      const response = await api.post(`/admin/products/${productId}/image`, formData);
-      return { productId, data: response.data };
-    } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to upload image");
-    }
-  }
-);
-
-export const deleteProductImage = createAsyncThunk(
-  'admin/deleteProductImage',
-  async ({ productId, fileName }, { rejectWithValue }) => {
-    try {
-      await api.delete(`/admin/products/${productId}/image/${fileName}`);
-      return { productId, fileName };
-    } catch (error) {
-      return rejectWithValue("Failed to delete image");
-    }
-  }
-);
-
 // ==========================================
 // ADMIN SLICE LOGIC
 // ==========================================
@@ -145,7 +118,7 @@ const adminSlice = createSlice({
     users: [],
     userDetails: null,
     orders: [],
-    products: [], // Ensure products are tracked if needed
+    products: [], 
     loading: false,
     error: null,
     successMessage: null,
@@ -169,7 +142,6 @@ const adminSlice = createSlice({
       })
       .addCase(fetchAllUsers.fulfilled, (state, action) => {
         state.loading = false;
-        // ✅ CRITICAL FIX: Handles both [Array] and { content: [Array] } (Pagination)
         state.users = Array.isArray(action.payload)
           ? action.payload
           : (action.payload.content || []);
@@ -196,7 +168,6 @@ const adminSlice = createSlice({
         state.successMessage = "User updated successfully";
         state.userDetails = null;
 
-        // Optimistic UI Update
         const index = state.users.findIndex(u => u.userId === action.payload.userId);
         if (index !== -1) {
           state.users[index] = action.payload;
@@ -213,12 +184,8 @@ const adminSlice = createSlice({
       .addCase(deleteProduct.fulfilled, (state) => {
          state.successMessage = "Product deleted successfully";
       })
-      .addCase(uploadProductImage.fulfilled, (state) => {
-        state.successMessage = "Image uploaded successfully";
-      })
 
       // --- GLOBAL LOADING HANDLER (Matchers) ---
-      // This handles loading/errors for ALL thunks automatically
       .addMatcher(
         (action) => action.type.startsWith('admin/') && action.type.endsWith('/pending'),
         (state) => { state.loading = true; state.error = null; }

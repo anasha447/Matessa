@@ -3,7 +3,7 @@ import api from '../../apis/axiosConfig';
 
 // ... (your existing fetchProducts thunks, etc.)
 
-// ✅ NEW: Image Upload Thunk
+// ✅ Image Upload Thunk
 export const uploadProductImage = createAsyncThunk(
   'products/uploadImage',
   async ({ productId, file }, { rejectWithValue }) => {
@@ -17,6 +17,8 @@ export const uploadProductImage = createAsyncThunk(
         formData,
         {
           headers: {
+            // Explicitly tell the backend this is a file, not JSON
+            "Content-Type": "multipart/form-data" 
           },
         }
       );
@@ -25,6 +27,22 @@ export const uploadProductImage = createAsyncThunk(
       return response.data; 
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Image upload failed");
+    }
+  }
+);
+
+// ✅ NEW: Image Delete Thunk
+export const deleteProductImage = createAsyncThunk(
+  'products/deleteImage',
+  async ({ productId, fileName }, { rejectWithValue }) => {
+    try {
+      const response = await api.delete(`/admin/products/${productId}/image/${fileName}`);
+      
+      // Your Spring backend returns the updated ProductDTO after deletion, 
+      // so we return it here to instantly update the UI.
+      return response.data; 
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Failed to delete image");
     }
   }
 );
@@ -49,13 +67,30 @@ const productSlice = createSlice({
         state.loading = false;
         
         // Find the product in the local state and update it immediately
-        // so the new image shows up without refreshing the page.
         const index = state.items.findIndex(item => item.productId === action.payload.productId);
         if (index !== -1) {
           state.items[index] = action.payload;
         }
       })
       .addCase(uploadProductImage.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // ✅ Handle Image Delete Lifecycle
+      .addCase(deleteProductImage.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(deleteProductImage.fulfilled, (state, action) => {
+        state.loading = false;
+        
+        // Find the product and update it immediately so the deleted image vanishes from the screen
+        const index = state.items.findIndex(item => item.productId === action.payload.productId);
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+      })
+      .addCase(deleteProductImage.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
