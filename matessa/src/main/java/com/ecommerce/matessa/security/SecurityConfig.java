@@ -125,7 +125,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(
                 "https://matessa.in",       // Production Domain
                 "https://www.matessa.in",   // WWW Subdomain
-                "http://localhost:5173",    // Local React (Vite)
+                "http://localhost:5174",    // Local React (Vite)
                 "http://localhost:3000"     // Local React (Create React App)
         ));
 
