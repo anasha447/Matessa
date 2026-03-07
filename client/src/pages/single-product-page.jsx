@@ -222,12 +222,22 @@ const SingleProductPage = () => {
             {mainImage ? (
               <>
                 <div className="w-full relative -mx-4 md:mx-0 flex justify-center items-center bg-white">
-                  <img 
-                    src={getProductImage(mainImage)} 
-                    alt={product.productName} 
-                    className="w-full h-auto max-h-[85vh] object-contain" 
-                    onError={(e) => { e.target.src = "/assets/placeholder.png"; }} 
-                  />
+                  {/* YOUR NEW, FAST CODE */}
+                  <picture>
+                    {/* 1. Browser tries to load the WebP version first */}
+                    <source 
+                      srcSet={getImageUrl(product.image).replace(/\.(jpg|jpeg|png)$/i, '.webp')} 
+                      type="image/webp" 
+                    />
+
+                    {/* 2. If the browser is old or the WebP is missing, it falls back to the JPG */}
+                    <img 
+                      src={getImageUrl(product.image)} 
+                      alt={product.productName} 
+                      loading="lazy" 
+                      className="w-full h-full object-cover transition-opacity duration-300"
+                    />
+                  </picture>
                 </div>
                 {productImages.length > 1 && (
                   <div className="mt-2 flex items-center justify-between bg-gray-100 rounded-full px-6 py-2 w-[100px] h-8 shadow-sm select-none">

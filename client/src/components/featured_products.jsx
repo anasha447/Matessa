@@ -126,12 +126,22 @@ const FeaturedProducts = () => {
                    group-hover:border-[var(--color-orange)] group-hover:shadow-lg
                 ">
                   {/* ✅ USE HELPER FUNCTION HERE */}
-                  <img
-                    src={getProductImage(displayImage)} 
-                    alt={product.productName}
-                    className="w-full h-full object-contain p-0 mix-blend-multiply transition-transform duration-700 group-hover:scale-110"
-                    onError={(e) => { e.target.src = "/assets/placeholder.png"; }}
-                  />
+                  {/* YOUR NEW, FAST CODE */}
+                  <picture>
+                    {/* 1. Browser tries to load the WebP version first */}
+                    <source 
+                      srcSet={getImageUrl(product.image).replace(/\.(jpg|jpeg|png)$/i, '.webp')} 
+                      type="image/webp" 
+                    />
+
+                    {/* 2. If the browser is old or the WebP is missing, it falls back to the JPG */}
+                    <img 
+                      src={getImageUrl(product.image)} 
+                      alt={product.productName} 
+                      loading="lazy" 
+                      className="w-full h-full object-cover transition-opacity duration-300"
+                    />
+                  </picture>
                   <button
                     onClick={(e) => handleAddToCart(e, product)}
                     className="

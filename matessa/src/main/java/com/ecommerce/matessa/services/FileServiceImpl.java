@@ -31,9 +31,8 @@ public class FileServiceImpl implements FileService {
             // Compress and convert to JPG
             // Using scale(1.0) to maintain dimensions
             Thumbnails.of(image.getInputStream())
-                    .scale(1.0)
-                    .outputQuality(0.80) // 80% quality is a good balance
-                    // ✅ FIX 2: Tell Java to output as a standard jpg
+                    .size(800, 800) // <-- Resizes large images down to web-friendly sizes
+                    .outputQuality(0.80)
                     .outputFormat("jpg")
                     .toFile(destinationFile);
 
