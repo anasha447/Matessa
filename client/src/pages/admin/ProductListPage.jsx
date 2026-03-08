@@ -151,21 +151,12 @@ const ProductListPage = () => {
                     <td className="py-4 px-6">
                         <div className="h-12 w-12 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 relative">
                             {product.images && product.images.length > 0 ? (
-                                <picture>
-                            {/* 1. Browser tries to load the WebP version first */}
-                            <source 
-                                srcSet={getImageUrl(product.image).replace(/\.(jpg|jpeg|png)$/i, '.webp')} 
-                                type="image/webp" 
-                            />
-
-                            {/* 2. If the browser is old or the WebP is missing, it falls back to the JPG */}
-                            <img 
-                                src={getImageUrl(product.image)} 
-                                alt={product.productName} 
-                                loading="lazy" 
-                                className="w-full h-full object-cover transition-opacity duration-300"
-                            />
-                            </picture>
+                                <img 
+                                  src={getImageUrl(product.images[0])} 
+                                  alt={product.productName} 
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=No+Img"; }} 
+                                />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-gray-300">
                                     <FaBoxOpen size={20} />
