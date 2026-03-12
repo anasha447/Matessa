@@ -3,11 +3,11 @@ import React from 'react';
 import Stack from './stackGallery.jsx' // Importing the logic file
 
 // --- Import Images ---
-import img1 from '../assets/matee4.jpg';
-import img2 from '../assets/GALL3.jpg';
-import img3 from '../assets/GALL5.png';
-import img4 from '../assets/matee3.jpg';
-import img5 from '../assets/matee5.jpg';
+import img1 from '../assets/matee4.webp';
+import img2 from '../assets/GALL3.webp';
+import img3 from '../assets/GALL5.webp';
+import img4 from '../assets/matee3.webp';
+import img5 from '../assets/matee5.webp';
 
 
 const StackGallery = () => {

@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 
 // Swap these for your actual images
-import img1 from "../assets/banner.png";
-import img2 from "../assets/masala.png";
-import img3 from "../assets/lemon.png";
-import img4 from "../assets/tulsi.png";
+import img1 from "../assets/banner.webp";
+import img2 from "../assets/masala.webp";
+import img3 from "../assets/lemon.webp";
+import img4 from "../assets/tulsi.webp";
 
 const SLIDES = [
   {

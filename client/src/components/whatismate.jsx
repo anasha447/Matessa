@@ -4,7 +4,7 @@ import StackGallery from "./stackUsage";
 
 
 // ✅ Import local images from assets
-import LeafPattern from "../assets/leaf-pattern1.png";
+import LeafPattern from "../assets/leaf-pattern1.webp";
 import CircularGallery from './mate-Gallery';
 
 export default function WhatIsMate() {

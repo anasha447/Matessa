@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import bannerImage from "../assets/leaf-pattern.jpeg"; 
+import bannerImage from "../assets/leaf-pattern.webp"; 
 
 const ShopBanner = () => {
   const [text, setText] = useState("");

@@ -30,7 +30,7 @@ const Home = () => {
               "@type": "Organization",
               "name": "Matessa",
               "url": "https://matessa.in",
-              "logo": "https://matessa.in/full.logo.png",
+              "logo": "https://matessa.in/full.logo.webp",
               "sameAs": [
                 "https://www.instagram.com/matessa.in", 
                 "https://www.facebook.com/matessa.in"

@@ -1,8 +1,8 @@
 import React from "react";
 import OurStoryBanner from "../components/banner-ourstory";
-import Matecup from "../assets/matecupp.jpg";
-import Masala from "../assets/masala1.jpg";
-import branding from "../assets/branding.png";
+import Matecup from "../assets/matecupp.webp";
+import Masala from "../assets/masala1.webp";
+import branding from "../assets/branding.webp";
 
 import StorySection from "../components/ourstory/StorySection";
 

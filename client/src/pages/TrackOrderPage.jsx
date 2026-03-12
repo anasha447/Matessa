@@ -31,7 +31,7 @@ const TrackOrderPage = () => {
 
   // ✅ 2. HELPER FUNCTION FOR IMAGES (Adds the Thumbnail feature)
   const getProductImage = (imageName) => {
-    if (!imageName) return "/assets/placeholder.png";
+    if (!imageName) return "/assets/placeholder.webp";
     if (imageName.startsWith("http")) return imageName;
     return `${IMG_BASE_URL}/images/${imageName}`;
   };
@@ -145,7 +145,7 @@ const TrackOrderPage = () => {
                                     src={getProductImage(previewImage)} 
                                     alt="Order Preview" 
                                     className="w-full h-full object-cover"
-                                    onError={(e) => e.target.src = "/assets/placeholder.png"}
+                                    onError={(e) => e.target.src = "/assets/placeholder.webp"}
                                 />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-gray-300">

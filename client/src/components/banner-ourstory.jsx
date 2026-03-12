@@ -1,6 +1,6 @@
 // src/components/ShopBanner.jsx
 import React, { useEffect, useState } from "react";
-import bannerImage from "../assets/oursto.png"; // Ensure this path is correct
+import bannerImage from "../assets/oursto.webp"; // Ensure this path is correct
 
 const OurStoryBanner = () => {
   // State to trigger the fade-in effect

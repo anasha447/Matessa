@@ -4,17 +4,11 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { addToCart } from "../redux/slices/cartSlice";
-
-// ✅ 1. Import Analytics Helper
 import { trackAddToCart } from "../utils/analytics"; 
 
-// ⚠️ IMPORTANT: Change this ID if "5" is empty. Check your DB for the real ID.
 const FEATURED_CATEGORY_ID = 1; 
-
-// ✅ 2. DEFINE IMAGE BASE URL
 const IMG_BASE_URL = "https://matessa.in";
 
-// Standardized API URL definition
 const API_URL = import.meta.env.VITE_API_URL 
   ? import.meta.env.VITE_API_URL.replace(/\/api$/, "") + "/api" 
   : "http://localhost:8080/api";
@@ -28,11 +22,9 @@ const FeaturedProducts = () => {
   const navigate = useNavigate();
   const [startX, setStartX] = useState(null);
 
-  // ✅ 3. HELPER FUNCTION FOR IMAGES
   const getProductImage = (imageName) => {
-    if (!imageName) return "/assets/placeholder.png";
+    if (!imageName) return "/assets/placeholder.webp";
     if (imageName.startsWith("http")) return imageName;
-    // Points to: https://matessa.in/images/your-file.jpg
     return `${IMG_BASE_URL}/images/${imageName}`;
   };
 
@@ -40,15 +32,12 @@ const FeaturedProducts = () => {
     const fetchFeatured = async () => {
       try {
         const url = `${API_URL}/public/categories/${FEATURED_CATEGORY_ID}/products`;
-        console.log(`Fetching from: ${url}`);
-        
         const { data } = await axios.get(url);
         const productList = Array.isArray(data) ? data : (data.content || []);
         
         setProducts(productList);
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching featured products:", err);
         setErrorMsg(err.response?.data?.message || err.message || "Unknown Error");
         setLoading(false);
       }
@@ -64,9 +53,7 @@ const FeaturedProducts = () => {
         quantity: 1
       })).unwrap();
       
-      // ✅ 4. Analytics Trigger
       trackAddToCart(product);
-
       toast.success(`Added ${product.productName} to cart`);
     } catch (err) {
       toast.error(err || "Could not add to cart");
@@ -82,7 +69,6 @@ const FeaturedProducts = () => {
 
   if (loading) return <div className="text-center py-12 text-gray-500">Loading Featured Items...</div>;
 
-  // 🚨 DEBUG MODE
   if (products.length === 0) {
       return (
           <section className="py-12 bg-gray-100 text-center border-2 border-red-500 m-4 rounded-xl">
@@ -125,12 +111,16 @@ const FeaturedProducts = () => {
                    border border-gray-500 transition-all duration-500 
                    group-hover:border-[var(--color-orange)] group-hover:shadow-lg
                 ">
-                  {/* ✅ USE HELPER FUNCTION HERE */}
+                  {/* ✅ THE FIX: Lazy Loading, Async Decoding, and Fixed Dimensions */}
                   <img
                     src={getProductImage(displayImage)} 
                     alt={product.productName}
+                    loading="lazy"
+                    decoding="async"
+                    width="300"
+                    height="300"
                     className="w-full h-full object-contain p-0 mix-blend-multiply transition-transform duration-700 group-hover:scale-110"
-                    onError={(e) => { e.target.src = "/assets/placeholder.png"; }}
+                    onError={(e) => { e.target.src = "/assets/placeholder.webp"; }}
                   />
                   <button
                     onClick={(e) => handleAddToCart(e, product)}

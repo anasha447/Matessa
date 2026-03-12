@@ -65,7 +65,7 @@ const CheckoutPage = () => {
 
   // Helper for Images
   const getProductImage = (imageName) => {
-    if (!imageName) return "/assets/placeholder.png";
+    if (!imageName) return "/assets/placeholder.webp";
     if (imageName.startsWith("http")) return imageName;
     return `${IMG_BASE_URL}/images/${imageName}`;
   };
@@ -464,7 +464,7 @@ const CheckoutPage = () => {
                                     src={getProductImage(item.images?.[0] || item.image)} 
                                     alt={item.productName}
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                    onError={(e) => { e.target.src = "/assets/placeholder.png"; }}
+                                    onError={(e) => { e.target.src = "/assets/placeholder.webp"; }}
                                 />
                             </div>
                             <div className="flex-1">

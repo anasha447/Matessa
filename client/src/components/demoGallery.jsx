@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef, useCallback } from "react";
 import { useGesture } from "@use-gesture/react";
 
-import img2 from "../assets/messi2.jpg";
-import img3 from "../assets/opama.jpg";
-import img4 from "../assets/inch.jpg";
-import img5 from "../assets/suarez.jpg";
-import img6 from "../assets/nymar.jpg";
-import img7 from "../assets/yani.jpg";
-import img8 from "../assets/maradona.jpg";
-import img9 from "../assets/unknown.jpg";
-import img10 from "../assets/chivara.jpg";
-import bgimg from "../assets/bgdemo.png";
+import img2 from "../assets/messi2.webp";
+import img3 from "../assets/opama.webp";
+import img4 from "../assets/inch.webp";
+import img5 from "../assets/suarez.webp";
+import img6 from "../assets/nymar.webp";
+import img7 from "../assets/yani.webp";
+import img8 from "../assets/maradona.webp";
+import img9 from "../assets/unknown.webp";
+import img10 from "../assets/chivara.webp";
+import bgimg from "../assets/bgdemo.webp";
 
 const DEFAULT_IMAGES = [
   { src: img2, alt: "Modern sculpture" },

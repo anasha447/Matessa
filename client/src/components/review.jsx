@@ -1,9 +1,9 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
-import img1 from "../assets/custmer1.png";
-import img2 from "../assets/customer2.png";
-import img3 from "../assets/customer3.jpeg";
+import img1 from "../assets/custmer1.webp";
+import img2 from "../assets/customer2.webp";
+import img3 from "../assets/customer3.webp";
 
 
 const reviews = [

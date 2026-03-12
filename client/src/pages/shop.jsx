@@ -38,7 +38,7 @@ const ShopPage = () => {
 
   // Image Helper Function
   const getProductImage = (imageName) => {
-    if (!imageName) return "https://matessa.in/assets/placeholder.png"; 
+    if (!imageName) return "https://matessa.in/assets/placeholder.webp"; 
     if (imageName.startsWith("http")) return imageName;
     return `${API_BASE_URL}/images/${imageName}`;
   };
@@ -145,7 +145,7 @@ const ShopPage = () => {
         <meta property="og:description" content={seoDesc} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={seoUrl} />
-        <meta property="og:image" content="https://matessa.in/full.logo.png" /> 
+        <meta property="og:image" content="https://matessa.in/full.logo.webp" /> 
         <script type="application/ld+json">
           {JSON.stringify(shopSchema)}
         </script>
@@ -242,7 +242,7 @@ const ShopPage = () => {
                         src={getProductImage(product.image || product.images?.[0])}
                         alt={product.productName}
                         className="w-full h-full object-cover p-0 mix-blend-multiply transition-transform duration-700 group-hover:scale-110"
-                        onError={(e) => { e.target.src = "/assets/placeholder.png"; }}
+                        onError={(e) => { e.target.src = "/assets/placeholder.webp"; }}
                       />
 
                       <button

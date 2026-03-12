@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import img from "../assets/zoomedleaf.jpg";
+import img from "../assets/zoomedleaf.webp";
 /**
  * QuoteParallax
  * Props:

@@ -3,7 +3,7 @@ import { MdShoppingCart } from "react-icons/md";
 import { FaUserCircle, FaBars, FaTimes } from "react-icons/fa";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import md5 from "md5";
-import logo from "../assets/logob.png";
+import logo from "../assets/logob.webp";
 import MobileMenu from "./mobileMenu";
 import CartDrawer from "./CartDrawer";
 

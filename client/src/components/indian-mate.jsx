@@ -1,6 +1,6 @@
 // src/components/IndianMateStory.jsx
 import { motion } from "framer-motion";
-import indianmate from "../assets/HARMONY.png";
+import indianmate from "../assets/HARMONY.webp";
 
 export default function IndianMateStory() {
   return (

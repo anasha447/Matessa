@@ -13,7 +13,7 @@ const OurStorySplit = () => {
           transition={{ duration: 0.8 }}
           className="relative flex justify-center"
         >
-          <img src="/matecup.jpg" alt="Mate Cup" className="w-80 rounded-2xl shadow-xl" />
+          <img src="/matecup.webp" alt="Mate Cup" className="w-80 rounded-2xl shadow-xl" />
         </motion.div>
 
         {/* Text Section */}

@@ -62,7 +62,7 @@ const ProductListPage = () => {
   };
 
   const getImageUrl = (imageName) => {
-      if (!imageName || imageName === "default.png") return null;
+      if (!imageName || imageName === "default.webp") return null;
       if (imageName.startsWith("http")) return imageName;
       return `${API_BASE_URL}/api/public/images/${imageName}`;
   };

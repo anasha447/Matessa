@@ -110,7 +110,7 @@ export default function LocalConsumptionMap() {
     setTooltip({
       name,
       story: data?.story ?? null,
-      flagUrl: flagCode ? `https://flagcdn.com/w40/${flagCode}.png` : null,
+      flagUrl: flagCode ? `https://flagcdn.com/w40/${flagCode}.webp` : null,
       x: evt.clientX,
       y: evt.clientY,
     });

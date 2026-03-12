@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// --- Assets ---
-import bannerImg from "../assets/animationbg.png"; 
-import bannerImg1 from "../assets/bannervibe1.png"; 
-import bannerImg3 from "../assets/mobanner.png"; 
-import brandName from "../assets/brandname.png"; 
-import logo from "../assets/full.logo.png";
+// ✅ FIX 1: Pointing back to the highly compressed WebP files!
+import bannerImg from "../assets/animationbg.webp"; 
+import bannerImg1 from "../assets/bannervibe1.webp"; 
+import bannerImg3 from "../assets/mobanner.webp"; 
+import brandName from "../assets/brandname.webp"; 
+import logo from "../assets/full.logo.webp";
 
 // --- Configuration ---
 const slideData = [
@@ -55,14 +55,8 @@ const SteamEffect = () => {
 export default function Banner() {
   const [current, setCurrent] = useState(0);
 
-  // ✅ FIX 1: Preload Images on Mount
-  useEffect(() => {
-    const images = [logo, brandName, bannerImg, bannerImg1, bannerImg3];
-    images.forEach((imageSrc) => {
-      const img = new Image();
-      img.src = imageSrc;
-    });
-  }, []);
+  // ✅ FIX 2: The Javascript preloader was completely removed here.
+  // The browser's native fetchPriority="high" handles this much faster!
 
   // --- Auto-slide logic ---
   useEffect(() => {
@@ -97,35 +91,24 @@ export default function Banner() {
         <div
           key={slide.id}
           className={`absolute inset-0 w-full h-full transition-all duration-1000 ease-in-out ${
-            index === current ? "opacity-100" : "opacity-0"
+            index === current ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
           } ${getBackgroundStyle(index)}`} 
         >
-          {slide.mobile === slide.desktop ? (
+          {/* ✅ FIX 3: Using <picture> so mobile devices don't download desktop images */}
+          <picture>
+            {slide.mobile !== slide.desktop && (
+              <source media="(max-width: 767px)" srcSet={slide.mobile} type="image/webp" />
+            )}
             <img
-              src={slide.mobile}
-              alt={`banner ${index + 1}`}
+              src={slide.desktop}
+              alt={`Matessa Banner ${index + 1}`}
               className="w-full h-full object-cover object-center"
               loading={index === 0 ? "eager" : "lazy"}
               fetchPriority={index === 0 ? "high" : "auto"}
+              width="1920"
+              height="600"
             />
-          ) : (
-            <>
-              <img
-                src={slide.mobile}
-                alt={`banner mobile ${index + 1}`}
-                className="w-full h-full object-cover object-center block md:hidden"
-                loading={index === 0 ? "eager" : "lazy"}
-                fetchPriority={index === 0 ? "high" : "auto"}
-              />
-              <img
-                src={slide.desktop}
-                alt={`banner desktop ${index + 1}`}
-                className="w-full h-full object-cover object-center hidden md:block"
-                loading={index === 0 ? "eager" : "lazy"}
-                fetchPriority={index === 0 ? "high" : "auto"}
-              />
-            </>
-          )}
+          </picture>
         </div>
       ))}
 
@@ -147,9 +130,11 @@ export default function Banner() {
                 src={logo}
                 alt="Matessa Logo"
                 className="w-32 md:w-48 h-auto relative z-10 mt-8"
-                // ✅ FIX 3: Ensure animation doesn't start until visible
                 layout 
                 loading="eager"
+                fetchPriority="high"
+                width="192"
+                height="192"
                 animate={calmGlowAnimation} 
                 transition={{
                   duration: 8, 
@@ -164,6 +149,9 @@ export default function Banner() {
                 className="w-48 md:w-80 h-auto -mt-8 relative z-10"
                 layout
                 loading="eager"
+                fetchPriority="high"
+                width="320"
+                height="120"
                 animate={calmGlowAnimation} 
                 transition={{
                   duration: 8, 
@@ -183,6 +171,7 @@ export default function Banner() {
           <button
             key={index}
             onClick={() => setCurrent(index)}
+            aria-label={`Go to slide ${index + 1}`}
             className={`transition-all duration-300 ${
               index === current
                 ? "w-6 h-3 rounded-md bg-[#FF6600]"

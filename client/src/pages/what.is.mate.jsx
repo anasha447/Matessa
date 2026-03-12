@@ -19,7 +19,7 @@ function ConsumptionMap () {
     "@type": "Article",
     "headline": "The Journey of Yerba Mate: From South America to India",
     "image": [
-      "https://matessa.in/full.logo.png" // Ideally replace with a hero image URL
+      "https://matessa.in/full.logo.webp" // Ideally replace with a hero image URL
     ],
     "author": {
       "@type": "Organization",
@@ -30,7 +30,7 @@ function ConsumptionMap () {
       "name": "Matessa",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://matessa.in/full.logo.png"
+        "url": "https://matessa.in/full.logo.webp"
       }
     },
     "description": seoDesc

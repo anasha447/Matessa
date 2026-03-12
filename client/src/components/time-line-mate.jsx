@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
-import logo from '../assets/full.logo.png'; 
+import logo from '../assets/full.logo.webp'; 
 
 const timelineData = [
   { year: "1600s", title: "The Beginnings", event: "Consumed by the Guaraní people for energy and sustenance." },

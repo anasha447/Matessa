@@ -27,7 +27,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
   // ✅ 4. HELPER FUNCTION FOR IMAGES
   const getCartImage = (imageName) => {
-    if (!imageName) return "/assets/placeholder.png";
+    if (!imageName) return "/assets/placeholder.webp";
     if (imageName.startsWith("http")) return imageName;
     return `${IMG_BASE_URL}/images/${imageName}`;
   };
@@ -176,7 +176,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                           src={getCartImage(item.images?.[0] || item.image)}
                           alt={item.productName}
                           className="w-full h-full object-contain"
-                          onError={(e) => { e.target.src = "/assets/placeholder.png"; }}
+                          onError={(e) => { e.target.src = "/assets/placeholder.webp"; }}
                         />
                       </div>
                       <div className="flex-grow flex flex-col justify-between">

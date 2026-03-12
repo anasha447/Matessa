@@ -2,17 +2,17 @@ import React from 'react';
 import Masonry from './Masonry'; // Import the engine
 
 // Images
-import img1 from '../assets/g2.jpg';
-import img2 from '../assets/matecup.jpg';
-import img3 from '../assets/g1.jpg';
-import img9 from '../assets/g5.jpg';
+import img1 from '../assets/g2.webp';
+import img2 from '../assets/matecup.webp';
+import img3 from '../assets/g1.webp';
+import img9 from '../assets/g5.webp';
 
-import img4 from '../assets/mate-cup.jpg';
-import img5 from '../assets/GALL1.jpg';
-import img6 from '../assets/GALL3.jpg';
-import img7 from '../assets/GALL4.jpg';
-import img8 from '../assets/GALL5.png';
-import img10 from '../assets/matee5.jpg';
+import img4 from '../assets/mate-cup.webp';
+import img5 from '../assets/GALL1.webp';
+import img6 from '../assets/GALL3.webp';
+import img7 from '../assets/GALL4.webp';
+import img8 from '../assets/GALL5.webp';
+import img10 from '../assets/matee5.webp';
 
 
 // Data Configuration

@@ -159,7 +159,7 @@ const OrderConfirmationPage = () => {
       
       {/* HEADER */}
       <div className="bg-[var(--color-darkgreen)] pt-12 pb-24 px-4 relative overflow-hidden">
-         <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+         <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.webp')]"></div>
          <div className="max-w-4xl mx-auto text-center relative z-10">
              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full mb-6 ring-4 ring-white/10">
                  <FaCheckCircle className="text-white text-4xl" />

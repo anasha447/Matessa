@@ -74,7 +74,7 @@ const SingleProductPage = () => {
   }, [reviewSuccess, dispatch, id]);
 
   const getProductImage = (imageName) => {
-    if (!imageName) return "/assets/placeholder.png";
+    if (!imageName) return "/assets/placeholder.webp";
     if (imageName.startsWith("http")) return imageName; 
     return `${API_BASE_URL}/images/${imageName}`;
   };
@@ -166,7 +166,7 @@ const SingleProductPage = () => {
   const seoDesc = product?.description 
     ? product.description.replace(/<[^>]*>?/gm, '').substring(0, 160) + "..." 
     : "premium Yerba Mate Mixed With Indian Herbs Only From Matessa.";
-  const seoImage = mainImage ? getProductImage(mainImage) : "https://matessa.in/full.logo.png";
+  const seoImage = mainImage ? getProductImage(mainImage) : "https://matessa.in/full.logo.webp";
   const productPrice = displayPrice || product?.specialPrice || 0;
 
   const productSchema = {
@@ -226,7 +226,7 @@ const SingleProductPage = () => {
                     src={getProductImage(mainImage)} 
                     alt={product.productName} 
                     className="w-full h-auto max-h-[85vh] object-contain" 
-                    onError={(e) => { e.target.src = "/assets/placeholder.png"; }} 
+                    onError={(e) => { e.target.src = "/assets/placeholder.webp"; }} 
                   />
                 </div>
                 {productImages.length > 1 && (
