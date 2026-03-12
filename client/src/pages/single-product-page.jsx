@@ -225,7 +225,8 @@ const SingleProductPage = () => {
             {mainImage ? (
               <>
                 <div 
-                  className="w-full relative -mx-4 md:mx-0 flex justify-center items-center bg-white touch-pan-y select-none"
+                  // ✅ THE FIX: Fixed rigid heights to stop Layout Shifting
+                  className="w-full h-[350px] sm:h-[450px] md:h-[600px] relative -mx-4 md:mx-0 flex justify-center items-center bg-white touch-pan-y select-none"
                   // ✅ MOBILE SWIPE HANDLERS
                   onTouchStart={(e) => setTouchStartX(e.changedTouches[0].screenX)}
                   onTouchEnd={(e) => {
@@ -238,7 +239,8 @@ const SingleProductPage = () => {
                     key={mainImage} // ✅ THE FIX: Forces React to re-render the image instantly
                     src={getProductImage(mainImage)} 
                     alt={`${product.productName} - view ${currentImageIndex + 1}`} 
-                    className="w-full h-auto max-h-[85vh] object-contain transition-opacity duration-300" 
+                    // ✅ THE FIX: object-contain shrinks/grows the image inside the rigid box
+                    className="w-full h-full object-contain transition-opacity duration-300" 
                     onError={(e) => { e.target.src = "/assets/placeholder.webp"; }} 
                   />
                 </div>
@@ -251,7 +253,7 @@ const SingleProductPage = () => {
                 )}
               </>
             ) : (
-                <div className="w-full h-[500px] flex items-center justify-center bg-gray-50 rounded-xl"><p className="text-gray-400">No Image Available</p></div>
+                <div className="w-full h-[350px] sm:h-[450px] md:h-[600px] flex items-center justify-center bg-gray-50 rounded-xl"><p className="text-gray-400">No Image Available</p></div>
             )}
           </div>
 

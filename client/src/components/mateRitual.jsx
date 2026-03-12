@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 // --- 1. LOCAL VIDEO IMPORTS ---
-// Change these paths to match your actual file structure
 import step1Video from "../assets/videos/step1..mp4";
 import step2Video from "../assets/videos/step2.mp4";
 import step3Video from "../assets/videos/step3.mp4";
@@ -78,12 +77,9 @@ const HowToPrepare = () => {
         </div>
 
         {/* --- MAIN CONTENT LAYOUT --- */}
-        {/* Mobile: Videos First (order-1), Needs Second (order-2) */}
-        {/* Desktop (xl): Needs First (order-1), Videos Second (order-2) */}
         <div className="flex flex-col xl:flex-row gap-12 items-start">
           
           {/* --- LEFT COLUMN: INGREDIENTS --- */}
-          {/* Mobile: Order 2 (Bottom) | Desktop: Order 1 (Left/Sticky) */}
           <div className="w-full xl:w-1/4 order-2 xl:order-1 xl:sticky xl:top-24 bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
             <h3 className="text-xl font-bold font-heading mb-6 border-b border-gray-100 pb-4 tracking-wider">
               WHAT YOU'LL NEED
@@ -113,7 +109,6 @@ const HowToPrepare = () => {
           </div>
 
           {/* --- RIGHT SIDE: VIDEO DISPLAY --- */}
-          {/* Mobile: Order 1 (Top) | Desktop: Order 2 (Right) */}
           <div className="w-full xl:w-3/4 order-1 xl:order-2">
             
             {/* === DESKTOP VIEW (Grid) === */}
@@ -121,12 +116,14 @@ const HowToPrepare = () => {
               {STEPS.map((step) => (
                 <div key={step.id} className="group">
                   <div className="relative overflow-hidden rounded-[2rem] shadow-md border border-gray-200 aspect-square mb-4">
+                    {/* ✅ FIX 1: preload="metadata" ensures the browser only downloads the first frame initially */}
                     <video 
                       src={step.video} 
                       autoPlay 
                       muted 
                       loop 
                       playsInline
+                      preload="metadata"
                       className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
                     />
                     <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold shadow-sm">
@@ -150,17 +147,20 @@ const HowToPrepare = () => {
                   className="flex transition-transform duration-500 ease-out"
                   style={{ transform: `translateX(-${activeSlide * 100}%)` }}
                 >
-                  {STEPS.map((step) => (
+                  {STEPS.map((step, idx) => (
                     <div key={step.id} className="min-w-full px-2 box-border">
                       <div className="bg-white p-2 rounded-[2.5rem] shadow-sm border border-gray-100">
                          {/* Video Container */}
                          <div className="relative rounded-[2rem] overflow-hidden aspect-square w-full bg-gray-100">
+                            {/* ✅ FIX 2: Only autoplay the specific video the user is currently looking at. 
+                                Set hidden videos to preload="none" to save massive bandwidth. */}
                             <video 
                               src={step.video} 
-                              autoPlay 
+                              autoPlay={activeSlide === idx} 
                               muted 
                               loop 
                               playsInline
+                              preload={activeSlide === idx ? "metadata" : "none"}
                               className="w-full h-full object-cover"
                             />
                             <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-bold shadow-sm">
