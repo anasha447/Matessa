@@ -33,6 +33,9 @@ const SingleProductPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
+  
+  // ✅ MOBILE SWIPE STATE
+  const [touchStartX, setTouchStartX] = useState(0);
 
   // ✅ Force Fetch on Mount (Background Refresh)
   useEffect(() => {
@@ -221,11 +224,21 @@ const SingleProductPage = () => {
           <div className="w-full md:w-1/2 flex flex-col items-center md:sticky md:top-24 self-start transition-all duration-300 z-10">
             {mainImage ? (
               <>
-                <div className="w-full relative -mx-4 md:mx-0 flex justify-center items-center bg-white">
+                <div 
+                  className="w-full relative -mx-4 md:mx-0 flex justify-center items-center bg-white touch-pan-y select-none"
+                  // ✅ MOBILE SWIPE HANDLERS
+                  onTouchStart={(e) => setTouchStartX(e.changedTouches[0].screenX)}
+                  onTouchEnd={(e) => {
+                    const touchEndX = e.changedTouches[0].screenX;
+                    if (touchStartX - touchEndX > 50) handleNextImage(); // Swipe Left
+                    if (touchEndX - touchStartX > 50) handlePrevImage(); // Swipe Right
+                  }}
+                >
                   <img 
+                    key={mainImage} // ✅ THE FIX: Forces React to re-render the image instantly
                     src={getProductImage(mainImage)} 
-                    alt={product.productName} 
-                    className="w-full h-auto max-h-[85vh] object-contain" 
+                    alt={`${product.productName} - view ${currentImageIndex + 1}`} 
+                    className="w-full h-auto max-h-[85vh] object-contain transition-opacity duration-300" 
                     onError={(e) => { e.target.src = "/assets/placeholder.webp"; }} 
                   />
                 </div>
