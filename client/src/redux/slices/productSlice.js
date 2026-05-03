@@ -30,6 +30,19 @@ export const fetchProductDetails = createAsyncThunk(
   }
 );
 
+// ✅ NEW: Fetch by URL-slug (SEO-friendly — no numeric ID)
+export const fetchProductBySlug = createAsyncThunk(
+  'products/fetchBySlug',
+  async (slug, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/public/products/slug/${slug}?_t=${new Date().getTime()}`);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Product not found");
+    }
+  }
+);
+
 // ... (searchProducts, createProductReview remain same) ...
 
 export const createProductReview = createAsyncThunk(
@@ -169,7 +182,7 @@ const productSlice = createSlice({
         state.error = action.payload;
       })
 
-      // --- Fetch Single ---
+      // --- Fetch Single (by ID) ---
       .addCase(fetchProductDetails.pending, (state) => { 
         state.loading = true; 
         state.selectedProduct = null; 
@@ -179,6 +192,20 @@ const productSlice = createSlice({
         state.selectedProduct = action.payload;
       })
       .addCase(fetchProductDetails.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // --- Fetch Single (by Slug) — same state shape ---
+      .addCase(fetchProductBySlug.pending, (state) => {
+        state.loading = true;
+        state.selectedProduct = null;
+      })
+      .addCase(fetchProductBySlug.fulfilled, (state, action) => {
+        state.loading = false;
+        state.selectedProduct = action.payload;
+      })
+      .addCase(fetchProductBySlug.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })

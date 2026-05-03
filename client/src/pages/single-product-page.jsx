@@ -14,14 +14,15 @@ import EnergyComparisonSection from '../components/EnergyComparisonSection';
 // ✅ 1. Import BOTH Analytics Helpers
 import { trackViewItem, trackAddToCart } from "../utils/analytics"; 
 
-import { fetchProductDetails, createProductReview, resetReviewSuccess } from "../redux/slices/productSlice";
+// ✅ Use slug-based fetch for SEO-friendly URLs
+import { fetchProductBySlug, createProductReview, resetReviewSuccess } from "../redux/slices/productSlice";
 import { Helmet } from "react-helmet-async"; 
 
 // ✅ 2. DEFINE API URL
 const API_BASE_URL = "https://matessa.in";
 
 const SingleProductPage = () => {
-  const { id } = useParams();
+  const { slug } = useParams();        // ← changed from :id to :slug
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -39,25 +40,25 @@ const SingleProductPage = () => {
 
   // ✅ Force Fetch on Mount (Background Refresh)
   useEffect(() => {
-    if (id) {
-        dispatch(fetchProductDetails(id));
-        // Reset state only if ID changes (New Product)
-        if (product?.productId?.toString() !== id) {
+    if (slug) {
+        dispatch(fetchProductBySlug(slug));
+        // Reset UI state when navigating to a different product
+        if (product?.slug !== slug) {
             setQuantity(1);
             setCurrentImageIndex(0);
             setSelectedVariant(null);
         }
     }
-  }, [dispatch, id]);
+  }, [dispatch, slug]);
 
   // ✅ Sync Local State
   useEffect(() => {
-    if (product && product.productId?.toString() === id?.toString()) {
+    if (product && product.slug === slug) {
         if (!selectedVariant && product.variants?.length > 0) {
             setSelectedVariant(product.variants[0]);
         }
     }
-  }, [product, id, selectedVariant]);
+  }, [product, slug, selectedVariant]);
 
   // ✅ Analytics: Track View Item (Window Shopper)
   useEffect(() => {
@@ -72,9 +73,9 @@ const SingleProductPage = () => {
         setRating(0);
         setComment("");
         dispatch(resetReviewSuccess());
-        dispatch(fetchProductDetails(id)); 
+        dispatch(fetchProductBySlug(slug)); 
     }
-  }, [reviewSuccess, dispatch, id]);
+  }, [reviewSuccess, dispatch, slug]);
 
   const getProductImage = (imageName) => {
     if (!imageName) return "/assets/placeholder.webp";
@@ -98,9 +99,10 @@ const SingleProductPage = () => {
     if (productImages.length > 0) setCurrentImageIndex((prev) => (prev - 1 + productImages.length) % productImages.length);
   };
 
-  const handleFlavorClick = (targetProductId) => {
-    if (targetProductId === product.productId) return;
-    navigate(`/product/${targetProductId}`);
+  // ✅ Navigate to flavor by slug (not numeric ID)
+  const handleFlavorClick = (targetSlug) => {
+    if (!targetSlug || targetSlug === product.slug) return;
+    navigate(`/product/${targetSlug}`);
   };
 
   const handleAddToCart = async () => {
@@ -147,13 +149,11 @@ const SingleProductPage = () => {
     e.preventDefault();
     if (!userInfo) return navigate("/login");
     if (!comment || rating === 0) return toast.error("Please add rating and comment");
-    dispatch(createProductReview({ productId: id, reviewData: { rating, comment } }));
+    dispatch(createProductReview({ productId: product.productId, reviewData: { rating, comment } }));
   };
 
-  // ---------------------------------------------
-  // ✅ SMART LOADING LOGIC
-  // ---------------------------------------------
-  const isDataLoaded = product && product.productId?.toString() === id?.toString();
+  // ✅ SMART LOADING LOGIC — compare by slug
+  const isDataLoaded = product && product.slug === slug;
 
   if (loading && !isDataLoaded) return <Spinner />;
   if (!loading && !isDataLoaded && !error) return <Spinner />;
@@ -288,7 +288,7 @@ const SingleProductPage = () => {
                             return (
                                 <button
                                     key={index}
-                                    onClick={() => handleFlavorClick(flavor.targetProductId)}
+                                    onClick={() => handleFlavorClick(flavor.targetSlug || flavor.targetProductId)}
                                     style={{
                                         backgroundColor: isActive ? (flavor.colorCode || 'var(--color-orange)') : 'white',
                                         borderColor: flavor.colorCode || '#ddd',

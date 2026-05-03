@@ -118,7 +118,7 @@ const App = () => {
           <Route path="/our_story" element={<StoryPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/track-order" element={<TrackOrderPage />} />
-          <Route path="/product/:id" element={<SingleProductPage />} />
+          <Route path="/product/:slug" element={<SingleProductPage />} />
           <Route path="/checkoutpage" element={<CheckoutPage />} />
           <Route path="/contact-us" element={<ContactPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} /> 

@@ -84,7 +84,7 @@ const ShopPage = () => {
   const productSchemaList = processedProducts.map((product, index) => ({
     "@type": "ListItem",
     "position": index + 1,
-    "url": `https://matessa.in/product/${product.productId}`,
+    "url": `https://matessa.in/product/${product.slug || product.productId}`,
     "name": product.productName,
     "image": getProductImage(product.image || product.images?.[0]),
     "offers": {
@@ -230,7 +230,7 @@ const ShopPage = () => {
                   <div
                     key={product.productId}
                     className="group cursor-pointer flex flex-col items-center"
-                    onClick={() => navigate(`/product/${product.productId}`)}
+                    onClick={() => navigate(`/product/${product.slug || product.productId}`)}
                   >
                     
                     <div className="

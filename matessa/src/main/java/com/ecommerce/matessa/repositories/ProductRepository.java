@@ -6,10 +6,18 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
-    List<Product> findByCategoryOrderByPrice( Category category);
 
-    List<Product> findByProductNameContainingIgnoreCase (String keywords);
+    List<Product> findByCategoryOrderByPrice(Category category);
+
+    List<Product> findByProductNameContainingIgnoreCase(String keywords);
+
+    // ✅ Slug-based lookup for SEO-friendly URLs (no numeric ID exposure)
+    Optional<Product> findBySlug(String slug);
+
+    // ✅ Dashboard: count low-stock products
+    long countByQuantityLessThan(int threshold);
 }

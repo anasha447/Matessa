@@ -132,4 +132,11 @@ public class ProductController {
         return new ResponseEntity<>(productDTO, HttpStatus.OK);
     }
 
+    // ✅ NEW: Get Single Product By Slug (SEO-friendly, no numeric ID exposure)
+    @GetMapping("/public/products/slug/{slug}")
+    public ResponseEntity<ProductDTO> getProductBySlug(@PathVariable String slug) {
+        ProductDTO productDTO = productService.getProductBySlug(slug);
+        return new ResponseEntity<>(productDTO, HttpStatus.OK);
+    }
+
 }

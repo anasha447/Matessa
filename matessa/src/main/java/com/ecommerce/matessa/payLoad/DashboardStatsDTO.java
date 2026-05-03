@@ -1,40 +1,111 @@
 package com.ecommerce.matessa.payLoad;
 
-import lombok.Getter;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * Comprehensive dashboard statistics DTO.
+ *
+ * <p>Returned by GET /api/admin/stats — all fields are read-only from the
+ * frontend perspective. The inner DTOs match the Recharts data-key convention
+ * used in the Dashboard component.</p>
+ */
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class DashboardStatsDTO {
-    private final Double totalSales;
-    private final Long totalOrders;
-    private final Long totalUsers;
-    private final List<SalesDataPoint> salesData;
 
-    // Constructors, Getters, Setters
-    public DashboardStatsDTO(Double totalSales, Long totalOrders, Long totalUsers, List<SalesDataPoint> salesData) {
-        this.totalSales = totalSales;
-        this.totalOrders = totalOrders;
-        this.totalUsers = totalUsers;
-        this.salesData = salesData;
+    // ── KPI Cards ────────────────────────────────────────────────────────────
+    /** Sum of all order totals (INR). */
+    private Double totalRevenue;
+
+    /** Total number of orders ever placed. */
+    private Long totalOrders;
+
+    /** Total registered users. */
+    private Long totalUsers;
+
+    /** Number of products with quantity < 10 (low-stock alert). */
+    private Long lowStockProducts;
+
+    /** Number of orders with status = PENDING. */
+    private Long pendingOrders;
+
+    /** Number of orders with status = DELIVERED. */
+    private Long deliveredOrders;
+
+    // ── Chart Data ───────────────────────────────────────────────────────────
+
+    /**
+     * Monthly revenue for the last 12 months.
+     * <br>Recharts dataKeys: {@code month}, {@code revenue}
+     */
+    private List<MonthlyRevenuePoint> monthlyRevenue;
+
+    /**
+     * Order-status distribution for the donut/pie chart.
+     * <br>Recharts dataKeys: {@code name}, {@code value}
+     */
+    private List<OrderStatusPoint> orderStatusBreakdown;
+
+    /**
+     * Top 5 best-selling products by revenue.
+     * <br>Recharts dataKeys: {@code name}, {@code revenue}, {@code units}
+     */
+    private List<TopProductPoint> topProducts;
+
+    /**
+     * Most recent 5 orders for the "Recent Orders" table.
+     */
+    private List<RecentOrderDTO> recentOrders;
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // INNER DTOs
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /** One data point in the monthly-revenue area/bar chart. */
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class MonthlyRevenuePoint {
+        /** e.g. "Jan 2025" */
+        private String month;
+        private Double revenue;
     }
 
-    // Inner class for the chart data
-    @Getter
-    public static class SalesDataPoint {
-        // Getters and Setters
-        private final String _id; // Matches your Recharts dataKey="_id"
-        private final Double totalSales;
-
-        public SalesDataPoint(String date, Double sales) {
-            this._id = date;
-            this.totalSales = sales;
-        }
-
+    /** One slice in the order-status doughnut chart. */
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class OrderStatusPoint {
+        private String name;
+        private Long value;
     }
 
-    // Add Getters for the main class fields here...
-    public Double getTotalSales() { return totalSales; }
-    public Long getTotalOrders() { return totalOrders; }
-    public Long getTotalUsers() { return totalUsers; }
-    public List<SalesDataPoint> getSalesData() { return salesData; }
+    /** One bar in the top-products chart. */
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class TopProductPoint {
+        private String name;
+        private Double revenue;
+        private Long units;
+    }
+
+    /** Row in the Recent Orders table on the dashboard. */
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class RecentOrderDTO {
+        private Long orderId;
+        private String orderCode;
+        private String email;
+        private Double totalAmount;
+        private String orderStatus;
+        /** ISO-8601 date string derived from LocalDateTime */
+        private String orderDate;
+    }
 }

@@ -28,4 +28,7 @@ public interface ProductService {
     ProductDTO deleteProductImage(Long productId, String fileName);
 
     ProductDTO uploadImageProduct(Long productId, MultipartFile image);
+
+    // ✅ Slug-based lookup – SEO-friendly, no numeric ID in the URL
+    ProductDTO getProductBySlug(String slug);
 }

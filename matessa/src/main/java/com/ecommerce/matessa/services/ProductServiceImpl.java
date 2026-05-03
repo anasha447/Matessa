@@ -297,14 +297,17 @@ public class ProductServiceImpl implements ProductService {
                     .collect(Collectors.toList());
             dto.setVariants(variantDTOs);
         }
-        // 3. ✅ Map Flavors (This makes the buttons appear)
+        // 3. ✅ Map Flavors with target slug enrichment
         if (product.getFlavors() != null && !product.getFlavors().isEmpty()) {
             List<ProductFlavorDTO> flavorDTOs = product.getFlavors().stream()
-                    .map(f -> modelMapper.map(f, ProductFlavorDTO.class))
+                    .map(f -> {
+                        ProductFlavorDTO flavorDTO = modelMapper.map(f, ProductFlavorDTO.class);
+                        enrichFlavorSlug(flavorDTO);
+                        return flavorDTO;
+                    })
                     .collect(Collectors.toList());
             dto.setFlavors(flavorDTOs);
         }
-
 
         return dto;
     }
@@ -364,5 +367,47 @@ public class ProductServiceImpl implements ProductService {
 
         Product updatedProduct = productRepository.save(product);
         return modelMapper.map(updatedProduct, ProductDTO.class);
+    }
+    @Override
+    @Cacheable(value = "productDetails", key = "'slug-' + #slug")
+    public ProductDTO getProductBySlug(String slug) {
+        Product product = productRepository.findBySlug(slug)
+                .orElseThrow(() -> new ResourceExceptionHandler("Product", "slug", slug));
+
+        ProductDTO dto = modelMapper.map(product, ProductDTO.class);
+
+        if (product.getCategory() != null) {
+            dto.setCategoryId(product.getCategory().getCategoryId());
+        }
+        if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+            List<ProductVariantDTO> variantDTOs = product.getVariants().stream()
+                    .map(v -> modelMapper.map(v, ProductVariantDTO.class))
+                    .collect(Collectors.toList());
+            dto.setVariants(variantDTOs);
+        }
+        if (product.getFlavors() != null && !product.getFlavors().isEmpty()) {
+            List<ProductFlavorDTO> flavorDTOs = product.getFlavors().stream()
+                    .map(f -> {
+                        ProductFlavorDTO flavorDTO = modelMapper.map(f, ProductFlavorDTO.class);
+                        enrichFlavorSlug(flavorDTO);
+                        return flavorDTO;
+                    })
+                    .collect(Collectors.toList());
+            dto.setFlavors(flavorDTOs);
+        }
+        return dto;
+    }
+
+    /**
+     * Looks up the target product by ID and copies its slug into the FlavorDTO.
+     * Falls back gracefully if the target product does not yet have a slug.
+     */
+    private void enrichFlavorSlug(ProductFlavorDTO flavorDTO) {
+        if (flavorDTO.getTargetProductId() == null) return;
+        productRepository.findById(flavorDTO.getTargetProductId()).ifPresent(target -> {
+            if (target.getSlug() != null) {
+                flavorDTO.setTargetSlug(target.getSlug());
+            }
+        });
     }
 }

@@ -17,6 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 public class ProductDTO {
     private Long productId;
+    private String slug;
 
     @NotBlank
     @Size(min = 3, max = 25)

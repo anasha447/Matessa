@@ -131,8 +131,18 @@ const adminSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // --- DASHBOARD ---
+      .addCase(fetchDashboardStats.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(fetchDashboardStats.fulfilled, (state, action) => {
+        state.loading = false;
+        // Store the entire enriched DTO — the dashboard reads every nested field
         state.stats = action.payload;
+      })
+      .addCase(fetchDashboardStats.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
 
       // --- USERS: FETCH ---

@@ -104,7 +104,7 @@ const FeaturedProducts = () => {
               <div
                 key={product.productId}
                 className="group cursor-pointer flex-shrink-0 w-[290px] md:w-[300px] snap-center flex flex-col items-center"
-                onClick={() => navigate(`/product/${product.productId}`)}
+                onClick={() => navigate(`/product/${product.slug || product.productId}`)}
               >
                 <div className="
                    relative w-full h-[300px] md:h-[300px] bg-gray-50 rounded-[2rem] overflow-hidden 

@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,10 +18,13 @@ import java.util.List;
 @Table(name = "products")
 @ToString(exclude = {"products", "variants", "flavors"}) // Prevent infinite loops in logs
 public class Product {
-    public Container setFlavors;
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long productId;
+
+    @Column(unique = true)
+    private String slug;
 
     @NotBlank
     @Size(min = 3, max = 50, message = "product name must be between 3 and 50 characters") // Increased max size
@@ -60,9 +62,17 @@ public class Product {
 
     @PrePersist
     @PreUpdate
-    public void calculateSpecialPrice() {
+    public void onSave() {
+        // Auto-calculate special price
         if (price != null && discount != null) {
             this.specialPrice = price - ((discount * 0.01) * price);
+        }
+        // Auto-generate slug from product name
+        if (productName != null && !productName.isBlank()) {
+            this.slug = productName.toLowerCase()
+                    .replaceAll("[^a-z0-9\\s-]", "")  // remove special chars
+                    .trim()
+                    .replaceAll("\\s+", "-");            // spaces to hyphens
         }
     }
 
