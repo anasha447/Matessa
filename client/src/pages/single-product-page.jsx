@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Spinner from "../components/Spinner";
 import { toast } from "react-toastify";
@@ -14,15 +14,18 @@ import EnergyComparisonSection from '../components/EnergyComparisonSection';
 // ✅ 1. Import BOTH Analytics Helpers
 import { trackViewItem, trackAddToCart } from "../utils/analytics"; 
 
-// ✅ Use slug-based fetch for SEO-friendly URLs
-import { fetchProductBySlug, createProductReview, resetReviewSuccess } from "../redux/slices/productSlice";
+// ✅ Import BOTH fetch strategies
+import { fetchProductBySlug, fetchProductDetails, createProductReview, resetReviewSuccess } from "../redux/slices/productSlice";
 import { Helmet } from "react-helmet-async"; 
 
-// ✅ 2. DEFINE API URL
 const API_BASE_URL = "https://matessa.in";
 
+// ─── Helper: detect if a param is a plain numeric ID (legacy) ─────────────────
+const isNumericId = (param) => /^\d+$/.test(param);
+
 const SingleProductPage = () => {
-  const { slug } = useParams();        // ← changed from :id to :slug
+  // The route is /product/:slug — the param could be "matessa-classic" OR "52" (legacy)
+  const { slug } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -34,59 +37,66 @@ const SingleProductPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
-  
-  // ✅ MOBILE SWIPE STATE
   const [touchStartX, setTouchStartX] = useState(0);
 
-  // ✅ Force Fetch on Mount (Background Refresh)
-  useEffect(() => {
-    if (slug) {
-        dispatch(fetchProductBySlug(slug));
-        // Reset UI state when navigating to a different product
-        if (product?.slug !== slug) {
-            setQuantity(1);
-            setCurrentImageIndex(0);
-            setSelectedVariant(null);
-        }
-    }
-  }, [dispatch, slug]);
+  // ─── Decide which fetch strategy to use ────────────────────────────────────
+  // Legacy: numeric → use ID endpoint (products without slugs yet)
+  // New:    slug    → use slug endpoint (products saved after the slug migration)
+  const fetchProduct = useMemo(() => {
+    if (!slug) return null;
+    return isNumericId(slug)
+      ? () => fetchProductDetails(slug)       // /api/public/products/52
+      : () => fetchProductBySlug(slug);       // /api/public/products/slug/matessa-classic
+  }, [slug]);
 
-  // ✅ Sync Local State
+  // ─── Fetch on mount / when slug changes ────────────────────────────────────
   useEffect(() => {
-    if (product && product.slug === slug) {
-        if (!selectedVariant && product.variants?.length > 0) {
-            setSelectedVariant(product.variants[0]);
-        }
-    }
-  }, [product, slug, selectedVariant]);
+    if (!slug || !fetchProduct) return;
 
-  // ✅ Analytics: Track View Item (Window Shopper)
-  useEffect(() => {
-    if (product) {
-      trackViewItem(product);
+    dispatch(fetchProduct());
+
+    // Reset UI state when navigating to a different product
+    const currentId = product?.productId?.toString();
+    const currentSlug = product?.slug;
+    if (currentId !== slug && currentSlug !== slug) {
+      setQuantity(1);
+      setCurrentImageIndex(0);
+      setSelectedVariant(null);
     }
+  }, [dispatch, slug]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Auto-select first variant once product loads ──────────────────────────
+  useEffect(() => {
+    if (product && !selectedVariant && product.variants?.length > 0) {
+      setSelectedVariant(product.variants[0]);
+    }
+  }, [product]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Analytics ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (product) trackViewItem(product);
   }, [product]);
 
+  // ─── Review success ────────────────────────────────────────────────────────
   useEffect(() => {
     if (reviewSuccess) {
-        toast.success("Review submitted!");
-        setRating(0);
-        setComment("");
-        dispatch(resetReviewSuccess());
-        dispatch(fetchProductBySlug(slug)); 
+      toast.success("Review submitted!");
+      setRating(0);
+      setComment("");
+      dispatch(resetReviewSuccess());
+      if (fetchProduct) dispatch(fetchProduct());
     }
-  }, [reviewSuccess, dispatch, slug]);
+  }, [reviewSuccess]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── Helpers ────────────────────────────────────────────────────────────────
   const getProductImage = (imageName) => {
     if (!imageName) return "/assets/placeholder.webp";
-    if (imageName.startsWith("http")) return imageName; 
+    if (imageName.startsWith("http")) return imageName;
     return `${API_BASE_URL}/images/${imageName}`;
   };
 
-  const productImages = product 
-    ? (product.images && product.images.length > 0 
-        ? product.images 
-        : (product.image ? [product.image] : [])) 
+  const productImages = product
+    ? (product.images?.length > 0 ? product.images : product.image ? [product.image] : [])
     : [];
 
   const mainImage = productImages.length > 0 ? productImages[currentImageIndex] : "";
@@ -99,26 +109,23 @@ const SingleProductPage = () => {
     if (productImages.length > 0) setCurrentImageIndex((prev) => (prev - 1 + productImages.length) % productImages.length);
   };
 
-  // ✅ Navigate to flavor by slug (not numeric ID)
-  const handleFlavorClick = (targetSlug) => {
-    if (!targetSlug || targetSlug === product.slug) return;
-    navigate(`/product/${targetSlug}`);
+  // ─── Flavor navigation: prefer slug, fall back to numeric ID ───────────────
+  const handleFlavorClick = (targetSlug, targetId) => {
+    const dest = targetSlug || targetId;
+    if (!dest || dest === slug || dest === product?.productId) return;
+    navigate(`/product/${dest}`);
   };
 
   const handleAddToCart = async () => {
     if (!product) return;
-    if (product.variants && product.variants.length > 0 && !selectedVariant) return toast.error("Please select a size option");
-    
+    if (product.variants?.length > 0 && !selectedVariant) return toast.error("Please select a size option");
     try {
       await dispatch(addToCart({
         productId: product.productId,
-        quantity: quantity,
-        variantId: selectedVariant ? selectedVariant.variantId : null
+        quantity,
+        variantId: selectedVariant ? selectedVariant.variantId : null,
       })).unwrap();
-
-      // ✅ ANALYTICS TRIGGER: ADD TO CART
       trackAddToCart(product);
-
       toast.success("Added to cart!");
     } catch (err) {
       toast.error(err || "Failed to add to cart");
@@ -127,18 +134,14 @@ const SingleProductPage = () => {
 
   const handleBuyNow = async () => {
     if (!product) return;
-    if (product.variants && product.variants.length > 0 && !selectedVariant) return toast.error("Please select a size option");
-    
+    if (product.variants?.length > 0 && !selectedVariant) return toast.error("Please select a size option");
     try {
       await dispatch(addToCart({
         productId: product.productId,
-        quantity: quantity,
-        variantId: selectedVariant ? selectedVariant.variantId : null
+        quantity,
+        variantId: selectedVariant ? selectedVariant.variantId : null,
       })).unwrap();
-      
-      // ✅ ANALYTICS TRIGGER: BUY NOW (Counts as Add to Cart + Checkout)
       trackAddToCart(product);
-
       navigate("/checkoutpage");
     } catch (err) {
       toast.error("Could not process Buy Now");
@@ -152,15 +155,23 @@ const SingleProductPage = () => {
     dispatch(createProductReview({ productId: product.productId, reviewData: { rating, comment } }));
   };
 
-  // ✅ SMART LOADING LOGIC — compare by slug
-  const isDataLoaded = product && product.slug === slug;
+  // ─── Smart data-loaded guard ────────────────────────────────────────────────
+  // Matches if:
+  //   • the URL param is a numeric ID and the loaded product's ID matches, OR
+  //   • the URL param is a slug and the loaded product's slug matches
+  const isDataLoaded = product && (
+    isNumericId(slug)
+      ? product.productId?.toString() === slug
+      : product.slug === slug
+  );
 
   if (loading && !isDataLoaded) return <Spinner />;
   if (!loading && !isDataLoaded && !error) return <Spinner />;
   if (!isDataLoaded || error) return <div className="text-center py-20 text-xl font-bold text-gray-400">Product Not Found</div>;
-  
-  const isFeatured = (product?.category?.categoryId === 1) || (product?.category?.id === 1) || (product?.categoryId === 1);           
+
+  const isFeatured = (product?.category?.categoryId === 1) || (product?.category?.id === 1) || (product?.categoryId === 1);
   const displayPrice = selectedVariant ? selectedVariant.price : product.specialPrice;
+
 
   // ---------------------------------------------
   // ✅ SEO OPTIMIZATION LOGIC START
@@ -288,7 +299,7 @@ const SingleProductPage = () => {
                             return (
                                 <button
                                     key={index}
-                                    onClick={() => handleFlavorClick(flavor.targetSlug || flavor.targetProductId)}
+                                    onClick={() => handleFlavorClick(flavor.targetSlug, flavor.targetProductId)}
                                     style={{
                                         backgroundColor: isActive ? (flavor.colorCode || 'var(--color-orange)') : 'white',
                                         borderColor: flavor.colorCode || '#ddd',

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import {
@@ -125,6 +125,16 @@ const Dashboard = () => {
   const dispatch = useDispatch();
   const { stats, loading } = useSelector((state) => state.admin);
 
+  // ─── Defer chart render until the DOM has real dimensions ─────────────────
+  // Recharts' ResponsiveContainer reads clientWidth/Height at mount time.
+  // If the container hasn't been painted yet, it gets -1 and logs a warning.
+  // One RAF (requestAnimationFrame) is enough for the browser to do layout.
+  const [chartsReady, setChartsReady] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setChartsReady(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   useEffect(() => {
     dispatch(fetchDashboardStats());
   }, [dispatch]);
@@ -236,8 +246,8 @@ const Dashboard = () => {
             title="Monthly Revenue"
             subtitle="Last 12 months — actual order totals"
           >
-            {monthlyData.length > 0 ? (
-              <div className="h-[280px]">
+            {chartsReady && monthlyData.length > 0 ? (
+              <div style={{ height: 280 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={monthlyData} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
                     <defs>
@@ -264,8 +274,8 @@ const Dashboard = () => {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-[280px] flex items-center justify-center text-slate-400 font-medium">
-                No revenue data yet
+              <div style={{ height: 280 }} className="flex items-center justify-center text-slate-400 font-medium">
+                {!chartsReady ? null : "No revenue data yet"}
               </div>
             )}
           </Card>
@@ -274,9 +284,9 @@ const Dashboard = () => {
         {/* Order Status Donut */}
         <div className="lg:col-span-1">
           <Card title="Order Status" subtitle="Distribution across all statuses">
-            {statusData.length > 0 ? (
+            {chartsReady && statusData.length > 0 ? (
               <>
-                <div className="h-[200px]">
+                <div style={{ height: 200 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -314,8 +324,8 @@ const Dashboard = () => {
                 </div>
               </>
             ) : (
-              <div className="h-[200px] flex items-center justify-center text-slate-400 font-medium">
-                No order data yet
+              <div style={{ height: 200 }} className="flex items-center justify-center text-slate-400 font-medium">
+                {!chartsReady ? null : "No order data yet"}
               </div>
             )}
           </Card>
@@ -335,8 +345,8 @@ const Dashboard = () => {
             </Link>
           }
         >
-          {topProductsData.length > 0 ? (
-            <div className="h-[260px]">
+          {chartsReady && topProductsData.length > 0 ? (
+            <div style={{ height: 260 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={topProductsData}
@@ -368,8 +378,8 @@ const Dashboard = () => {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-[260px] flex items-center justify-center text-slate-400 font-medium">
-              No sales data yet
+            <div style={{ height: 260 }} className="flex items-center justify-center text-slate-400 font-medium">
+              {!chartsReady ? null : "No sales data yet"}
             </div>
           )}
         </Card>

@@ -18,6 +18,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // ✅ Slug-based lookup for SEO-friendly URLs (no numeric ID exposure)
     Optional<Product> findBySlug(String slug);
 
+    // ✅ Fast uniqueness check — used by SlugUtil to guarantee no collisions
+    boolean existsBySlug(String slug);
+
     // ✅ Dashboard: count low-stock products
     long countByQuantityLessThan(int threshold);
 }

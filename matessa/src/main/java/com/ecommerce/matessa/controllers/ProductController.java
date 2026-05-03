@@ -17,9 +17,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.ecommerce.matessa.util.SlugUtil;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 
@@ -30,6 +35,8 @@ public class ProductController {
     private ProductService productService;
     @Autowired
     private ProductRepository productRepository;
+    @Autowired
+    private SlugUtil slugUtil;
 
     @PostMapping("/admin/categories/{categoryId}/product")
     public ResponseEntity<ProductDTO> addProduct(@PathVariable Long categoryId, @Valid @RequestBody ProductDTO productDTO) {
@@ -132,11 +139,53 @@ public class ProductController {
         return new ResponseEntity<>(productDTO, HttpStatus.OK);
     }
 
-    // ✅ NEW: Get Single Product By Slug (SEO-friendly, no numeric ID exposure)
+    // ✅ NEW: Get Single Product By Slug — with numeric-ID fallback for legacy URLs
+    // If 'slug' is actually a number (e.g. product not yet migrated), fall back to ID lookup.
     @GetMapping("/public/products/slug/{slug}")
     public ResponseEntity<ProductDTO> getProductBySlug(@PathVariable String slug) {
-        ProductDTO productDTO = productService.getProductBySlug(slug);
+        ProductDTO productDTO;
+        if (slug.matches("\\d+")) {
+            // Legacy numeric ID — product hasn't been saved since slug migration
+            productDTO = productService.getProductById(Long.parseLong(slug));
+        } else {
+            productDTO = productService.getProductBySlug(slug);
+        }
         return new ResponseEntity<>(productDTO, HttpStatus.OK);
+    }
+
+    /**
+     * One-time admin utility: backfills slugs for all existing products that
+     * currently have slug = NULL.
+     *
+     * <p>Call once after deployment: POST /api/admin/products/backfill-slugs</p>
+     * <p>Safe to call multiple times — skips products that already have a slug.</p>
+     *
+     * <p>Secured by @PreAuthorize("hasRole('ADMIN')") at the Security config level.</p>
+     */
+    @PostMapping("/admin/products/backfill-slugs")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> backfillSlugs() {
+        List<Product> allProducts = productRepository.findAll();
+        int updated = 0;
+        int skipped = 0;
+
+        for (Product product : allProducts) {
+            if (product.getSlug() != null && !product.getSlug().isBlank()) {
+                skipped++;
+                continue; // Already has a slug — do not overwrite
+            }
+            String slug = slugUtil.generateUniqueSlug(product.getProductName(), null);
+            product.setSlug(slug);
+            productRepository.save(product);
+            updated++;
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "message",  "Slug backfill complete",
+                "updated",  updated,
+                "skipped",  skipped,
+                "total",    allProducts.size()
+        ));
     }
 
 }

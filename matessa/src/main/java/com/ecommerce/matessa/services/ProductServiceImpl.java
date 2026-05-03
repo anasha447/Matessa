@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 import  com.ecommerce.matessa.payLoad.ProductFlavorDTO;
+import com.ecommerce.matessa.util.SlugUtil;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +48,9 @@ public class ProductServiceImpl implements ProductService {
 
     @Autowired
     private CartItemRepository cartItemRepository;
+
+    @Autowired
+    private SlugUtil slugUtil;
 
     @Value("${project.image:images/}")
     private String path;
@@ -96,6 +100,11 @@ public class ProductServiceImpl implements ProductService {
         if (product.getFlavors() != null) {
             product.getFlavors().forEach(flavor -> flavor.setProduct(product));
         }
+
+        // Generate unique, SEO-friendly slug before persisting
+        // SlugUtil handles duplicates by appending a random 4-digit suffix
+        String uniqueSlug = slugUtil.generateUniqueSlug(product.getProductName(), null);
+        product.setSlug(uniqueSlug);
 
         Product savedProduct = productRepository.save(product);
         return modelMapper.map(savedProduct, ProductDTO.class);
@@ -202,11 +211,20 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(() -> new ResourceExceptionHandler("Product", "productId", productId));
 
         // 2. Update Core Fields
+        String oldName = productFromDb.getProductName();
         productFromDb.setProductName(productDTO.getProductName());
         productFromDb.setDescription(productDTO.getDescription());
         productFromDb.setPrice(productDTO.getPrice());
         productFromDb.setDiscount(productDTO.getDiscount());
         productFromDb.setQuantity(productDTO.getQuantity());
+
+        // Re-generate slug only if the product name actually changed
+        // Passing existingSlug avoids an unnecessary DB round-trip when name is unchanged
+        if (!oldName.equalsIgnoreCase(productDTO.getProductName())) {
+            String newSlug = slugUtil.generateUniqueSlug(
+                    productDTO.getProductName(), productFromDb.getSlug());
+            productFromDb.setSlug(newSlug);
+        }
 
         // ---------------------------------------------------------
         // 3. UPDATE VARIANTS (Weight Options)

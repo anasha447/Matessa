@@ -16,23 +16,31 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @Table(name = "products")
-@ToString(exclude = {"products", "variants", "flavors"}) // Prevent infinite loops in logs
+@ToString(exclude = {"products", "variants", "flavors"})
 public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long productId;
 
+    /**
+     * SEO-friendly URL slug, e.g. "premium-yerba-mate-500g".
+     *
+     * Rules:
+     * - Generated and guaranteed unique by {@link com.ecommerce.matessa.util.SlugUtil}
+     *   inside the Service layer BEFORE every save.
+     * - NEVER generated here in the lifecycle hook (no DB access = no uniqueness check).
+     * - Column is UNIQUE — the DB is the final safety net.
+     */
     @Column(unique = true)
     private String slug;
 
     @NotBlank
-    @Size(min = 3, max = 50, message = "product name must be between 3 and 50 characters") // Increased max size
+    @Size(min = 3, max = 50, message = "product name must be between 3 and 50 characters")
     private String productName;
 
     @NotBlank
     @Size(min = 10, max = 4000, message = "product description must be between 10 and 2000 characters")
-
     @Column(length = 4000)
     private String description;
 
@@ -41,6 +49,7 @@ public class Product {
 
     @NotNull
     private Double price;
+
     @NotNull
     private Double discount;
 
@@ -52,27 +61,24 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
-    // ✅ NEW: Relationship to Weight Variants
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductVariant> variants = new ArrayList<>();
 
-    // ✅ NEW: Relationship to Flavors
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductFlavor> flavors = new ArrayList<>();
 
+    /**
+     * JPA lifecycle hook: only handles pure arithmetic (specialPrice).
+     *
+     * Slug is intentionally NOT set here — slug generation requires a uniqueness
+     * check against the DB, which is impossible inside a lifecycle callback.
+     * Slug is assigned by ProductServiceImpl via SlugUtil before every save().
+     */
     @PrePersist
     @PreUpdate
     public void onSave() {
-        // Auto-calculate special price
         if (price != null && discount != null) {
             this.specialPrice = price - ((discount * 0.01) * price);
-        }
-        // Auto-generate slug from product name
-        if (productName != null && !productName.isBlank()) {
-            this.slug = productName.toLowerCase()
-                    .replaceAll("[^a-z0-9\\s-]", "")  // remove special chars
-                    .trim()
-                    .replaceAll("\\s+", "-");            // spaces to hyphens
         }
     }
 
@@ -87,6 +93,6 @@ public class Product {
         if (images != null && !images.isEmpty()) {
             return images.get(0);
         }
-        return null; // Return null or a default placeholder string if you prefer
+        return null;
     }
 }
